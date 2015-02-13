@@ -7,8 +7,8 @@ use std::num::Float;
 
 fn main() {
 
-    for i in (0..10).map(|i| i as f64 / 9.0) {
-        let wave = sine_wave(i);
+    for phase in (0..10).map(|i| i as f64 / 9.0) {
+        let wave = sine_wave(phase);
 
         println!("Wave {}", wave);
 
