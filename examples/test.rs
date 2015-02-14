@@ -3,11 +3,12 @@
 extern crate sample;
 
 use sample::Sample;
+use std::iter::iterate;
 use std::num::Float;
 
 fn main() {
 
-    for phase in (0..10).map(|i| i as f64 / 9.0) {
+    for phase in iterate(0f64, |f| f + 0.03).take(50) {
         let wave = sine_wave(phase);
 
         println!("Wave {}", wave);
@@ -45,7 +46,6 @@ fn main() {
         assert!((wave_i8  - wave).abs() < headroom, "{}", wave_i8);
         assert!((wave_i16 - wave).abs() < headroom, "{}", wave_i16);
         assert!((wave_i32 - wave).abs() < headroom, "{}", wave_i32);
-
     }
 
 }

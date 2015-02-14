@@ -1,5 +1,13 @@
 [package]
 
 name = "sample"
-version = "0.0.1"
+description = "A crate for simplifying generic audio sample processing."
+version = "0.0.4"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "README.md"
+keywords = ["audio", "dsp", "bit", "depth", "sound"]
+license = "MIT"
+repository = "https://github.com/RustAudio/sample.git"
+homepage = "https://github.com/RustAudio/sample"
+
+
