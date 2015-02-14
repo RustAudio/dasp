@@ -73,15 +73,19 @@ impl Sample for f32 {
 
 // SIGNED INTEGERS.
 
+/// Slight headroom is needed between the max value for 32-bit integers due
+/// to resolution error when converting to and from 32-bit floating points.
+const RESOLUTION_HEADROOM_I32: i32 = 128;
+
 impl Sample for i32 {
     #[inline]
     fn from_wave(wave: Wave) -> i32 {
-        const MAX: Wave = ::std::i32::MAX as Wave;
+        const MAX: Wave = (::std::i32::MAX - RESOLUTION_HEADROOM_I32) as Wave;
         (MAX * wave) as i32
     }
     #[inline]
     fn to_wave(self) -> Wave {
-        const MAX: Wave = ::std::i32::MAX as Wave;
+        const MAX: Wave = (::std::i32::MAX - RESOLUTION_HEADROOM_I32) as Wave;
         self as Wave / MAX
     }
 }
@@ -114,15 +118,19 @@ impl Sample for i8 {
 
 // UNSIGNED INTEGERS.
 
+/// Slight headroom is needed between the max value for 32-bit unsigned integers due
+/// to resolution error when converting to and from 32-bit floating points.
+const RESOLUTION_HEADROOM_U32: u32 = 128;
+
 impl Sample for u32 {
     #[inline]
     fn from_wave(wave: Wave) -> u32 {
-        const HALF_MAX: Wave = (::std::u32::MAX / 2) as Wave;
+        const HALF_MAX: Wave = ((::std::u32::MAX - RESOLUTION_HEADROOM_U32) / 2) as Wave;
         (HALF_MAX + HALF_MAX * wave) as u32
     }
     #[inline]
     fn to_wave(self) -> Wave {
-        const MAX: Wave = ::std::u32::MAX as Wave;
+        const MAX: Wave = (::std::u32::MAX - RESOLUTION_HEADROOM_U32) as Wave;
         (self as Wave / MAX) * 2.0 - 1.0
     }
 }
