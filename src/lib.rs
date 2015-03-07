@@ -53,6 +53,22 @@ pub trait Sample:
     #[inline]
     fn zero() -> Self { ::std::default::Default::default() }
 
+    /// Sum the working buffer onto the output buffer after multiplying it by volume per channel.
+    #[inline]
+    fn add_buffers(output: &mut [Self], working: &[Self], vol_per_channel: &[Amplitude]) {
+        let channels = vol_per_channel.len();
+        let output_frames = output.chunks_mut(channels);
+        let working_frames = working.chunks(channels);
+        for (output_frame, working_frame) in output_frames.zip(working_frames) {
+            let output_channels = output_frame.iter_mut();
+            let working_channels = working_frame.iter();
+            let channel_vols = vol_per_channel.iter();
+            for ((o, w), vol) in output_channels.zip(working_channels).zip(channel_vols) {
+                *o = *o + w.mul_amp(*vol);
+            }
+        }
+    }
+
 }
 
 // FLOATING POINT NUMBERS.
