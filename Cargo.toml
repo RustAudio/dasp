@@ -2,7 +2,7 @@
 
 name = "sample"
 description = "A crate for simplifying generic audio sample processing."
-version = "0.0.4"
+version = "0.1.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 readme = "README.md"
 keywords = ["audio", "dsp", "bit", "depth", "sound"]
