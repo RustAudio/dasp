@@ -1,14 +1,21 @@
-#![feature(core)]
 
 extern crate sample;
 
 use sample::Sample;
-use std::iter::iterate;
-use std::num::Float;
+
+// NOTE: temporary replacement for unstable `std::iter::iterate`
+struct Iter {
+    value: f64,
+}
+impl Iterator for Iter {
+    type Item = f64;
+    fn next(&mut self) -> Option<f64> { self.value += 0.03; Some(self.value) }
+}
+
 
 fn main() {
 
-    for phase in iterate(0f64, |f| f + 0.03).take(50) {
+    for phase in (Iter { value: 0.0 }).take(50) {
         let wave = sine_wave(phase);
 
         println!("Wave {}", wave);
@@ -52,6 +59,6 @@ fn main() {
 
 /// Return a sine wave for the given phase.
 fn sine_wave<S: Sample>(phase: f64) -> S {
-    use std::f64::consts::PI_2;
-    Sample::from_wave((phase * PI_2).sin() as f32)
+    use std::f64::consts::PI;
+    Sample::from_wave((phase * PI * 2.0).sin() as f32)
 }

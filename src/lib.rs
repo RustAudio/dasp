@@ -10,6 +10,24 @@ pub type Wave = f32;
 /// Represents a Wave amplitude between 0.0 and 1.0.
 pub type Amplitude = f32;
 
+/// A dynamic representation of common Sample Formats.
+pub enum Format {
+    /// 32-bit floating point.
+    F32,
+    /// 32-bit integer.
+    I32,
+    /// 16-bit integer.
+    I16,
+    /// 8-bit integer.
+    I8,
+    /// 32-bit unsigned integer.
+    U32,
+    /// 16-bit unsigned integer.
+    U16,
+    /// 8-bit unsigned integer.
+    U8,
+}
+
 /// A trait for working generically across different sample types.
 pub trait Sample:
     Copy +
@@ -30,6 +48,15 @@ pub trait Sample:
 
     /// Convert to a wave sample between -1. and 1.
     fn to_wave(self) -> Wave;
+
+    /// Return the sample format as a method.
+    fn sample_format(&self) -> Format;
+
+    /// Return the format of the sample.
+    fn format<S: Sample>() -> Format {
+        let sample: S = ::std::default::Default::default();
+        sample.sample_format()
+    }
 
     /// Multiply by a given amplitude.
     #[inline]
@@ -73,18 +100,12 @@ pub trait Sample:
 
 // FLOATING POINT NUMBERS.
 
-impl Sample for f64 {
-    #[inline]
-    fn from_wave(wave: Wave) -> f64 { wave as f64 }
-    #[inline]
-    fn to_wave(self) -> Wave { self as f32 }
-}
-
 impl Sample for f32 {
     #[inline]
     fn from_wave(wave: Wave) -> f32 { wave }
     #[inline]
     fn to_wave(self) -> Wave { self }
+    fn sample_format(&self) -> Format { Format::F32 }
 }
 
 // SIGNED INTEGERS.
@@ -104,6 +125,7 @@ impl Sample for i32 {
         const MAX: Wave = (::std::i32::MAX - RESOLUTION_HEADROOM_I32) as Wave;
         self as Wave / MAX
     }
+    fn sample_format(&self) -> Format { Format::I32 }
 }
 
 impl Sample for i16 {
@@ -117,6 +139,7 @@ impl Sample for i16 {
         const MAX: Wave = ::std::i16::MAX as Wave;
         self as Wave / MAX
     }
+    fn sample_format(&self) -> Format { Format::I16 }
 }
 
 impl Sample for i8 {
@@ -130,6 +153,7 @@ impl Sample for i8 {
         const MAX: Wave = ::std::i8::MAX as Wave;
         self as Wave / MAX
     }
+    fn sample_format(&self) -> Format { Format::I8 }
 }
 
 // UNSIGNED INTEGERS.
@@ -149,6 +173,7 @@ impl Sample for u32 {
         const MAX: Wave = (::std::u32::MAX - RESOLUTION_HEADROOM_U32) as Wave;
         (self as Wave / MAX) * 2.0 - 1.0
     }
+    fn sample_format(&self) -> Format { Format::U32 }
 }
 
 impl Sample for u16 {
@@ -162,6 +187,7 @@ impl Sample for u16 {
         const MAX: Wave = ::std::u16::MAX as Wave;
         (self as Wave / MAX) * 2.0 - 1.0
     }
+    fn sample_format(&self) -> Format { Format::U16 }
 }
 
 impl Sample for u8 {
@@ -175,5 +201,6 @@ impl Sample for u8 {
         const MAX: Wave = ::std::u8::MAX as Wave;
         (self as Wave / MAX) * 2.0 - 1.0
     }
+    fn sample_format(&self) -> Format { Format::U8 }
 }
 
