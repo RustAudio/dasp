@@ -22,10 +22,26 @@ pub enum Format {
     I8,
     /// 32-bit unsigned integer.
     U32,
-    /// 16-bit unsigned integer.
+    /// 16-bit unsigned integer. 0 corresponds to half of ::std::u16::MAX.
     U16,
     /// 8-bit unsigned integer.
     U8,
+}
+
+impl Format {
+    /// Return the size in bytes for the Format.
+    pub fn size_in_bytes(&self) -> usize {
+        use std::mem::size_of;
+        match *self {
+            Format::F32 => size_of::<f32>(),
+            Format::I32 => size_of::<i32>(),
+            Format::I16 => size_of::<i16>(),
+            Format::I8  => size_of::<i8>(),
+            Format::U32 => size_of::<u32>(),
+            Format::U16 => size_of::<u16>(),
+            Format::U8  => size_of::<u8>(),
+        }
+    }
 }
 
 /// A trait for working generically across different sample types.
@@ -94,6 +110,12 @@ pub trait Sample:
                 *o = *o + w.mul_amp(*vol);
             }
         }
+    }
+
+    /// Zero a given buffer of samples.
+    #[inline]
+    fn zero_buffer(buffer: &mut [Self]) {
+        for sample in buffer.iter_mut() { *sample = Sample::zero() }
     }
 
 }
