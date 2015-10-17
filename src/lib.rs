@@ -1,11 +1,9 @@
-//! 
 //! sample
 //!
-//! A crate for simplifying generic audio sample processing. Use the Sample
-//! trait to remain generic across any audio bit-depth.
-//!
+//! A crate for simplifying generic audio sample processing. Use the **Sample** trait to remain
+//! generic across any audio bit-depth.
 
-/// Represents a sample from a Wave between -1.0 and 1.0.
+/// Represents a sample as a Wave between -1.0 and 1.0.
 pub type Wave = f32;
 /// Represents a Wave amplitude between 0.0 and 1.0.
 pub type Amplitude = f32;
@@ -96,18 +94,38 @@ pub trait Sample:
     #[inline]
     fn zero() -> Self { ::std::default::Default::default() }
 
-    /// Sum the working buffer onto the output buffer after multiplying it by volume per channel.
+    /// Sum the `to_add` buffer onto the `target` buffer.
     #[inline]
-    fn add_buffers(output: &mut [Self], working: &[Self], vol_per_channel: &[Amplitude]) {
-        assert!(output.len() == working.len(), "Buffer lengths do not match: {:?} and {:?}",
-                output.len(), working.len());
-        let channels = vol_per_channel.len();
-        let frames = output.len() / channels;
-        for i in 0..frames {
-            for j in 0..channels {
-                let idx = i * channels + j;
-                output[idx] = output[idx] + working[idx].mul_amp(vol_per_channel[j]);
+    fn add_buffer(target: &mut [Self], to_add: &[Self]) {
+        assert_eq!(target.len(), to_add.len());
+        add_buffer_unchecked(target, to_add);
+    }
+
+    /// Write the `to_write` buffer to the `target` buffer.
+    fn write_buffer(target: &mut [Self], to_write: &[Self]) {
+        assert_eq!(target.len(), to_write.len());
+        write_buffer_unchecked(target, to_write);
+    }
+
+    /// Sum the working buffer onto the output buffer after multiplying it by amplitude per channel.
+    #[inline]
+    fn add_buffer_with_amp_per_channel(target: &mut [Self],
+                                       to_add: &[Self],
+                                       amp_per_channel: &[Amplitude])
+    {
+        let num_samples = target.len();
+        assert_eq!(to_add.len(), num_samples);
+        let channels = amp_per_channel.len();
+        if channels > 0 {
+            let frames = num_samples / channels;
+            for i in 0..frames {
+                for j in 0..channels {
+                    let idx = i * channels + j;
+                    target[idx] = target[idx] + to_add[idx].mul_amp(amp_per_channel[j]);
+                }
             }
+        } else {
+            add_buffer_unchecked(target, to_add);
         }
     }
 
@@ -118,6 +136,25 @@ pub trait Sample:
     }
 
 }
+
+
+/// Sum the `to_add` buffer onto the `target` buffer without checking their lengths.
+#[inline]
+fn add_buffer_unchecked<S: Sample>(target: &mut [S], to_add: &[S]) {
+    for i in 0..target.len() {
+        target[i] = target[i] + to_add[i]
+    }
+}
+
+/// Write the `to_write` buffer to the `target` buffer without checking their lengths.
+#[inline]
+fn write_buffer_unchecked<S: Sample>(target: &mut [S], to_write: &[S]) {
+    for i in 0..target.len() {
+        target[i] = to_write[i]
+    }
+}
+
+
 
 // FLOATING POINT NUMBERS.
 
