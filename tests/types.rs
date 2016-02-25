@@ -55,6 +55,8 @@ macro_rules! test_type {
 
 test_type!(I11, i11);
 test_type!(U11, u11);
+test_type!(I20, i20);
+test_type!(U20, u20);
 test_type!(I24, i24);
 test_type!(U24, u24);
 test_type!(I48, i48);

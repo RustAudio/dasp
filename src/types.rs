@@ -101,11 +101,6 @@ macro_rules! new_sample_type {
                 $T(s)
             }
 
-            /// Returns a zeroed sample.
-            pub fn zero() -> Self {
-                $T(0)
-            }
-
             /// Return the internal value used to represent the sample type.
             #[inline]
             pub fn inner(self) -> $Rep {
