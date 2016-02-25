@@ -1,4 +1,8 @@
 
+pub use self::i11::I11;
+pub use self::u11::U11;
+pub use self::i20::I20;
+pub use self::u20::U20;
 pub use self::i24::I24;
 pub use self::u24::U24;
 pub use self::i48::I48;
@@ -29,12 +33,12 @@ macro_rules! impl_froms {
         impl_from!($T: $Rep from {$U: $URep});
         impl_froms!($T: $Rep, $($rest)*);
     };
+    ($T:ident: $Rep:ident, {$U:ident : $URep:ty}) => {
+        impl_from!($T: $Rep from {$U: $URep});
+    };
     ($T:ident: $Rep:ident, $U:ident, $($rest:tt)*) => {
         impl_from!($T: $Rep from $U);
         impl_froms!($T: $Rep, $($rest)*);
-    };
-    ($T:ident: $Rep:ident, {$U:ident : $URep:ty}) => {
-        impl_from!($T: $Rep from {$U: $URep});
     };
     ($T:ident: $Rep:ident, $U:ident) => {
         impl_from!($T: $Rep from $U);
@@ -247,27 +251,39 @@ pub mod u11 {
     impl_neg!(U11);
 }
 
+pub mod i20 {
+    use super::{I11, U11};
+    new_sample_type!(I20: i32, eq: 0, min: -524_288, max: 524_287, total: 1_048_576,
+                     from: i8, {I11:i16}, i16, u8, {U11:i16}, u16);
+}
+
+pub mod u20 {
+    new_sample_type!(U20: i32, eq: 524_288, min: 0, max: 1_048_575, total: 1_048_576,
+                     from: u8, u16);
+}
+
 pub mod i24 {
+    use super::{I20, U20};
     new_sample_type!(I24: i32, eq: 0, min: -8_388_608, max: 8_388_607, total: 16_777_216,
-                     from: i8, i16, u8, u16);
+                     from: i8, i16, {I20:i32}, u8, u16, {U20:i32});
     impl_neg!(I24);
 }
 
 pub mod u24 {
+    use super::U20;
     new_sample_type!(U24: i32, eq: 8_388_608, min: 0, max: 16_777_215, total: 16_777_216,
-                     from: u8, u16);
+                     from: u8, u16, {U20:i32});
 }
 
 pub mod i48 {
-    use super::i24::I24;
-    use super::u24::U24;
+    use super::{I20, I24, U20, U24};
     new_sample_type!(I48: i64, eq: 0, min: -140_737_488_355_328, max: 140_737_488_355_327, total: 281_474_976_710_656,
-                     from: i8, i16, {I24:i32}, i32, u8, u16, {U24:u32}, u32);
+                     from: i8, i16, {I20:i32}, {I24:i32}, i32, u8, u16, {U20:i32}, {U24:i32}, u32);
     impl_neg!(I48);
 }
 
 pub mod u48 {
-    use super::u24::U24;
+    use super::{U20, U24};
     new_sample_type!(U48: i64, eq: 140_737_488_355_328, min: 0, max: 281_474_976_710_655, total: 281_474_976_710_656,
-                     from: u8, u16, {U24:u32}, u32);
+                     from: u8, u16, {U20:i32}, {U24:i32}, u32);
 }
