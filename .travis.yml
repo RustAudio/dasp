@@ -7,4 +7,5 @@ os:
 script:
     - cargo build -v
     - cargo test -v
+    - cargo test --release -v
     - cargo doc -v

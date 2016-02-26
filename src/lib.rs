@@ -3,262 +3,213 @@
 //! A crate for simplifying generic audio sample processing. Use the **Sample** trait to remain
 //! generic across any audio bit-depth.
 
-/// Represents a sample as a Wave between -1.0 and 1.0.
-pub type Wave = f32;
-/// Represents a Wave amplitude between 0.0 and 1.0.
-pub type Amplitude = f32;
+pub use types::{I24, U24, I48, U48};
 
-/// A dynamic representation of common Sample Formats.
-pub enum Format {
-    /// 32-bit floating point.
-    F32,
-    /// 32-bit integer.
-    I32,
-    /// 16-bit integer.
-    I16,
-    /// 8-bit integer.
-    I8,
-    /// 32-bit unsigned integer.
-    U32,
-    /// 16-bit unsigned integer. 0 corresponds to half of ::std::u16::MAX.
-    U16,
-    /// 8-bit unsigned integer.
-    U8,
+pub mod buffer;
+pub mod conv;
+pub mod types;
+
+
+/// Similar to the std `From` trait, but specifically for converting between sample types.
+///
+/// We use this trait to be generic over the `Sample::to_sample` and `Sample::from_sample` methods.
+pub trait FromSample<S> {
+    fn from_sample_(s: S) -> Self;
 }
 
-impl Format {
-    /// Return the size in bytes for the Format.
-    pub fn size_in_bytes(&self) -> usize {
-        use std::mem::size_of;
-        match *self {
-            Format::F32 => size_of::<f32>(),
-            Format::I32 => size_of::<i32>(),
-            Format::I16 => size_of::<i16>(),
-            Format::I8  => size_of::<i8>(),
-            Format::U32 => size_of::<u32>(),
-            Format::U16 => size_of::<u16>(),
-            Format::U8  => size_of::<u8>(),
-        }
+impl<S> FromSample<S> for S {
+    #[inline]
+    fn from_sample_(s: S) -> Self {
+        s
     }
 }
 
-/// A trait for working generically across different sample types.
-pub trait Sample:
-    Copy +
-    Clone +
-    ::std::default::Default +
-    ::std::fmt::Debug +
-    PartialOrd +
-    PartialEq +
-    ::std::ops::Add<Output=Self> +
-    ::std::ops::Sub<Output=Self> +
-    ::std::ops::Mul<Output=Self> +
-    ::std::ops::Div<Output=Self> +
-    ::std::ops::Rem<Output=Self> +
-{
-
-    /// Construct a sample from a wave sample between -1. and 1.
-    fn from_wave(Wave) -> Self;
-
-    /// Convert to a wave sample between -1. and 1.
-    fn to_wave(self) -> Wave;
-
-    /// Return the sample format as a method.
-    fn sample_format(&self) -> Format;
-
-    /// Return the format of the sample.
-    fn format<S: Sample>() -> Format {
-        let sample: S = ::std::default::Default::default();
-        sample.sample_format()
-    }
-
-    /// Multiply by a given amplitude.
-    #[inline]
-    fn mul_amp(self, amp: f32) -> Self {
-        Sample::from_wave(self.to_wave() * amp)
-    }
-
-    /// Construct a sample from an arbitrary Sample type.
-    #[inline]
-    fn from_sample<S: Sample>(sample: S) -> Self {
-        Sample::from_wave(sample.to_wave())
-    }
-
-    /// Construct an arbitrary sample type from a sample of this Self type.
-    #[inline]
-    fn to_sample<S: Sample>(self) -> S {
-        Sample::from_wave(self.to_wave())
-    }
-
-    /// A silent sample.
-    #[inline]
-    fn zero() -> Self { ::std::default::Default::default() }
-
-    /// Sum the `to_add` buffer onto the `target` buffer.
-    #[inline]
-    fn add_buffer(target: &mut [Self], to_add: &[Self]) {
-        assert_eq!(target.len(), to_add.len());
-        add_buffer_unchecked(target, to_add);
-    }
-
-    /// Write the `to_write` buffer to the `target` buffer.
-    fn write_buffer(target: &mut [Self], to_write: &[Self]) {
-        assert_eq!(target.len(), to_write.len());
-        write_buffer_unchecked(target, to_write);
-    }
-
-    /// Sum the working buffer onto the output buffer after multiplying it by amplitude per channel.
-    #[inline]
-    fn add_buffer_with_amp_per_channel(target: &mut [Self],
-                                       to_add: &[Self],
-                                       amp_per_channel: &[Amplitude])
-    {
-        let num_samples = target.len();
-        assert_eq!(to_add.len(), num_samples);
-        let channels = amp_per_channel.len();
-        if channels > 0 {
-            let frames = num_samples / channels;
-            for i in 0..frames {
-                for j in 0..channels {
-                    let idx = i * channels + j;
-                    target[idx] = target[idx] + to_add[idx].mul_amp(amp_per_channel[j]);
+/// Implement the `FromSample` trait for the given types.
+macro_rules! impl_from_sample {
+    ($T:ty, $fn_name:ident from $({$U:ident: $Umod:ident})*) => {
+        $(
+            impl FromSample<$U> for $T {
+                #[inline]
+                fn from_sample_(s: $U) -> Self {
+                    conv::$Umod::$fn_name(s)
                 }
             }
-        } else {
-            add_buffer_unchecked(target, to_add);
-        }
+        )*
+    };
+}
+
+impl_from_sample!{i8, to_i8 from
+    {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i16, to_i16 from
+    {i8:i8} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{I24, to_i24 from
+    {i8:i8} {i16:i16} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i32, to_i32 from
+    {i8:i8} {i16:i16} {I24:i24} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{I48, to_i48 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i64, to_i64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u8, to_u8 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u16, to_u16 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{U24, to_u24 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u32, to_u32 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{U48, to_u48 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u64, to_u64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{f32, to_f32 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f64:f64}
+}
+
+impl_from_sample!{f64, to_f64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32}
+}
+
+/// Similar to the std `Into` trait, but specifically for converting between sample types.
+///
+/// This trait has a blanket implementation for all types that implement
+/// [`FromSample`](./trait.FromSample.html).
+pub trait ToSample<S> {
+    fn to_sample_(self) -> S;
+}
+
+impl<T, U> ToSample<U> for T
+    where U: FromSample<T>
+{
+    #[inline]
+    fn to_sample_(self) -> U {
+        U::from_sample_(self)
+    }
+}
+
+/// Sample types which may be converted to and from some type `S`.
+pub trait Duplex<S>: FromSample<S> + ToSample<S> {}
+impl<S, T> Duplex<S> for T where T: FromSample<S> + ToSample<S> {}
+
+/// A trait for working generically across different sample types.
+///
+/// The trait may only be implemented for types that may be converted between any of the 
+///
+/// Provides methods for converting to and from any type that implements the
+/// [`FromSample`](./trait.FromSample.html) trait.
+pub trait Sample: Copy
+    + Clone
+    + ::std::fmt::Debug
+    + PartialOrd
+    + PartialEq
+    + ::std::ops::Add<Output=Self>
+    + ::std::ops::Sub<Output=Self>
+    + ::std::ops::Mul<Output=Self>
+    + ::std::ops::Div<Output=Self>
+    + ::std::ops::Rem<Output=Self>
+{
+
+    /// Convert `self` to any type that implements `FromSample`.
+    #[inline]
+    fn to_sample<S>(self) -> S
+        where Self: ToSample<S>,
+    {
+        self.to_sample_()
     }
 
-    /// Zero a given buffer of samples.
+    /// Create a `Self` from any type that implements `ToSample`.
     #[inline]
-    fn zero_buffer(buffer: &mut [Self]) {
-        for sample in buffer.iter_mut() { *sample = Sample::zero() }
+    fn from_sample<S>(s: S) -> Self
+        where Self: FromSample<S>,
+    {
+        FromSample::from_sample_(s)
     }
+
+    /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
+    /// value that is equal distance from both the min and max ranges of the sample.
+    ///
+    /// **NOTE:** This will likely be changed to an "associated const" if the feature lands.
+    fn equilibrium() -> Self;
 
 }
 
-
-/// Sum the `to_add` buffer onto the `target` buffer without checking their lengths.
-#[inline]
-fn add_buffer_unchecked<S: Sample>(target: &mut [S], to_add: &[S]) {
-    for i in 0..target.len() {
-        target[i] = target[i] + to_add[i]
+macro_rules! impl_sample {
+    ($($T:ty: $equilibrium:expr),*) => {
+        $(
+            impl Sample for $T {
+                fn equilibrium() -> Self {
+                    $equilibrium
+                }
+            }
+        )*
     }
 }
 
-/// Write the `to_write` buffer to the `target` buffer without checking their lengths.
-#[inline]
-fn write_buffer_unchecked<S: Sample>(target: &mut [S], to_write: &[S]) {
-    for i in 0..target.len() {
-        target[i] = to_write[i]
-    }
+impl_sample!{
+    i8: 0,
+    i16: 0,
+    I24: types::i24::EQUILIBRIUM,
+    i32: 0,
+    I48: types::i48::EQUILIBRIUM,
+    i64: 0,
+    u8: 128,
+    u16: 32_768,
+    U24: types::u24::EQUILIBRIUM,
+    u32: 2_147_483_648,
+    U48: types::u48::EQUILIBRIUM,
+    u64: 9_223_372_036_854_775_808,
+    f32: 0.0,
+    f64: 0.0
 }
-
-
-
-// FLOATING POINT NUMBERS.
-
-impl Sample for f32 {
-    #[inline]
-    fn from_wave(wave: Wave) -> f32 { wave }
-    #[inline]
-    fn to_wave(self) -> Wave { self }
-    fn sample_format(&self) -> Format { Format::F32 }
-}
-
-// SIGNED INTEGERS.
-
-/// Slight headroom is needed between the max value for 32-bit integers due
-/// to resolution error when converting to and from 32-bit floating points.
-const RESOLUTION_HEADROOM_I32: i32 = 128;
-
-impl Sample for i32 {
-    #[inline]
-    fn from_wave(wave: Wave) -> i32 {
-        const MAX: Wave = (::std::i32::MAX - RESOLUTION_HEADROOM_I32) as Wave;
-        (MAX * wave) as i32
-    }
-    #[inline]
-    fn to_wave(self) -> Wave {
-        const MAX: Wave = (::std::i32::MAX - RESOLUTION_HEADROOM_I32) as Wave;
-        self as Wave / MAX
-    }
-    fn sample_format(&self) -> Format { Format::I32 }
-}
-
-impl Sample for i16 {
-    #[inline]
-    fn from_wave(wave: Wave) -> i16 {
-        const MAX: Wave = ::std::i16::MAX as Wave;
-        (MAX * wave) as i16
-    }
-    #[inline]
-    fn to_wave(self) -> Wave {
-        const MAX: Wave = ::std::i16::MAX as Wave;
-        self as Wave / MAX
-    }
-    fn sample_format(&self) -> Format { Format::I16 }
-}
-
-impl Sample for i8 {
-    #[inline]
-    fn from_wave(wave: Wave) -> i8 {
-        const MAX: Wave = ::std::i8::MAX as Wave;
-        (MAX * wave) as i8
-    }
-    #[inline]
-    fn to_wave(self) -> Wave {
-        const MAX: Wave = ::std::i8::MAX as Wave;
-        self as Wave / MAX
-    }
-    fn sample_format(&self) -> Format { Format::I8 }
-}
-
-// UNSIGNED INTEGERS.
-
-/// Slight headroom is needed between the max value for 32-bit unsigned integers due
-/// to resolution error when converting to and from 32-bit floating points.
-const RESOLUTION_HEADROOM_U32: u32 = 128;
-
-impl Sample for u32 {
-    #[inline]
-    fn from_wave(wave: Wave) -> u32 {
-        const HALF_MAX: Wave = ((::std::u32::MAX - RESOLUTION_HEADROOM_U32) / 2) as Wave;
-        (HALF_MAX + HALF_MAX * wave) as u32
-    }
-    #[inline]
-    fn to_wave(self) -> Wave {
-        const MAX: Wave = (::std::u32::MAX - RESOLUTION_HEADROOM_U32) as Wave;
-        (self as Wave / MAX) * 2.0 - 1.0
-    }
-    fn sample_format(&self) -> Format { Format::U32 }
-}
-
-impl Sample for u16 {
-    #[inline]
-    fn from_wave(wave: Wave) -> u16 {
-        const HALF_MAX: Wave = (::std::u16::MAX / 2) as Wave;
-        (HALF_MAX + HALF_MAX * wave) as u16
-    }
-    #[inline]
-    fn to_wave(self) -> Wave {
-        const MAX: Wave = ::std::u16::MAX as Wave;
-        (self as Wave / MAX) * 2.0 - 1.0
-    }
-    fn sample_format(&self) -> Format { Format::U16 }
-}
-
-impl Sample for u8 {
-    #[inline]
-    fn from_wave(wave: Wave) -> u8 {
-        const HALF_MAX: Wave = (::std::u8::MAX / 2) as Wave;
-        (HALF_MAX + HALF_MAX * wave) as u8
-    }
-    #[inline]
-    fn to_wave(self) -> Wave {
-        const MAX: Wave = ::std::u8::MAX as Wave;
-        (self as Wave / MAX) * 2.0 - 1.0
-    }
-    fn sample_format(&self) -> Format { Format::U8 }
-}
-

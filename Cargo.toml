@@ -1,11 +1,11 @@
 [package]
 
 name = "sample"
-description = "A crate for simplifying generic audio sample processing."
-version = "0.2.0"
+description = "A crate for simplifying generic pulse code modulation digital signal processing. Use the `Sample` trait to convert between and remain generic over bit-depth."
+version = "0.3.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 readme = "README.md"
-keywords = ["audio", "dsp", "bit", "depth", "sound"]
-license = "MIT"
+keywords = ["dsp", "bit", "depth", "pcm", "audio"]
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustAudio/sample.git"
 homepage = "https://github.com/RustAudio/sample"
