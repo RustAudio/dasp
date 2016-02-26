@@ -1,6 +1,6 @@
 //! This module provides various helper functions for performing operations on slices of samples.
 
-use {FromSample, Sample};
+use {Duplex, Sample};
 
 /// Mutate every element in the buffer with the given function.
 #[inline]
@@ -56,8 +56,7 @@ pub fn add<S>(a: &mut [S], b: &[S])
 /// Sum buffer `b` onto buffer `a` after multiplying it by the amplitude per channel.
 #[inline]
 pub fn add_with_amp_per_channel<S>(a: &mut [S], b: &[S], amp_per_channel: &[f32])
-    where S: Sample + FromSample<f32>,
-          f32: FromSample<S>,
+    where S: Sample + Duplex<f32>,
 {
     let n_samples = a.len();
     let n_channels = amp_per_channel.len();

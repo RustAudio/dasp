@@ -14,12 +14,12 @@ pub mod types;
 ///
 /// We use this trait to be generic over the `Sample::to_sample` and `Sample::from_sample` methods.
 pub trait FromSample<S> {
-    fn from_sample(s: S) -> Self;
+    fn from_sample_(s: S) -> Self;
 }
 
 impl<S> FromSample<S> for S {
     #[inline]
-    fn from_sample(s: S) -> Self {
+    fn from_sample_(s: S) -> Self {
         s
     }
 }
@@ -30,7 +30,7 @@ macro_rules! impl_from_sample {
         $(
             impl FromSample<$U> for $T {
                 #[inline]
-                fn from_sample(s: $U) -> Self {
+                fn from_sample_(s: $U) -> Self {
                     conv::$Umod::$fn_name(s)
                 }
             }
@@ -127,42 +127,46 @@ impl_from_sample!{f64, to_f64 from
 /// This trait has a blanket implementation for all types that implement
 /// [`FromSample`](./trait.FromSample.html).
 pub trait ToSample<S> {
-    fn to_sample(self) -> S;
+    fn to_sample_(self) -> S;
 }
 
 impl<T, U> ToSample<U> for T
     where U: FromSample<T>
 {
     #[inline]
-    fn to_sample(self) -> U {
-        U::from_sample(self)
+    fn to_sample_(self) -> U {
+        U::from_sample_(self)
     }
 }
 
+/// Sample types which may be converted to and from some type `S`.
+pub trait Duplex<S>: FromSample<S> + ToSample<S> {}
+impl<S, T> Duplex<S> for T where T: FromSample<S> + ToSample<S> {}
 
 /// A trait for working generically across different sample types.
 ///
+/// The trait may only be implemented for types that may be converted between any of the 
+///
 /// Provides methods for converting to and from any type that implements the
 /// [`FromSample`](./trait.FromSample.html) trait.
-pub trait Sample:
-    Copy +
-    Clone +
-    ::std::default::Default +
-    ::std::fmt::Debug +
-    PartialOrd +
-    PartialEq +
-    ::std::ops::Add<Output=Self> +
-    ::std::ops::Sub<Output=Self> +
-    ::std::ops::Mul<Output=Self> +
-    ::std::ops::Div<Output=Self> +
-    ::std::ops::Rem<Output=Self> +
+pub trait Sample: Copy
+    + Clone
+    + ::std::fmt::Debug
+    + PartialOrd
+    + PartialEq
+    + ::std::ops::Add<Output=Self>
+    + ::std::ops::Sub<Output=Self>
+    + ::std::ops::Mul<Output=Self>
+    + ::std::ops::Div<Output=Self>
+    + ::std::ops::Rem<Output=Self>
 {
+
     /// Convert `self` to any type that implements `FromSample`.
     #[inline]
     fn to_sample<S>(self) -> S
-        where S: FromSample<Self>,
+        where Self: ToSample<S>,
     {
-        FromSample::from_sample(self)
+        self.to_sample_()
     }
 
     /// Create a `Self` from any type that implements `ToSample`.
@@ -170,7 +174,7 @@ pub trait Sample:
     fn from_sample<S>(s: S) -> Self
         where Self: FromSample<S>,
     {
-        FromSample::from_sample(s)
+        FromSample::from_sample_(s)
     }
 
     /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
@@ -178,6 +182,7 @@ pub trait Sample:
     ///
     /// **NOTE:** This will likely be changed to an "associated const" if the feature lands.
     fn equilibrium() -> Self;
+
 }
 
 macro_rules! impl_sample {
