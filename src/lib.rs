@@ -7,6 +7,7 @@ pub use types::{I24, U24, I48, U48};
 
 pub mod buffer;
 pub mod conv;
+pub mod frame;
 pub mod types;
 
 
