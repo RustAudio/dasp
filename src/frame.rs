@@ -1,6 +1,10 @@
 use {Amplitude, Duplex, Sample};
 use std;
 
+
+pub type Mono<S> = [S; 1];
+pub type Stereo<S> = [S; 2];
+
 /// Represents one sample from each channel at a single discrete instance in time within a
 /// PCM signal.
 ///
@@ -21,6 +25,22 @@ pub trait Frame: Copy
     /// value that is equal distance from both the min and max ranges of the sample.
     ///
     /// **NOTE:** This will likely be changed to an "associated const" if the feature lands.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Frame;
+    /// use sample::frame::{Mono, Stereo};
+    ///
+    /// fn main() {
+    ///     assert_eq!(Mono::<f32>::equilibrium(), [0.0]);
+    ///     assert_eq!(Stereo::<f32>::equilibrium(), [0.0, 0.0]);
+    ///     assert_eq!(<[f32; 3]>::equilibrium(), [0.0, 0.0, 0.0]);
+    ///     assert_eq!(<[u8; 2]>::equilibrium(), [128u8, 128]);
+    /// }
+    /// ```
     fn equilibrium() -> Self;
 
     /// Create a new `Self` where the `Sample` for each channel is produced by the given function.
@@ -43,6 +63,20 @@ pub trait Frame: Copy
 
     /// Applies the given function to each sample in the `Frame` in channel order and returns the
     /// result as a new `Frame`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{Frame, Sample};
+    ///
+    /// fn main() {
+    ///     let foo = [0i16, 0];
+    ///     let bar: [u8; 2] = foo.map(Sample::to_sample);
+    ///     assert_eq!(bar, [128u8, 128]);
+    /// }
+    /// ```
     fn map<F, M>(self, map: M) -> F
         where F: Frame<NumChannels=Self::NumChannels>,
               M: FnMut(Self::Sample) -> F::Sample;
@@ -64,6 +98,18 @@ pub trait Frame: Copy
     /// - A < 1.0 attenuates the sample.
     /// - A == 1.0 yields the same sample.
     /// - A == 0.0 yields the `Sample::equilibrium`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Frame;
+    ///
+    /// fn main() {
+    ///     assert_eq!([0.1, 0.2, -0.1, -0.2].scale_amplitude(2.0), [0.2, 0.4, -0.2, -0.4]);
+    /// }
+    /// ```
     #[inline]
     fn scale_amplitude<A>(self, amplitude: A) -> Self
         where Self::Sample: Duplex<A>,
@@ -79,9 +125,6 @@ pub trait Frame: Copy
     }
 
 }
-
-pub type Mono<S> = [S; 1];
-pub type Stereo<S> = [S; 2];
 
 /// An iterator that yields the sample for each channel in the frame by value.
 #[derive(Clone, Debug)]
