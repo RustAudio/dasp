@@ -1,5 +1,5 @@
-//! Pure functions for converting between i8, i16, I24, i32, I48, i64, u8, u16, U24, u32, U48, u64,
-//! f32 and f64.
+//! Pure functions and traits for converting between i8, i16, I24, i32, I48, i64, u8, u16, U24,
+//! u32, U48, u64, f32 and f64.
 //!
 //! Each conversion function is performance focused, memory-sensitive and expects that the user has
 //! validated their input prior to the function call.
@@ -9,6 +9,8 @@
 //!
 //! The conversion functions do *not* check the range of incoming values for floating point values
 //! or any of the custom `I24`, `U24`, `I48` and `U48` types.
+
+use types::{I24, U24, I48, U48};
 
 
 macro_rules! conversion_fn {
@@ -560,3 +562,137 @@ conversions!(f64, f64 {
     s to_u64 { super::i64::to_u64(to_i64(s)) }
     s to_f32 { s as f32 }
 });
+
+
+/// Similar to the std `From` trait, but specifically for converting between sample types.
+///
+/// We use this trait to be generic over the `Sample::to_sample` and `Sample::from_sample` methods.
+pub trait FromSample<S> {
+    fn from_sample_(s: S) -> Self;
+}
+
+impl<S> FromSample<S> for S {
+    #[inline]
+    fn from_sample_(s: S) -> Self {
+        s
+    }
+}
+
+/// Implement the `FromSample` trait for the given types.
+macro_rules! impl_from_sample {
+    ($T:ty, $fn_name:ident from $({$U:ident: $Umod:ident})*) => {
+        $(
+            impl FromSample<$U> for $T {
+                #[inline]
+                fn from_sample_(s: $U) -> Self {
+                    self::$Umod::$fn_name(s)
+                }
+            }
+        )*
+    };
+}
+
+impl_from_sample!{i8, to_i8 from
+    {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i16, to_i16 from
+    {i8:i8} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{I24, to_i24 from
+    {i8:i8} {i16:i16} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i32, to_i32 from
+    {i8:i8} {i16:i16} {I24:i24} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{I48, to_i48 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i64, to_i64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u8, to_u8 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u16, to_u16 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{U24, to_u24 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u32, to_u32 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{U48, to_u48 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u64, to_u64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{f32, to_f32 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f64:f64}
+}
+
+impl_from_sample!{f64, to_f64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32}
+}
+
+/// Similar to the std `Into` trait, but specifically for converting between sample types.
+///
+/// This trait has a blanket implementation for all types that implement
+/// [`FromSample`](./trait.FromSample.html).
+pub trait ToSample<S> {
+    fn to_sample_(self) -> S;
+}
+
+impl<T, U> ToSample<U> for T
+    where U: FromSample<T>
+{
+    #[inline]
+    fn to_sample_(self) -> U {
+        U::from_sample_(self)
+    }
+}
+
+/// Sample types which may be converted to and from some type `S`.
+pub trait Duplex<S>: FromSample<S> + ToSample<S> {}
+impl<S, T> Duplex<S> for T where T: FromSample<S> + ToSample<S> {}
