@@ -1,12 +1,12 @@
 //! This module provides various helper functions for performing operations on slices of samples.
 
-use {Duplex, Sample};
+use {Duplex, Frame, Sample};
 
 /// Mutate every element in the buffer with the given function.
 #[inline]
-pub fn map_in_place<S, F>(a: &mut [S], mut map: F)
-    where F: FnMut(S) -> S,
-          S: Sample,
+pub fn map_in_place<F, M>(a: &mut [F], mut map: M)
+    where M: FnMut(F) -> F,
+          F: Frame,
 {
     for i in 0..a.len() {
         a[i] = map(a[i]);
@@ -14,10 +14,10 @@ pub fn map_in_place<S, F>(a: &mut [S], mut map: F)
 }
 
 /// Sets the buffer of samples at the `Sample`'s equilibrium value.
-pub fn equilibrium<S>(a: &mut [S])
-    where S: Sample,
+pub fn equilibrium<F>(a: &mut [F])
+    where F: Frame,
 {
-    map_in_place(a, |_| S::equilibrium())
+    map_in_place(a, |_| F::equilibrium())
 }
 
 /// Mutate every element in buffer `a` while reading from each element from buffer `b` in lock-step
@@ -25,33 +25,46 @@ pub fn equilibrium<S>(a: &mut [S])
 ///
 /// **Panics** if the length of `b` is not equal to the length of `a`.
 #[inline]
-pub fn map_in_place_with<S, F>(a: &mut [S], b: &[S], map_with: F)
-    where F: FnMut(S, S) -> S,
-          S: Sample,
+pub fn zip_map_in_place<F, M>(a: &mut [F], b: &[F], zip_map: M)
+    where M: FnMut(F, F) -> F,
+          F: Frame,
 {
     assert_eq!(a.len(), b.len());
-    unchecked_map_in_place_with(a, b, map_with);
+    unchecked_zip_map_in_place(a, b, zip_map);
 }
 
 /// Writes every sample in buffer `b` to buffer `a`.
 ///
 /// **Panics** if the buffer lengths differ.
 #[inline]
-pub fn write<S>(a: &mut [S], b: &[S])
-    where S: Sample,
+pub fn write<F>(a: &mut [F], b: &[F])
+    where F: Frame,
 {
     assert_eq!(a.len(), b.len());
-    unchecked_map_in_place_with(a, b, |_, b| b);
+    unchecked_zip_map_in_place(a, b, |_, b| b);
 }
 
 /// Adds every sample in buffer `b` to every sample in buffer `a` respectively.
 #[inline]
-pub fn add<S>(a: &mut [S], b: &[S])
-    where S: Sample,
+pub fn add<F>(a: &mut [F], b: &[F])
+    where F: Frame,
 {
     assert_eq!(a.len(), b.len());
-    unchecked_map_in_place_with(a, b, |a, b| a + b);
+    unchecked_zip_map_in_place(a, b, |a, b| a.add(b));
 }
+
+// /// Sum buffer `b` onto buffer `a` after multiplying it by the amplitude per channel.
+// #[inline]
+// pub fn add_with_amp_per_channel<F, A>(a: &mut [F], b: &[F], amp_per_channel: A)
+//     where F: Frame,
+//           A: Frame<Sample=f32, Channels=Frame::Channels> + Amplitude,
+// {
+//     let len = a.len();
+//     assert_eq!(len, b.len());
+//     for i in 0..len {
+//         a[i] = a[i].add(b.zip_map(amp_per_channel, 
+//     }
+// }
 
 /// Sum buffer `b` onto buffer `a` after multiplying it by the amplitude per channel.
 #[inline]
@@ -73,7 +86,7 @@ pub fn add_with_amp_per_channel<S>(a: &mut [S], b: &[S], amp_per_channel: &[f32]
         }
     } else {
         // If no amplitude per channel, simply add the buffers.
-        unchecked_map_in_place_with(a, b, |a, b| a + b);
+        unchecked_zip_map_in_place(a, b, |a, b| a + b);
     }
 }
 
@@ -83,11 +96,11 @@ pub fn add_with_amp_per_channel<S>(a: &mut [S], b: &[S], amp_per_channel: &[f32]
 /// This function does not check that the buffers are the same length and will panic on
 /// index-out-of-bounds .
 #[inline]
-fn unchecked_map_in_place_with<S, F>(a: &mut [S], b: &[S], mut map_with: F)
-    where F: FnMut(S, S) -> S,
-          S: Sample,
+fn unchecked_zip_map_in_place<F, M>(a: &mut [F], b: &[F], mut zip_map: M)
+    where M: FnMut(F, F) -> F,
+          F: Frame,
 {
     for i in 0..a.len() {
-        a[i] = map_with(a[i], b[i]);
+        a[i] = zip_map(a[i], b[i]);
     }
 }
