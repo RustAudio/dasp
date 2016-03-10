@@ -3,7 +3,14 @@
 //! A crate for simplifying generic audio sample processing. Use the **Sample** trait to remain
 //! generic across any audio bit-depth.
 
-pub use conv::{FromSample, ToSample, Duplex};
+pub use conv::{
+    FromSample, ToSample, Duplex,
+    FromSampleSlice, ToSampleSlice, DuplexSampleSlice,
+    FromSampleSliceMut, ToSampleSliceMut, DuplexSampleSliceMut,
+    FromFrameSlice, ToFrameSlice, DuplexFrameSlice,
+    FromFrameSliceMut, ToFrameSliceMut, DuplexFrameSliceMut,
+    DuplexSlice, DuplexSliceMut,
+};
 pub use frame::Frame;
 pub use types::{I24, U24, I48, U48};
 
