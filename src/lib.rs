@@ -12,11 +12,13 @@ pub use conv::{
     DuplexSlice, DuplexSliceMut,
 };
 pub use frame::Frame;
+pub use signal::Signal;
 pub use types::{I24, U24, I48, U48};
 
 pub mod buffer;
 pub mod conv;
 pub mod frame;
+pub mod signal;
 pub mod types;
 
 /// A trait for working generically across different sample types.
