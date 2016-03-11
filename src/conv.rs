@@ -1,5 +1,5 @@
-//! Pure functions for converting between i8, i16, I24, i32, I48, i64, u8, u16, U24, u32, U48, u64,
-//! f32 and f64.
+//! Pure functions and traits for converting between i8, i16, I24, i32, I48, i64, u8, u16, U24,
+//! u32, U48, u64, f32 and f64.
 //!
 //! Each conversion function is performance focused, memory-sensitive and expects that the user has
 //! validated their input prior to the function call.
@@ -9,6 +9,10 @@
 //!
 //! The conversion functions do *not* check the range of incoming values for floating point values
 //! or any of the custom `I24`, `U24`, `I48` and `U48` types.
+
+use {Frame, Sample};
+use std;
+use types::{I24, U24, I48, U48};
 
 
 macro_rules! conversion_fn {
@@ -560,3 +564,444 @@ conversions!(f64, f64 {
     s to_u64 { super::i64::to_u64(to_i64(s)) }
     s to_f32 { s as f32 }
 });
+
+
+/// Similar to the std `From` trait, but specifically for converting between sample types.
+///
+/// We use this trait to be generic over the `Sample::to_sample` and `Sample::from_sample` methods.
+pub trait FromSample<S> {
+    fn from_sample_(s: S) -> Self;
+}
+
+impl<S> FromSample<S> for S {
+    #[inline]
+    fn from_sample_(s: S) -> Self {
+        s
+    }
+}
+
+/// Implement the `FromSample` trait for the given types.
+macro_rules! impl_from_sample {
+    ($T:ty, $fn_name:ident from $({$U:ident: $Umod:ident})*) => {
+        $(
+            impl FromSample<$U> for $T {
+                #[inline]
+                fn from_sample_(s: $U) -> Self {
+                    self::$Umod::$fn_name(s)
+                }
+            }
+        )*
+    };
+}
+
+impl_from_sample!{i8, to_i8 from
+    {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i16, to_i16 from
+    {i8:i8} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{I24, to_i24 from
+    {i8:i8} {i16:i16} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i32, to_i32 from
+    {i8:i8} {i16:i16} {I24:i24} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{I48, to_i48 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{i64, to_i64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u8, to_u8 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u16, to_u16 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{U24, to_u24 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u32, to_u32 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {U48:u48} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{U48, to_u48 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {u64:u64}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{u64, to_u64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48}
+    {f32:f32} {f64:f64}
+}
+
+impl_from_sample!{f32, to_f32 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f64:f64}
+}
+
+impl_from_sample!{f64, to_f64 from
+    {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
+    {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
+    {f32:f32}
+}
+
+/// Similar to the std `Into` trait, but specifically for converting between sample types.
+///
+/// This trait has a blanket implementation for all types that implement
+/// [`FromSample`](./trait.FromSample.html).
+pub trait ToSample<S> {
+    fn to_sample_(self) -> S;
+}
+
+impl<T, U> ToSample<U> for T
+    where U: FromSample<T>
+{
+    #[inline]
+    fn to_sample_(self) -> U {
+        U::from_sample_(self)
+    }
+}
+
+/// Sample types which may be converted to and from some type `S`.
+pub trait Duplex<S>: FromSample<S> + ToSample<S> {}
+impl<S, T> Duplex<S> for T where T: FromSample<S> + ToSample<S> {}
+
+
+///// DSP Slice Conversion Traits
+
+
+/// For converting from a slice of `Sample`s to a slice of `Frame`s.
+pub trait FromSampleSlice<'a, S>: Sized
+    where S: Sample,
+{
+    fn from_sample_slice(slice: &'a [S]) -> Option<Self>;
+}
+
+/// For converting from a mutable slice of `Sample`s to a mutable slice of `Frame`s.
+pub trait FromSampleSliceMut<'a, S>: Sized
+    where S: Sample,
+{
+    fn from_sample_slice_mut(slice: &'a mut [S]) -> Option<Self>;
+}
+
+/// For converting from a slice of `Frame`s to a slice of `Sample`s.
+pub trait FromFrameSlice<'a, F>
+    where F: Frame,
+{
+    fn from_frame_slice(slice: &'a [F]) -> Self;
+}
+
+/// For converting from a slice of `Frame`s to a slice of `Sample`s.
+pub trait FromFrameSliceMut<'a, F>
+    where F: Frame,
+{
+    fn from_frame_slice_mut(slice: &'a mut [F]) -> Self;
+}
+
+/// For converting from a slice of `Frame`s to a slice of `Sample`s.
+pub trait ToSampleSlice<'a, S>
+    where S: Sample,
+{
+    fn to_sample_slice(self) -> &'a [S];
+}
+
+/// For converting from a mutable slice of `Frame`s to a mutable slice of `Sample`s.
+pub trait ToSampleSliceMut<'a, S>
+    where S: Sample,
+{
+    fn to_sample_slice_mut(self) -> &'a mut [S];
+}
+
+/// For converting from a slice of `Sample`s to a slice of `Frame`s.
+pub trait ToFrameSlice<'a, F>
+    where F: Frame,
+{
+    fn to_frame_slice(self) -> Option<&'a [F]>;
+}
+
+/// For converting from a mutable slice of `Sample`s to a mutable slice of `Frame`s.
+pub trait ToFrameSliceMut<'a, F>
+    where F: Frame,
+{
+    fn to_frame_slice_mut(self) -> Option<&'a mut [F]>;
+}
+
+
+///// DSP Slice Conversion Trait Implementations
+
+
+impl<'a, S> FromSampleSlice<'a, S> for &'a [S]
+    where S: Sample,
+{
+    #[inline]
+    fn from_sample_slice(slice: &'a [S]) -> Option<Self> {
+        Some(slice)
+    }
+}
+
+impl<'a, S> FromSampleSliceMut<'a, S> for &'a mut [S]
+    where S: Sample,
+{
+    #[inline]
+    fn from_sample_slice_mut(slice: &'a mut [S]) -> Option<Self> {
+        Some(slice)
+    }
+}
+
+impl<'a, F> FromFrameSlice<'a, F> for &'a [F]
+    where F: Frame,
+{
+    #[inline]
+    fn from_frame_slice(slice: &'a [F]) -> Self {
+        slice
+    }
+}
+
+impl<'a, F> FromFrameSliceMut<'a, F> for &'a mut [F]
+    where F: Frame,
+{
+    #[inline]
+    fn from_frame_slice_mut(slice: &'a mut [F]) -> Self {
+        slice
+    }
+}
+
+impl<'a, S> ToSampleSlice<'a, S> for &'a [S]
+    where S: Sample,
+{
+    #[inline]
+    fn to_sample_slice(self) -> &'a [S] {
+        self
+    }
+}
+
+impl<'a, S> ToSampleSliceMut<'a, S> for &'a mut [S]
+    where S: Sample,
+{
+    #[inline]
+    fn to_sample_slice_mut(self) -> &'a mut [S] {
+        self
+    }
+}
+
+impl<'a, F> ToFrameSlice<'a, F> for &'a [F]
+    where F: Frame,
+{
+    #[inline]
+    fn to_frame_slice(self) -> Option<&'a [F]> {
+        Some(self)
+    }
+}
+
+impl<'a, F> ToFrameSliceMut<'a, F> for &'a mut [F]
+    where F: Frame,
+{
+    #[inline]
+    fn to_frame_slice_mut(self) -> Option<&'a mut [F]> {
+        Some(self)
+    }
+}
+
+/// A macro for implementing all audio slice conversion traits for each fixed-size array.
+macro_rules! impl_from_slice_conversions {
+    ($($N:expr)*) => {
+        $(
+
+            impl<'a, S> FromSampleSlice<'a, S> for &'a [[S; $N]]
+                where S: Sample,
+                      [S; $N]: Frame,
+            {
+                #[inline]
+                fn from_sample_slice(slice: &'a [S]) -> Option<Self> {
+                    let len = slice.len();
+                    if len % $N == 0 {
+                        let new_len = len / $N;
+                        let ptr = slice.as_ptr() as *const _;
+                        let new_slice = unsafe {
+                            std::slice::from_raw_parts(ptr, new_len)
+                        };
+                        Some(new_slice)
+                    } else {
+                        None
+                    }
+                }
+            }
+
+            impl<'a, S> FromSampleSliceMut<'a, S> for &'a mut [[S; $N]]
+                where S: Sample,
+                      [S; $N]: Frame,
+            {
+                #[inline]
+                fn from_sample_slice_mut(slice: &'a mut [S]) -> Option<Self> {
+                    let len = slice.len();
+                    if len % $N == 0 {
+                        let new_len = len / $N;
+                        let ptr = slice.as_ptr() as *mut _;
+                        let new_slice = unsafe {
+                            std::slice::from_raw_parts_mut(ptr, new_len)
+                        };
+                        Some(new_slice)
+                    } else {
+                        None
+                    }
+                }
+            }
+
+            impl<'a, S> FromFrameSlice<'a, [S; $N]> for &'a [S]
+                where [S; $N]: Frame,
+            {
+                #[inline]
+                fn from_frame_slice(slice: &'a [[S; $N]]) -> Self {
+                    let new_len = slice.len() * $N;
+                    let ptr = slice.as_ptr() as *const _;
+                    unsafe {
+                        std::slice::from_raw_parts(ptr, new_len)
+                    }
+                }
+            }
+
+            impl<'a, S> FromFrameSliceMut<'a, [S; $N]> for &'a mut [S]
+                where [S; $N]: Frame,
+            {
+                #[inline]
+                fn from_frame_slice_mut(slice: &'a mut [[S; $N]]) -> Self {
+                    let new_len = slice.len() * $N;
+                    let ptr = slice.as_ptr() as *mut _;
+                    unsafe {
+                        std::slice::from_raw_parts_mut(ptr, new_len)
+                    }
+                }
+            }
+
+            impl<'a, S> ToSampleSlice<'a, S> for &'a [[S; $N]]
+                where S: Sample,
+            {
+                #[inline]
+                fn to_sample_slice(self) -> &'a [S] {
+                    FromFrameSlice::from_frame_slice(self)
+                }
+            }
+
+            impl<'a, S> ToSampleSliceMut<'a, S> for &'a mut [[S; $N]]
+                where S: Sample,
+            {
+                #[inline]
+                fn to_sample_slice_mut(self) -> &'a mut [S] {
+                    FromFrameSliceMut::from_frame_slice_mut(self)
+                }
+            }
+
+            impl<'a, S> ToFrameSlice<'a, [S; $N]> for &'a [S]
+                where S: Sample,
+                      [S; $N]: Frame,
+            {
+                #[inline]
+                fn to_frame_slice(self) -> Option<&'a [[S; $N]]> {
+                    FromSampleSlice::from_sample_slice(self)
+                }
+            }
+
+            impl<'a, S> ToFrameSliceMut<'a, [S; $N]> for &'a mut [S]
+                where S: Sample,
+                      [S; $N]: Frame,
+            {
+                #[inline]
+                fn to_frame_slice_mut(self) -> Option<&'a mut [[S; $N]]> {
+                    FromSampleSliceMut::from_sample_slice_mut(self)
+                }
+            }
+
+        )*
+    };
+}
+
+impl_from_slice_conversions! {
+    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
+}
+
+
+///// Bi-Directional DSP Slice Conversion Traits
+
+
+pub trait DuplexSampleSlice<'a, S>: FromSampleSlice<'a, S> + ToSampleSlice<'a, S>
+    where S: Sample {}
+
+pub trait DuplexFrameSlice<'a, F>: FromFrameSlice<'a, F> + ToFrameSlice<'a, F>
+    where F: Frame {}
+
+pub trait DuplexSlice<'a, S, F>: DuplexSampleSlice<'a, S> + DuplexFrameSlice<'a, F>
+    where S: Sample,
+          F: Frame<Sample=S> {}
+
+pub trait DuplexSampleSliceMut<'a, S>: FromSampleSliceMut<'a, S> + ToSampleSliceMut<'a, S>
+    where S: Sample {}
+
+pub trait DuplexFrameSliceMut<'a, F>: FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F>
+    where F: Frame {}
+
+pub trait DuplexSliceMut<'a, S, F>: DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F>
+    where S: Sample,
+          F: Frame<Sample=S> {}
+
+
+///// Bi-Directional DSP Slice Conversion Trait Implementations
+
+
+impl<'a, S, T> DuplexSampleSlice<'a, S> for T
+    where S: Sample,
+          T: FromSampleSlice<'a, S> + ToSampleSlice<'a, S> {}
+
+impl<'a, F, T> DuplexFrameSlice<'a, F> for T
+    where F: Frame,
+          T: FromFrameSlice<'a, F> + ToFrameSlice<'a, F> {}
+
+impl<'a, S, F, T> DuplexSlice<'a, S, F> for T
+    where S: Sample,
+          F: Frame<Sample=S>,
+          T: DuplexSampleSlice<'a, S> + DuplexFrameSlice<'a, F> {}
+
+impl<'a, S, T> DuplexSampleSliceMut<'a, S> for T
+    where S: Sample,
+          T: FromSampleSliceMut<'a, S> + ToSampleSliceMut<'a, S> {}
+
+impl<'a, F, T> DuplexFrameSliceMut<'a, F> for T
+    where F: Frame,
+          T: FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F> {}
+
+impl<'a, S, F, T> DuplexSliceMut<'a, S, F> for T
+    where S: Sample,
+          F: Frame<Sample=S>,
+          T: DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F> {}

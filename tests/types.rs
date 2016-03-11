@@ -61,3 +61,15 @@ test_type!(I24, i24);
 test_type!(U24, u24);
 test_type!(I48, i48);
 test_type!(U48, u48);
+
+
+#[test]
+fn test_readme() {
+    use sample::{I24, Sample};
+
+    assert_eq!((-1.0).to_sample::<u8>(), 0);
+    assert_eq!(0.0.to_sample::<u8>(), 128);
+    assert_eq!(0i32.to_sample::<u32>(), 2_147_483_648);
+    assert_eq!(I24::new(0).unwrap(), Sample::from_sample(0.0));
+    assert_eq!(0.0, Sample::equilibrium());
+}
