@@ -7,7 +7,13 @@ impl<I> Signal for I
     where I: Iterator,
           I::Item: Frame, {}
 
-/// An extension over `Iterator`s that yield `Frame`s.
+/// A trait that allows us to treat `Iterator`s that yield `Frame`s as a multi-channel PCM signal.
+///
+/// For example, `Signal` allows us to add two signals, modulate a signal's amplitude by another
+/// signal, scale a signals amplitude and much more.
+///
+/// `Signal` has a blanked implementation for all `Iterator`s whose `Item` associated types
+/// implement `Frame`.
 pub trait Signal: Iterator + Sized
     where <Self as Iterator>::Item: Frame,
 {
@@ -29,8 +35,8 @@ pub trait Signal: Iterator + Sized
     /// Produces an `Iterator` that modulates the amplitude of `self` with `other` where `other` is
     /// some `Signal` yielding `Frame`s with `Sample`s that implement `Amplitude` (f32 or f64).
     ///
-    /// The `Iterator` steps them forward in lockstep, multiplies the amplitude of each pair of
-    /// `Frame`s together and yields the resulting `Frame`s.
+    /// The `Iterator` steps both signals forward in lockstep, multiplies the amplitude of each
+    /// pair of `Frame`s together and yields the resulting `Frame`s.
     ///
     /// The `Iterator` will return `None` when either of the `Signal`s first yields `None`.
     #[inline]
