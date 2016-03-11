@@ -44,8 +44,10 @@ pub trait Frame: Copy
     fn equilibrium() -> Self;
 
     /// Create a new `Self` where the `Sample` for each channel is produced by the given function.
+    ///
+    /// The given function should map each channel index to its respective sample.
     fn from_fn<F>(from: F) -> Self
-        where F: FnMut() -> Self::Sample;
+        where F: FnMut(usize) -> Self::Sample;
 
     /// The total number of channels (and in turn samples) stored within the frame.
     fn n_channels() -> usize;
@@ -197,9 +199,9 @@ macro_rules! impl_frame {
 
                 #[inline]
                 fn from_fn<F>(mut from: F) -> Self
-                    where F: FnMut() -> S,
+                    where F: FnMut(usize) -> S,
                 {
-                    [$( { $idx; from() }, )*]
+                    [$(from($idx), )*]
                 }
 
                 #[inline(always)]
@@ -212,18 +214,14 @@ macro_rules! impl_frame {
                     where F: Frame<NumChannels=Self::NumChannels>,
                           M: FnMut(Self::Sample) -> F::Sample,
                 {
-                    let mut channel_idx = 0;
-                    F::from_fn(|| {
+                    F::from_fn(|channel_idx| {
 
                         // Here we do not require run-time bounds checking as we have asserted that
                         // the two arrays have the same number of channels at compile time with our
                         // where clause, i.e.
                         //
                         // `F: Frame<NumChannels=Self::NumChannels>`
-                        let sample = unsafe { map(*self.channel_unchecked(channel_idx)) };
-
-                        channel_idx += 1;
-                        sample
+                        unsafe { map(*self.channel_unchecked(channel_idx)) }
                     })
                 }
 
@@ -233,8 +231,7 @@ macro_rules! impl_frame {
                           F: Frame<NumChannels=Self::NumChannels>,
                           M: FnMut(Self::Sample, O::Sample) -> F::Sample
                 {
-                    let mut channel_idx = 0;
-                    F::from_fn(|| {
+                    F::from_fn(|channel_idx| {
 
                         // Here we do not require run-time bounds checking as we have asserted that the two
                         // arrays have the same number of channels at compile time with our where clause, i.e.
@@ -243,13 +240,10 @@ macro_rules! impl_frame {
                         // O: Frame<NumChannels=Self::NumChannels>
                         // F: Frame<NumChannels=Self::NumChannels>
                         // ```
-                        let sample = unsafe {
+                        unsafe {
                             zip_map(*self.channel_unchecked(channel_idx),
                                     *other.channel_unchecked(channel_idx))
-                        };
-
-                        channel_idx += 1;
-                        sample
+                        }
                     })
                 }
 
