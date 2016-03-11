@@ -1,4 +1,4 @@
-use {Amplitude, Duplex, Sample};
+use {Sample, FloatSample, SelectFloat};
 use std;
 
 
@@ -109,21 +109,41 @@ pub trait Frame: Copy
     /// use sample::Frame;
     ///
     /// fn main() {
-    ///     assert_eq!([0.1, 0.2, -0.1, -0.2].scale_amplitude(2.0), [0.2, 0.4, -0.2, -0.4]);
+    ///     assert_eq!([0.1, 0.2, -0.1, -0.2].scale_amp(2.0), [0.2, 0.4, -0.2, -0.4]);
     /// }
     /// ```
     #[inline]
-    fn scale_amplitude<A>(self, amplitude: A) -> Self
-        where Self::Sample: Duplex<A>,
-              A: Amplitude,
+    fn scale_amp<F>(self, amp: F) -> Self
+        where F: FloatSample,
+              Self::Sample: SelectFloat<F>,
     {
-        self.map(|s| s.scale_amplitude(amplitude))
+        self.map(|s| s.scale_amp(amp))
+    }
+
+    /// Offsets the amplitude of every channel in the frame by some sample value and yields the
+    /// resulting frame.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Frame;
+    ///
+    /// fn main() {
+    ///     assert_eq!([0.25, -0.5].offset_amp(0.5), [0.75, 0.0]);
+    ///     assert_eq!([0.5, -0.25].offset_amp(-0.25), [0.25, -0.5]);
+    /// }
+    /// ```
+    #[inline]
+    fn offset_amp(self, offset: Self::Sample) -> Self {
+        self.map(|s| s.add_sample(offset))
     }
 
     /// Sums `other` with `self` and returns the resulting `Frame`.
     #[inline]
-    fn add(self, other: Self) -> Self {
-        self.zip_map(other, std::ops::Add::add)
+    fn add_frame(self, other: Self) -> Self {
+        self.zip_map(other, Sample::add_sample)
     }
 
 }
@@ -248,19 +268,18 @@ macro_rules! impl_frame {
                 }
 
                 #[inline]
-                fn add(self, other: Self) -> Self {
-                    [$(self[$idx] + other[$idx], )*]
+                fn add_frame(self, other: Self) -> Self {
+                    [$(self[$idx].add_sample(other[$idx]), )*]
                 }
 
                 #[inline]
-                fn scale_amplitude<A>(self, amplitude: A) -> Self
-                    where Self::Sample: Duplex<A>,
-                          A: Amplitude,
+                fn scale_amp<F>(self, amplitude: F) -> Self
+                    where F: FloatSample,
+                          S: SelectFloat<F>,
                 {
-                    [$(
-                        (self[$idx].to_sample::<A>() * amplitude).to_sample(),
-                    )*]
+                    [$(self[$idx].scale_amp(amplitude), )*]
                 }
+
             }
         )*
     };

@@ -1,7 +1,7 @@
 //! This module provides various helper functions for performing operations on slices of frames.
 
 use {
-    Amplitude, Duplex, Frame, Sample,
+    Frame, Sample, FloatSample, SelectFloat,
     ToSampleSlice, ToSampleSliceMut, ToFrameSlice, ToFrameSliceMut,
     FromSampleSlice, FromSampleSliceMut, FromFrameSlice, FromFrameSliceMut,
 };
@@ -264,7 +264,7 @@ pub fn write<F>(a: &mut [F], b: &[F])
 pub fn add_in_place<F>(a: &mut [F], b: &[F])
     where F: Frame,
 {
-    zip_map_in_place(a, b, |a, b| a.add(b));
+    zip_map_in_place(a, b, |a, b| a.add_frame(b));
 }
 
 /// Scale the amplitude of each frame in `b` by `amp_per_channel` before summing it onto `a`.
@@ -272,10 +272,10 @@ pub fn add_in_place<F>(a: &mut [F], b: &[F])
 pub fn add_in_place_with_amp_per_channel<F, A>(a: &mut [F], b: &[F], amp_per_channel: A)
     where F: Frame,
           A: Frame<NumChannels=F::NumChannels>,
-          A::Sample: Amplitude,
-          F::Sample: Duplex<A::Sample>,
+          F::Sample: SelectFloat<A::Sample>,
+          A::Sample: FloatSample,
 {
-    zip_map_in_place(a, b, |af, bf| af.add(bf.zip_map(amp_per_channel, Sample::scale_amplitude)));
+    zip_map_in_place(a, b, |af, bf| af.add_frame(bf.zip_map(amp_per_channel, Sample::scale_amp)));
 }
 
 /// Mutate every element in buffer `a` while reading from each element from buffer `b` in lock-step
