@@ -1,7 +1,7 @@
 //! This module provides various helper functions for performing operations on slices of frames.
 
 use {
-    Amplitude, Duplex, Frame, Sample,
+    Frame, Sample,
     ToSampleSlice, ToSampleSliceMut, ToFrameSlice, ToFrameSliceMut,
     FromSampleSlice, FromSampleSliceMut, FromFrameSlice, FromFrameSliceMut,
 };
@@ -26,11 +26,11 @@ use {
 ///
 /// fn main() {
 ///     let foo = &[0.0, 0.5, 0.0, -0.5][..];
-///     let bar = sample::buffer::to_frame_slice(foo);
+///     let bar = sample::slice::to_frame_slice(foo);
 ///     assert_eq!(bar, Some(&[[0.0, 0.5], [0.0, -0.5]][..]));
 ///
 ///     let foo = &[0.0, 0.5, 0.0][..];
-///     let bar = sample::buffer::to_frame_slice(foo);
+///     let bar = sample::slice::to_frame_slice(foo);
 ///     assert_eq!(bar, None::<&[[f32; 2]]>);
 /// }
 /// ```
@@ -55,11 +55,11 @@ pub fn to_frame_slice<'a, T, F>(slice: T) -> Option<&'a [F]>
 ///
 /// fn main() {
 ///     let foo = &mut [0.0, 0.5, 0.0, -0.5][..];
-///     let bar = sample::buffer::to_frame_slice_mut(foo);
+///     let bar = sample::slice::to_frame_slice_mut(foo);
 ///     assert_eq!(bar, Some(&mut [[0.0, 0.5], [0.0, -0.5]][..]));
 ///
 ///     let foo = &mut [0.0, 0.5, 0.0][..];
-///     let bar = sample::buffer::to_frame_slice_mut(foo);
+///     let bar = sample::slice::to_frame_slice_mut(foo);
 ///     assert_eq!(bar, None::<&mut [[f32; 2]]>);
 /// }
 /// ```
@@ -81,7 +81,7 @@ pub fn to_frame_slice_mut<'a, T, F>(slice: T) -> Option<&'a mut [F]>
 ///
 /// fn main() {
 ///     let foo = &[[0.0, 0.5], [0.0, -0.5]][..];
-///     let bar = sample::buffer::to_sample_slice(foo);
+///     let bar = sample::slice::to_sample_slice(foo);
 ///     assert_eq!(bar, &[0.0, 0.5, 0.0, -0.5][..]);
 /// }
 /// ```
@@ -103,7 +103,7 @@ pub fn to_sample_slice<'a, T, S>(slice: T) -> &'a [S]
 ///
 /// fn main() {
 ///     let foo = &mut [[0.0, 0.5], [0.0, -0.5]][..];
-///     let bar = sample::buffer::to_sample_slice_mut(foo);
+///     let bar = sample::slice::to_sample_slice_mut(foo);
 ///     assert_eq!(bar, &mut [0.0, 0.5, 0.0, -0.5][..]);
 /// }
 /// ```
@@ -128,7 +128,7 @@ pub fn to_sample_slice_mut<'a, T, S>(slice: T) -> &'a mut [S]
 ///
 /// fn main() {
 ///     let foo = &[0.0, 0.5, 0.0, -0.5][..];
-///     let bar: Option<&_> = sample::buffer::from_sample_slice(foo);
+///     let bar: Option<&_> = sample::slice::from_sample_slice(foo);
 ///     assert_eq!(bar, Some(&[[0.0, 0.5], [0.0, -0.5]][..]));
 /// }
 /// ```
@@ -153,7 +153,7 @@ pub fn from_sample_slice<'a, T, S>(slice: &'a [S]) -> Option<T>
 ///
 /// fn main() {
 ///     let foo = &mut [0.0, 0.5, 0.0, -0.5][..];
-///     let bar: Option<&mut _> = sample::buffer::from_sample_slice_mut(foo);
+///     let bar: Option<&mut _> = sample::slice::from_sample_slice_mut(foo);
 ///     assert_eq!(bar, Some(&mut [[0.0, 0.5], [0.0, -0.5]][..]));
 /// }
 /// ```
@@ -175,7 +175,7 @@ pub fn from_sample_slice_mut<'a, T, S>(slice: &'a mut [S]) -> Option<T>
 ///
 /// fn main() {
 ///     let foo = &[[0.0, 0.5], [0.0, -0.5]][..];
-///     let bar: &[f32] = sample::buffer::from_frame_slice(foo);
+///     let bar: &[f32] = sample::slice::from_frame_slice(foo);
 ///     assert_eq!(bar, &[0.0, 0.5, 0.0, -0.5][..]);
 /// }
 /// ```
@@ -197,7 +197,7 @@ pub fn from_frame_slice<'a, T, F>(slice: &'a [F]) -> T
 ///
 /// fn main() {
 ///     let foo = &mut [[0.0, 0.5], [0.0, -0.5]][..];
-///     let bar: &mut [f32] = sample::buffer::from_frame_slice_mut(foo);
+///     let bar: &mut [f32] = sample::slice::from_frame_slice_mut(foo);
 ///     assert_eq!(bar, &mut [0.0, 0.5, 0.0, -0.5][..]);
 /// }
 /// ```
@@ -212,7 +212,7 @@ pub fn from_frame_slice_mut<'a, T, F>(slice: &'a mut [F]) -> T
 ///// Utility Functions
 
 
-/// Mutate every element in the buffer with the given function.
+/// Mutate every element in the slice with the given function.
 #[inline]
 pub fn map_in_place<F, M>(a: &mut [F], mut map: M)
     where M: FnMut(F) -> F,
@@ -223,7 +223,7 @@ pub fn map_in_place<F, M>(a: &mut [F], mut map: M)
     }
 }
 
-/// Sets the buffer of samples at the `Sample`'s equilibrium value.
+/// Sets the slice of frames at the associated `Sample`'s equilibrium value.
 #[inline]
 pub fn equilibrium<F>(a: &mut [F])
     where F: Frame,
@@ -231,8 +231,8 @@ pub fn equilibrium<F>(a: &mut [F])
     map_in_place(a, |_| F::equilibrium())
 }
 
-/// Mutate every element in buffer `a` while reading from each element from buffer `b` in lock-step
-/// using the given function.
+/// Mutate every frame in slice `a` while reading from each frame in slice `b` in lock-step using
+/// the given function.
 ///
 /// **Panics** if the length of `b` is not equal to the length of `a`.
 #[inline]
@@ -249,9 +249,9 @@ pub fn zip_map_in_place<FA, FB, M>(a: &mut [FA], b: &[FB], zip_map: M)
     }
 }
 
-/// Writes every sample in buffer `b` to buffer `a`.
+/// Writes every sample in slice `b` to slice `a`.
 ///
-/// **Panics** if the buffer lengths differ.
+/// **Panics** if the slice lengths differ.
 #[inline]
 pub fn write<F>(a: &mut [F], b: &[F])
     where F: Frame,
@@ -259,30 +259,30 @@ pub fn write<F>(a: &mut [F], b: &[F])
     zip_map_in_place(a, b, |_, b| b);
 }
 
-/// Adds every sample in buffer `b` to every sample in buffer `a` respectively.
+/// Adds every sample in slice `b` to every sample in slice `a` respectively.
 #[inline]
-pub fn add_in_place<F>(a: &mut [F], b: &[F])
-    where F: Frame,
+pub fn add_in_place<FA, FB>(a: &mut [FA], b: &[FB])
+    where FA: Frame,
+          FB: Frame<Sample=<FA::Sample as Sample>::Signed, NumChannels=FA::NumChannels>,
 {
-    zip_map_in_place(a, b, |a, b| a.add(b));
+    zip_map_in_place(a, b, |a, b| a.add_amp(b));
 }
 
 /// Scale the amplitude of each frame in `b` by `amp_per_channel` before summing it onto `a`.
 #[inline]
-pub fn add_in_place_with_amp_per_channel<F, A>(a: &mut [F], b: &[F], amp_per_channel: A)
-    where F: Frame,
-          A: Frame<NumChannels=F::NumChannels>,
-          A::Sample: Amplitude,
-          F::Sample: Duplex<A::Sample>,
+pub fn add_in_place_with_amp_per_channel<FA, FB, A>(a: &mut [FA], b: &[FB], amp_per_channel: A)
+    where FA: Frame,
+          FB: Frame<Sample=<FA::Sample as Sample>::Signed, NumChannels=FA::NumChannels>,
+          A: Frame<Sample=<FB::Sample as Sample>::Float, NumChannels=FB::NumChannels>,
 {
-    zip_map_in_place(a, b, |af, bf| af.add(bf.zip_map(amp_per_channel, Sample::scale_amplitude)));
+    zip_map_in_place(a, b, |af, bf| af.add_amp(bf.mul_amp(amp_per_channel)));
 }
 
-/// Mutate every element in buffer `a` while reading from each element from buffer `b` in lock-step
+/// Mutate every element in slice `a` while reading from each element from slice `b` in lock-step
 /// using the given function.
 ///
-/// This function does not check that the buffers are the same length and will panic on
-/// index-out-of-bounds .
+/// This function does not check that the slices are the same length and will crash horrifically on
+/// index-out-of-bounds.
 #[inline]
 unsafe fn zip_map_in_place_unchecked<FA, FB, M>(a: &mut [FA], b: &[FB], mut zip_map: M)
     where FA: Frame,
