@@ -1,7 +1,13 @@
-//! sample
+//! # sample
 //!
-//! A crate for simplifying generic audio sample processing. Use the **Sample** trait to remain
-//! generic across any audio bit-depth.
+//! A crate of fundamentals for audio PCM DSP.
+//!
+//! - Use the **Sample** trait to remain generic across bit-depth.
+//! - Use the **Frame** trait to remain generic over channel layout.
+//! - Use the **Signal** trait for working with **Iterators** that yield **Frames**.
+//! - Use the **slice** module for working with slices of **Samples** and **Frames**.
+//! - Use the **conv** module for fast conversions between slices, frames and samples.
+//! - See the **types** module for provided custom sample types.
 
 #![recursion_limit="512"]
 
@@ -17,7 +23,7 @@ pub use frame::Frame;
 pub use signal::Signal;
 pub use types::{I24, U24, I48, U48};
 
-pub mod buffer;
+pub mod slice;
 pub mod conv;
 pub mod frame;
 pub mod signal;
@@ -29,12 +35,8 @@ pub mod types;
 ///
 /// Provides methods for converting to and from any type that implements the
 /// [`FromSample`](./trait.FromSample.html) trait.
-pub trait Sample: Copy
-    + Clone
-    + std::fmt::Debug
-    + PartialOrd
-    + PartialEq
-{
+pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
+
     /// When summing two samples of a signal together, it is necessary for both samples to be
     /// represented in some signed format. This associated `Addition` type represents the format to
     /// which `Self` should be converted for optimal `Addition` performance.
@@ -67,10 +69,39 @@ pub trait Sample: Copy
     /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
     /// value that is equal distance from both the min and max ranges of the sample.
     ///
-    /// **NOTE:** This will likely be changed to an "associated const" if the feature lands.
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Sample;
+    ///
+    /// fn main() {
+    ///     assert_eq!(0.0, f32::equilibrium());
+    ///     assert_eq!(0, i32::equilibrium());
+    ///     assert_eq!(128, u8::equilibrium());
+    ///     assert_eq!(32_768_u16, Sample::equilibrium());
+    /// }
+    /// ```
+    ///
+    /// **Note:** This will likely be changed to an "associated const" if the feature lands.
     fn equilibrium() -> Self;
 
     /// Convert `self` to any type that implements `FromSample<Self>`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Sample;
+    ///
+    /// fn main() {
+    ///     assert_eq!(0.0.to_sample::<i32>(), 0);
+    ///     assert_eq!(0.0.to_sample::<u8>(), 128);
+    ///     assert_eq!((-1.0).to_sample::<u8>(), 0);
+    /// }
+    /// ```
     #[inline]
     fn to_sample<S>(self) -> S
         where Self: ToSample<S>,
@@ -79,6 +110,19 @@ pub trait Sample: Copy
     }
 
     /// Create a `Self` from any type that implements `ToSample<Self>`.
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{Sample, I24};
+    ///
+    /// fn main() {
+    ///     assert_eq!(f32::from_sample(128_u8), 0.0);
+    ///     assert_eq!(i8::from_sample(-1.0), -128);
+    ///     assert_eq!(I24::from_sample(0.0), I24::new(0).unwrap());
+    /// }
+    /// ```
     #[inline]
     fn from_sample<S>(s: S) -> Self
         where Self: FromSample<S>,
@@ -86,35 +130,63 @@ pub trait Sample: Copy
         FromSample::from_sample_(s)
     }
 
-    /// Sums the sample `other` from some signal onto the carrier signal `self`.
+    /// Adds (or "offsets") the amplitude of the `Sample` by the given signed amplitude.
+    ///
+    /// `Self` will be converted to `Self::Signed`, the addition will occur and then the result
+    /// will be converted back to `Self`. These conversions allow us to correctly handle the
+    /// addition of unsigned signal formats.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Sample;
+    ///
+    /// fn main() {
+    ///     assert_eq!(0.25.add_amp(0.5), 0.75);
+    ///     assert_eq!(192u8.add_amp(-128), 64);
+    /// }
+    /// ```
     #[inline]
-    fn add_sample<S>(self, other: S) -> Self
-        where S: Sample,
-              Self: SelectSigned<S>,
-    {
-        let self_s: <Self as SelectSigned<S>>::Sample = self.to_sample();
-        let other_s: <Self as SelectSigned<S>>::Sample = other.to_sample();
-        (self_s + other_s).to_sample::<Self>()
+    fn add_amp(self, amp: Self::Signed) -> Self {
+        let self_s: Self::Signed = self.to_sample();
+        (self_s + amp).to_sample()
     }
 
-    /// Multiplies the `Sample` by the given amplitude (either `f32` or `f64`).
+    /// Multiplies (or "scales") the amplitude of the `Sample` by the given float amplitude.
     ///
-    /// - A > 1.0 amplifies the sample.
-    /// - A < 1.0 attenuates the sample.
-    /// - A == 1.0 yields the same sample.
-    /// - A == 0.0 yields the `Sample::equilibrium`.
+    /// - `amp` > 1.0 amplifies the sample.
+    /// - `amp` < 1.0 attenuates the sample.
+    /// - `amp` == 1.0 yields the same sample.
+    /// - `amp` == 0.0 yields the `Sample::equilibrium`.
+    ///
+    /// `Self` will be converted to `Self::Float`, the multiplication will occur and then the
+    /// result will be converted back to `Self`. These conversions allow us to correctly handle the
+    /// multiplication of integral signal formats.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Sample;
+    ///
+    /// fn main() {
+    ///     assert_eq!(64_i8.mul_amp(0.5), 32);
+    ///     assert_eq!(0.5.mul_amp(-2.0), -1.0);
+    ///     assert_eq!(64_u8.mul_amp(0.0), 128);
+    /// }
+    /// ```
     #[inline]
-    fn scale_amp<F>(self, amp: F) -> Self
-        where F: FloatSample,
-              Self: SelectFloat<F>,
-    {
-        let self_f: <Self as SelectFloat<F>>::Sample = self.to_sample();
-        let amp_f: <Self as SelectFloat<F>>::Sample = amp.to_sample();
-        (self_f * amp_f).to_sample::<Self>()
+    fn mul_amp(self, amp: Self::Float) -> Self {
+        let self_f: Self::Float = self.to_sample();
+        (self_f * amp).to_sample()
     }
 
 }
 
+/// A macro used to simplify the implementation of `Sample`.
 macro_rules! impl_sample {
     ($($T:ty:
        Signed: $Addition:ty,
@@ -125,6 +197,7 @@ macro_rules! impl_sample {
             impl Sample for $T {
                 type Signed = $Addition;
                 type Float = $Modulation;
+                #[inline]
                 fn equilibrium() -> Self {
                     $equilibrium
                 }
@@ -133,6 +206,7 @@ macro_rules! impl_sample {
     }
 }
 
+// Expands to `Sample` implementations for all of the following types.
 impl_sample!{
     i8:  Signed: i8,  Float: f32, equilibrium: 0,
     i16: Signed: i16, Float: f32, equilibrium: 0,
@@ -151,7 +225,7 @@ impl_sample!{
 }
 
 
-/// Sample format types whose equilibrium is at 0.
+/// Integral and floating-point `Sample` format types whose equilibrium is at 0.
 ///
 /// `Sample`s often need to be converted to some mutual `SignedSample` type for signal addition.
 pub trait SignedSample: Sample + std::ops::Add<Output=Self> {}
@@ -165,264 +239,3 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 pub trait FloatSample: Sample + std::ops::Mul<Output=Self> {}
 impl FloatSample for f32 {}
 impl FloatSample for f64 {}
-
-
-/// Allows for selecting the correct `Sample::Signed` between two sample types.
-///
-/// In this case, correct means optimal conversion to and from the type losslessly.
-pub trait SelectSigned<S>: Sample where S: Sample {
-    type Sample: SignedSample + Duplex<Self> + Duplex<S>;
-}
-
-/// Allows for selecting the correct `Sample::Float` for conversions between the two `Sample`s
-/// `Self` and `S`.
-///
-/// In this case, correct means optimal conversion to and from the type losslessly.
-pub trait SelectFloat<S>: Sample where S: Sample {
-    type Sample: FloatSample + Duplex<Self> + Duplex<S>;
-}
-
-
-impl<S> SelectSigned<S> for S where S: Sample {
-    type Sample = S::Signed;
-}
-
-impl<S> SelectFloat<S> for S where S: Sample {
-    type Sample = S::Float;
-}
-
-
-/// Used to simplify implementation of `SelectSigned` and `SelectFloat` for all `Sample` pairs.
-macro_rules! impl_select {
-
-    ($Trait:ident: $A:ty ; $B:ty => $Sample:ty) => {
-        impl $Trait<$B> for $A {
-            type Sample = $Sample;
-        }
-    };
-
-    // This branch implements $Trait<$B> for $A and $Trait<$A> for $B.
-    ($Trait:ident: $A:ty , $B:ty => $Sample:ty, $($rest:tt)*) => {
-        impl_select!($Trait: $A ; $B => $Sample);
-        impl_select!($Trait: $B ; $A => $Sample);
-        impl_select!($Trait: $($rest)*);
-    };
-
-    ($Trait:ident: ) => {};
-}
-
-// For every possible combination of `SignedSample` types, return the `SelectSigned::Sample`
-// between them.
-impl_select! { SelectSigned:
-    u8  , u16 => i16,
-    u8  , U24 => i32,
-    u8  , u32 => i32,
-    u8  , U48 => i64,
-    u8  , u64 => i64,
-    u8  , i8  => i8,
-    u8  , i16 => i16,
-    u8  , I24 => i32,
-    u8  , i32 => i32,
-    u8  , I48 => i64,
-    u8  , i64 => i64,
-    u8  , f32 => f32,
-    u8  , f64 => f64,
-
-    u16 , U24 => i32,
-    u16 , u32 => i32,
-    u16 , U48 => i64,
-    u16 , u64 => i64,
-    u16 , i8  => i16,
-    u16 , i16 => i16,
-    u16 , I24 => i32,
-    u16 , i32 => i32,
-    u16 , I48 => i64,
-    u16 , i64 => i64,
-    u16 , f32 => f32,
-    u16 , f64 => f64,
-
-    U24 , u32 => i32,
-    U24 , U48 => i64,
-    U24 , u64 => i64,
-    U24 , i8  => i32,
-    U24 , i16 => i32,
-    U24 , I24 => i32,
-    U24 , i32 => i32,
-    U24 , I48 => i64,
-    U24 , i64 => i64,
-    U24 , f32 => f32,
-    U24 , f64 => f64,
-
-    u32 , U48 => i64,
-    u32 , u64 => i64,
-    u32 , i8  => i32,
-    u32 , i16 => i32,
-    u32 , I24 => i32,
-    u32 , i32 => i32,
-    u32 , I48 => i64,
-    u32 , i64 => i64,
-    u32 , f32 => f32,
-    u32 , f64 => f64,
-
-    U48 , u64 => i64,
-    U48 , i8  => i64,
-    U48 , i16 => i64,
-    U48 , I24 => i64,
-    U48 , i32 => i64,
-    U48 , I48 => i64,
-    U48 , i64 => i64,
-    U48 , f32 => f64,
-    U48 , f64 => f64,
-
-    u64 , i8  => i64,
-    u64 , i16 => i64,
-    u64 , I24 => i64,
-    u64 , i32 => i64,
-    u64 , I48 => i64,
-    u64 , i64 => i64,
-    u64 , f32 => f64,
-    u64 , f64 => f64,
-
-    i8  , i16 => i16,
-    i8  , I24 => i32,
-    i8  , i32 => i32,
-    i8  , I48 => i64,
-    i8  , i64 => i64,
-    i8  , f32 => f32,
-    i8  , f64 => f64,
-
-    i16 , I24 => i32,
-    i16 , i32 => i32,
-    i16 , I48 => i64,
-    i16 , i64 => i64,
-    i16 , f32 => f32,
-    i16 , f64 => f64,
-
-    I24 , i32 => i32,
-    I24 , I48 => i64,
-    I24 , i64 => i64,
-    I24 , f32 => f32,
-    I24 , f64 => f64,
-
-    i32 , I48 => i64,
-    i32 , i64 => i64,
-    i32 , f32 => f32,
-    i32 , f64 => f64,
-
-    I48 , i64 => i64,
-    I48 , f32 => f64,
-    I48 , f64 => f64,
-
-    i64 , f32 => f64,
-    i64 , f64 => f64,
-
-    f32 , f64 => f64,
-}
-
-// For every possible combination of `FloatSample` types, return the `SelectFloat::Sample` between
-// them.
-impl_select! { SelectFloat:
-    u8  , u16 => f32,
-    u8  , U24 => f32,
-    u8  , u32 => f32,
-    u8  , U48 => f64,
-    u8  , u64 => f64,
-    u8  , i8  => f32,
-    u8  , i16 => f32,
-    u8  , I24 => f32,
-    u8  , i32 => f32,
-    u8  , I48 => f64,
-    u8  , i64 => f64,
-    u8  , f32 => f32,
-    u8  , f64 => f64,
-
-    u16 , U24 => f32,
-    u16 , u32 => f32,
-    u16 , U48 => f64,
-    u16 , u64 => f64,
-    u16 , i8  => f32,
-    u16 , i16 => f32,
-    u16 , I24 => f32,
-    u16 , i32 => f32,
-    u16 , I48 => f64,
-    u16 , i64 => f64,
-    u16 , f32 => f32,
-    u16 , f64 => f64,
-
-    U24 , u32 => f32,
-    U24 , U48 => f64,
-    U24 , u64 => f64,
-    U24 , i8  => f32,
-    U24 , i16 => f32,
-    U24 , I24 => f32,
-    U24 , i32 => f32,
-    U24 , I48 => f64,
-    U24 , i64 => f64,
-    U24 , f32 => f32,
-    U24 , f64 => f64,
-
-    u32 , U48 => f64,
-    u32 , u64 => f64,
-    u32 , i8  => f32,
-    u32 , i16 => f32,
-    u32 , I24 => f32,
-    u32 , i32 => f32,
-    u32 , I48 => f64,
-    u32 , i64 => f64,
-    u32 , f32 => f32,
-    u32 , f64 => f64,
-
-    U48 , u64 => f64,
-    U48 , i8  => f64,
-    U48 , i16 => f64,
-    U48 , I24 => f64,
-    U48 , i32 => f64,
-    U48 , I48 => f64,
-    U48 , i64 => f64,
-    U48 , f32 => f64,
-    U48 , f64 => f64,
-
-    u64 , i8  => f64,
-    u64 , i16 => f64,
-    u64 , I24 => f64,
-    u64 , i32 => f64,
-    u64 , I48 => f64,
-    u64 , i64 => f64,
-    u64 , f32 => f64,
-    u64 , f64 => f64,
-
-    i8  , i16 => f32,
-    i8  , I24 => f32,
-    i8  , i32 => f32,
-    i8  , I48 => f64,
-    i8  , i64 => f64,
-    i8  , f32 => f32,
-    i8  , f64 => f64,
-
-    i16 , I24 => f32,
-    i16 , i32 => f32,
-    i16 , I48 => f64,
-    i16 , i64 => f64,
-    i16 , f32 => f32,
-    i16 , f64 => f64,
-
-    I24 , i32 => f32,
-    I24 , I48 => f64,
-    I24 , i64 => f64,
-    I24 , f32 => f32,
-    I24 , f64 => f64,
-
-    i32 , I48 => f64,
-    i32 , i64 => f64,
-    i32 , f32 => f32,
-    i32 , f64 => f64,
-
-    I48 , i64 => f64,
-    I48 , f32 => f64,
-    I48 , f64 => f64,
-
-    i64 , f32 => f64,
-    i64 , f64 => f64,
-
-    f32 , f64 => f64,
-}
