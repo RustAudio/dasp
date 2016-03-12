@@ -1,6 +1,4 @@
-use {Sample, FloatSample, SelectFloat};
-use std;
-
+use Sample;
 
 pub type Mono<S> = [S; 1];
 pub type Stereo<S> = [S; 2];
@@ -9,11 +7,7 @@ pub type Stereo<S> = [S; 2];
 /// PCM signal.
 ///
 /// We provide implementations for `Frame` for all fixed-size arrays up to a length of 32 elements.
-pub trait Frame: Copy
-    + Clone
-    + std::fmt::Debug
-    + PartialEq
-{
+pub trait Frame: Copy + Clone + PartialEq {
     /// The type of PCM samples stored within the frame.
     type Sample: Sample;
     /// The number of channels in the `Frame`.
@@ -55,6 +49,9 @@ pub trait Frame: Copy
     /// Converts the frame into an iterator yielding the sample for each channel in the frame.
     fn channels(self) -> Self::Channels;
 
+    /// Yields a reference to the `Sample` of the channel at the given index if there is one.
+    fn channel(&self, idx: usize) -> Option<&Self::Sample>;
+
     /// Returns a pointer to the sample of the channel at the given index, without doing bounds
     /// checking.
     ///
@@ -93,8 +90,29 @@ pub trait Frame: Copy
               F: Frame<NumChannels=Self::NumChannels>,
               M: FnMut(Self::Sample, O::Sample) -> F::Sample;
 
-    /// Multiplies each `Sample` in the `Frame` by the given amplitude (either `f32` or `f64`) and
-    /// returns the resulting `Frame`.
+    /// Offsets the amplitude of every channel in the frame by the given `offset` and yields the
+    /// resulting frame.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Frame;
+    ///
+    /// fn main() {
+    ///     assert_eq!([0.25, -0.5].offset_amp(0.5), [0.75, 0.0]);
+    ///     assert_eq!([0.5, -0.25].offset_amp(-0.25), [0.25, -0.5]);
+    ///     assert_eq!([128u8, 192].offset_amp(-64), [64, 128]);
+    /// }
+    /// ```
+    #[inline]
+    fn offset_amp(self, offset: <Self::Sample as Sample>::Signed) -> Self {
+        self.map(|s| s.add_amp(offset))
+    }
+
+    /// Multiplies each `Sample` in the `Frame` by the given amplitude and returns the resulting
+    /// `Frame`.
     ///
     /// - A > 1.0 amplifies the sample.
     /// - A < 1.0 attenuates the sample.
@@ -113,15 +131,11 @@ pub trait Frame: Copy
     /// }
     /// ```
     #[inline]
-    fn scale_amp<F>(self, amp: F) -> Self
-        where F: FloatSample,
-              Self::Sample: SelectFloat<F>,
-    {
-        self.map(|s| s.scale_amp(amp))
+    fn scale_amp(self, amp: <Self::Sample as Sample>::Float) -> Self {
+        self.map(|s| s.mul_amp(amp))
     }
 
-    /// Offsets the amplitude of every channel in the frame by some sample value and yields the
-    /// resulting frame.
+    /// Sums each channel in `other` with each channel in `self` and returns the resulting `Frame`.
     ///
     /// # Example
     ///
@@ -131,61 +145,59 @@ pub trait Frame: Copy
     /// use sample::Frame;
     ///
     /// fn main() {
-    ///     assert_eq!([0.25, -0.5].offset_amp(0.5), [0.75, 0.0]);
-    ///     assert_eq!([0.5, -0.25].offset_amp(-0.25), [0.25, -0.5]);
+    ///     let foo = [0.25, 0.5].add_amp([-0.75, 0.25]);
+    ///     assert_eq!(foo, [-0.5, 0.75]);
     /// }
     /// ```
     #[inline]
-    fn offset_amp(self, offset: Self::Sample) -> Self {
-        self.map(|s| s.add_sample(offset))
+    fn add_amp<F>(self, other: F) -> Self
+        where F: Frame<Sample=<Self::Sample as Sample>::Signed, NumChannels=Self::NumChannels>,
+    {
+        self.zip_map(other, Sample::add_amp)
     }
 
-    /// Sums `other` with `self` and returns the resulting `Frame`.
+    /// Multiplies `other` with `self` and returns the resulting `Frame`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Frame;
+    ///
+    /// fn main() {
+    ///     let foo = [0.25, 0.4].mul_amp([0.2, 0.5]);
+    ///     assert_eq!(foo, [0.05, 0.2]);
+    ///
+    ///     let bar = [192u8, 64].mul_amp([0.0, -2.0]);
+    ///     assert_eq!(bar, [128, 0]);
+    /// }
+    /// ```
     #[inline]
-    fn add_frame(self, other: Self) -> Self {
-        self.zip_map(other, Sample::add_sample)
+    fn mul_amp<F>(self, other: F) -> Self
+        where F: Frame<Sample=<Self::Sample as Sample>::Float, NumChannels=Self::NumChannels>,
+    {
+        self.zip_map(other, Sample::mul_amp)
     }
 
 }
 
 /// An iterator that yields the sample for each channel in the frame by value.
 #[derive(Clone, Debug)]
-pub struct Channels<S, F> {
+pub struct Channels<F> {
     next_idx: usize,
     frame: F,
-    sample: std::marker::PhantomData<S>,
 }
 
-/// A trait wrapper around `[S]::get` for generic use within the `Channels` `Iterator` impl.
-trait GetChannel {
-    type Sample: Sample;
-    fn get_channel(&self, idx: usize) -> Option<Self::Sample>;
-}
-
-/// A trait to restrict types that may be used as the `Frame::NumChannels` assocaited type.
+/// Restricts the types that may be used as the `Frame::NumChannels` associated type.
 ///
-/// This trait is **only** implemented for fixed-size arrays with lengths from 1 to 32.
-trait NumChannels {}
-
-macro_rules! impl_get_channel {
-    ($($N:expr)*) => {
-        $(
-            impl<S> GetChannel for [S; $N]
-                where S: Sample,
-            {
-                type Sample = S;
-                #[inline]
-                fn get_channel(&self, idx: usize) -> Option<Self::Sample> {
-                    self.get(idx).map(|&s| s)
-                }
-            }
-        )*
-    };
-}
-
-impl_get_channel! {
-    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
-}
+/// `NumChannels` allows us to enforce the number of channels that a `Frame` must have in certain
+/// operations. This is particularly useful for `Frame::map` and `Frame::zip_map`, as it allows us
+/// to guarantee that the input and output frame types will retain the same number of channels at
+/// compile-time, and in turn removes the need for bounds checking.
+///
+/// This trait is implemented for types `N1`...`N32`.
+pub trait NumChannels {}
 
 macro_rules! impl_frame {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
@@ -200,7 +212,7 @@ macro_rules! impl_frame {
             {
                 type Sample = S;
                 type NumChannels = $NChan;
-                type Channels = Channels<S, Self>;
+                type Channels = Channels<Self>;
 
                 #[inline]
                 fn equilibrium() -> Self {
@@ -214,7 +226,15 @@ macro_rules! impl_frame {
 
                 #[inline]
                 fn channels(self) -> Self::Channels {
-                    Channels::new(self)
+                    Channels {
+                        next_idx: 0,
+                        frame: self,
+                    }
+                }
+
+                #[inline]
+                fn channel(&self, idx: usize) -> Option<&Self::Sample> {
+                    self.get(idx)
                 }
 
                 #[inline]
@@ -268,16 +288,19 @@ macro_rules! impl_frame {
                 }
 
                 #[inline]
-                fn add_frame(self, other: Self) -> Self {
-                    [$(self[$idx].add_sample(other[$idx]), )*]
+                fn scale_amp(self, amp: S::Float) -> Self {
+                    [$(self[$idx].mul_amp(amp), )*]
                 }
 
                 #[inline]
-                fn scale_amp<F>(self, amplitude: F) -> Self
-                    where F: FloatSample,
-                          S: SelectFloat<F>,
+                fn add_amp<F>(self, other: F) -> Self
+                    where F: Frame<Sample=S::Signed, NumChannels=$NChan>,
                 {
-                    [$(self[$idx].scale_amp(amplitude), )*]
+                    // Here we do not require run-time bounds checking as we have asserted that the two
+                    // arrays have the same number of channels at compile time with our where clause, i.e.
+                    unsafe {
+                        [$(self[$idx].add_amp(*other.channel_unchecked($idx)), )*]
+                    }
                 }
 
             }
@@ -321,25 +344,13 @@ impl_frame!{
 }
 
 
-impl<S, F> Channels<S, F> {
-    #[inline]
-    fn new(frame: F) -> Self {
-        Channels {
-            next_idx: 0,
-            frame: frame,
-            sample: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<S, F> Iterator for Channels<S, F>
-    where S: Sample,
-          F: GetChannel<Sample=S>,
+impl<F> Iterator for Channels<F>
+    where F: Frame,
 {
-    type Item = S;
+    type Item = F::Sample;
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.frame.get_channel(self.next_idx).map(|s| {
+        self.frame.channel(self.next_idx).map(|&s| s).map(|s| {
             self.next_idx += 1;
             s
         })
