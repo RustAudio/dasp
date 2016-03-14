@@ -6,14 +6,7 @@ extern crate sample;
 use sample::{signal, Signal, ToFrameSliceMut};
 
 const FRAMES_PER_BUFFER: u32 = 64;
-const SAMPLE_RATE: f64 = 96_000.0;
-
-// // Amen break.
-// mod wav {
-//     pub const NUM_CHANNELS: usize = 1;
-//     pub const PATH: &'static str = "amen_break.wav";
-//     pub type Frame = [i16; NUM_CHANNELS];
-// }
+const SAMPLE_RATE: f64 = 44_100.0;
 
 // Thumb piano.
 mod wav {
@@ -21,7 +14,6 @@ mod wav {
     pub const PATH: &'static str = "thumbpiano A#3.wav";
     pub type Frame = [i16; NUM_CHANNELS];
 }
-
 
 fn main() {
     run().unwrap();

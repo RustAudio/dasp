@@ -1,7 +1,6 @@
 language: rust
 
 os:
-    - osx
     - linux
 
 script:
