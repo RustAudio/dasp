@@ -1,3 +1,8 @@
+//! Use the [**Frame**](./trait.Frame.html) trait to remain generic over the number of channels at
+//! a single discrete moment in time.
+//!
+//! Implementations are provided for all fixed-size arrays up to 32 elements in length.
+
 use Sample;
 
 pub type Mono<S> = [S; 1];
@@ -10,7 +15,8 @@ pub type Stereo<S> = [S; 2];
 pub trait Frame: Copy + Clone + PartialEq {
     /// The type of PCM samples stored within the frame.
     type Sample: Sample;
-    /// The number of channels in the `Frame`.
+    /// A typified version of a number of channels in the `Frame`, used for safely mapping frames
+    /// of the same length to other `Frame`s, perhaps with a different `Sample` associated type.
     type NumChannels: NumChannels;
     /// An iterator yielding the sample in each channel.
     type Channels: Iterator<Item=Self::Sample>;
@@ -211,8 +217,7 @@ pub trait NumChannels {}
 macro_rules! impl_frame {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
         $(
-            /// A typified version of the number of channels, used for safely mapping frames of the
-            /// same length to another `Frame` with a different `Sample` associated type.
+            /// A typified version of a number of channels.
             pub struct $NChan;
             impl NumChannels for $NChan {}
 

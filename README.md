@@ -6,8 +6,8 @@ low-level, high-performance tools including types, traits and functions for
 working with digital audio signals.
 
 The `sample` crate requires **no dynamic allocations** and has **no
-dependencies**. The goal is to design a library akin to the std but for audio
-DSP; keeping the focus on portable, fast fundamentals.
+dependencies**. The goal is to design a library akin to the **std, but for audio
+DSP**; keeping the focus on portable and fast fundamentals.
 
 
 Features
@@ -47,9 +47,9 @@ assert_eq!(bar, [128u8, 128]);
 
 Use the **Signal** trait for working with `Iterator`s that yield `Frame`s.
 To complement the `Iterator` trait, **Signal** provides methods for adding,
-scaling, offsetting, multiplying, clipping and generating frame iterators.
-Working with **Signal**s allows for easy, readable creation of rich and complex
-DSP graphs with a simple and familiar API.
+scaling, offsetting, multiplying, clipping and generating frame iterators and
+more. Working with **Signal**s allows for easy, readable creation of rich and
+complex DSP graphs with a simple and familiar API.
 
 ```rust
 // Clip to an amplitude of 0.9.

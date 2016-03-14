@@ -1,3 +1,5 @@
+//! A collection of custom, non-std **Sample** types.
+
 pub use self::i11::I11;
 pub use self::u11::U11;
 pub use self::i20::I20;

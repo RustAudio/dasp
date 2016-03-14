@@ -1,13 +1,12 @@
-//! # sample
-//!
 //! A crate of fundamentals for audio PCM DSP.
 //!
-//! - Use the **Sample** trait to remain generic across bit-depth.
-//! - Use the **Frame** trait to remain generic over channel layout.
-//! - Use the **Signal** trait for working with **Iterators** that yield **Frames**.
-//! - Use the **slice** module for working with slices of **Samples** and **Frames**.
-//! - Use the **conv** module for fast conversions between slices, frames and samples.
-//! - See the **types** module for provided custom sample types.
+//! - Use the [**Sample** trait](./trait.Sample.html) to remain generic across bit-depth.
+//! - Use the [**Frame** trait](./trait.Frame.html) to remain generic over channel layout.
+//! - Use the [**Signal** trait](./trait.Signal.html) for working with **Iterators** that yield **Frames**.
+//! - Use the [**slice** module](./slice/index.html) for working with slices of **Samples** and **Frames**.
+//! - See the [**conv** module](./conv/index.html) for fast conversions between slices, frames and samples.
+//! - See the [**types** module](./types/index.html) for provided custom sample types.
+//! - See the [**rate** module](./rate/index.html) for sample rate conversion and scaling.
 
 #![recursion_limit="512"]
 
@@ -30,12 +29,27 @@ pub mod signal;
 pub mod rate;
 pub mod types;
 
-/// A trait for working generically across different sample types.
-///
-/// The trait may only be implemented for types that may be converted between any of the 
+/// A trait for working generically across different **Sample** format types.
 ///
 /// Provides methods for converting to and from any type that implements the
-/// [`FromSample`](./trait.FromSample.html) trait.
+/// [`FromSample`](./trait.FromSample.html) trait and provides methods for performing signal
+/// amplitude addition and multiplication.
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{I24, Sample};
+///
+/// fn main() {
+///     assert_eq!((-1.0).to_sample::<u8>(), 0);
+///     assert_eq!(0.0.to_sample::<u8>(), 128);
+///     assert_eq!(0i32.to_sample::<u32>(), 2_147_483_648);
+///     assert_eq!(I24::new(0).unwrap(), Sample::from_sample(0.0));
+///     assert_eq!(0.0, Sample::equilibrium());
+/// }
+/// ```
 pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
 
     /// When summing two samples of a signal together, it is necessary for both samples to be
@@ -226,9 +240,10 @@ impl_sample!{
 }
 
 
-/// Integral and floating-point `Sample` format types whose equilibrium is at 0.
+/// Integral and floating-point **Sample** format types whose equilibrium is at 0.
 ///
-/// `Sample`s often need to be converted to some mutual `SignedSample` type for signal addition.
+/// **Sample**s often need to be converted to some mutual **SignedSample** type for signal
+/// addition.
 pub trait SignedSample: Sample
     + std::ops::Add<Output=Self>
     + std::ops::Sub<Output=Self>
@@ -238,8 +253,8 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 
 /// Sample format types represented as floating point numbers.
 ///
-/// `Sample`s often need to be converted to some mutual `FloatSample` type for signal scaling and
-/// modulation.
+/// **Sample**s often need to be converted to some mutual **FloatSample** type for signal scaling
+/// and modulation.
 pub trait FloatSample: SignedSample
     + std::ops::Mul<Output=Self>
     + std::ops::Div<Output=Self> {}

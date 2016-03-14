@@ -1,3 +1,7 @@
+//! The **rate** module provides a [**Converter** type](./struct.Converter.html), for converting
+//! and interpolating the rate of **Signal**s. This can be useful for both sample rate conversion
+//! and playback rate multiplication.
+
 use {Duplex, Frame, Sample};
 
 /// An iterator that converts the rate at which frames are yielded from some given frame Iterator

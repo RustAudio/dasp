@@ -1,3 +1,18 @@
+//! Use the [**Signal** trait](./trait.Signal.html) for working with **Iterator**s that yield
+//! **Frame**s. To complement the **Iterator** trait, **Signal** provides methods for adding,
+//! scaling, offsetting, multiplying, clipping and generating frame iterators and more.
+//!
+//! You may also find a series of `Signal` source functions, including:
+//!
+//! - [equilibrium](./fn.equilibrium.html) for generating "silent" frames.
+//! - [gen](./fn.gen.html) for generating frames of type F from some `Fn() -> F`.
+//! - [gen_mut](./fn.gen_mut.html) for generating frames of type F from some `FnMut() -> F`.
+//! - [from_samples](./fn.from_samples.html) for converting an iterator yielding samples to an
+//! iterator yielding frames.
+//!
+//! Working with **Signal**s allows for easy, readable creation of rich and complex DSP graphs with
+//! a simple and familiar API.
+
 use {Duplex, Frame, Sample};
 use rate;
 use std;
