@@ -13,12 +13,13 @@ pub type Stereo<S> = [S; 2];
 ///
 /// We provide implementations for `Frame` for all fixed-size arrays up to a length of 32 elements.
 pub trait Frame: Copy + Clone + PartialEq {
-    /// The type of PCM samples stored within the frame.
+    /// The type of PCM sample stored at each channel within the frame.
     type Sample: Sample;
     /// A typified version of a number of channels in the `Frame`, used for safely mapping frames
     /// of the same length to other `Frame`s, perhaps with a different `Sample` associated type.
     type NumChannels: NumChannels;
-    /// An iterator yielding the sample in each channel.
+    /// An iterator yielding the sample in each channel, starting from left (channel 0) and ending
+    /// at the right (channel NumChannels-1).
     type Channels: Iterator<Item=Self::Sample>;
 
     /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
