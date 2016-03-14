@@ -5,9 +5,6 @@ extern crate sample;
 
 use sample::{signal, Signal, ToFrameSliceMut};
 
-const FRAMES_PER_BUFFER: u32 = 64;
-const SAMPLE_RATE: f64 = 44_100.0;
-
 // Thumb piano.
 mod wav {
     pub const NUM_CHANNELS: usize = 2;
@@ -15,23 +12,12 @@ mod wav {
     pub type Frame = [i16; NUM_CHANNELS];
 }
 
+const FRAMES_PER_BUFFER: u32 = 64;
+const SAMPLE_RATE: f64 = 44_100.0;
+
+
 fn main() {
     run().unwrap();
-}
-
-// Given the file name, produces a Vec of frames which may be played back.
-fn frames(file_name: &'static str) -> Vec<wav::Frame> {
-    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
-    let sample_file = assets.join(file_name);
-    let mut reader = hound::WavReader::open(&sample_file).unwrap();
-    let spec = reader.spec();
-    let samples = reader.samples().map(|s| s.unwrap());
-    let source_hz = spec.sample_rate as f64;
-    let target_hz = SAMPLE_RATE as f64;
-    signal::from_samples::<_, wav::Frame>(samples)
-        .scale_amp(0.5)
-        .from_hz_to_hz(source_hz, target_hz)
-        .collect()
 }
 
 fn run() -> Result<(), pa::Error> {
@@ -66,4 +52,16 @@ fn run() -> Result<(), pa::Error> {
     try!(stream.close());
 
     Ok(())
+}
+
+// Given the file name, produces a Vec of `Frame`s which may be played back.
+fn frames(file_name: &'static str) -> Vec<wav::Frame> {
+    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
+    let sample_file = assets.join(file_name);
+    let mut reader = hound::WavReader::open(&sample_file).unwrap();
+    let spec = reader.spec();
+    let samples = reader.samples().map(|s| s.unwrap());
+    signal::from_samples::<_, wav::Frame>(samples)
+        .from_hz_to_hz(spec.sample_rate as f64, SAMPLE_RATE as f64)
+        .collect()
 }
