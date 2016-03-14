@@ -229,7 +229,10 @@ impl_sample!{
 /// Integral and floating-point `Sample` format types whose equilibrium is at 0.
 ///
 /// `Sample`s often need to be converted to some mutual `SignedSample` type for signal addition.
-pub trait SignedSample: Sample + std::ops::Add<Output=Self> {}
+pub trait SignedSample: Sample
+    + std::ops::Add<Output=Self>
+    + std::ops::Sub<Output=Self>
+    + std::ops::Neg<Output=Self> {}
 macro_rules! impl_signed_sample { ($($T:ty)*) => { $( impl SignedSample for $T {} )* } }
 impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 
@@ -237,6 +240,8 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 ///
 /// `Sample`s often need to be converted to some mutual `FloatSample` type for signal scaling and
 /// modulation.
-pub trait FloatSample: Sample + std::ops::Mul<Output=Self> {}
+pub trait FloatSample: SignedSample
+    + std::ops::Mul<Output=Self>
+    + std::ops::Div<Output=Self> {}
 impl FloatSample for f32 {}
 impl FloatSample for f64 {}
