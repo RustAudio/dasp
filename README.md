@@ -5,6 +5,10 @@ DSP (digital signal processing). In other words, `sample` provides a suite of
 low-level, high-performance tools including types, traits and functions for
 working with digital audio signals.
 
+The `sample` crate requires **no dynamic allocations** and has **no
+dependencies**. The goal is to design a library akin to the std but for audio
+DSP; keeping the focus on portable, fast fundamentals.
+
 
 Features
 --------
@@ -101,8 +105,13 @@ The **rate** module provides a **Converter** type, for converting and
 interpolating the rate of **Signal**s. This can be useful for both sample rate
 conversion and playback rate multiplication.
 
+
+Contributions
+-------------
+
 If the **sample** crate is missing types, conversions or other fundamental
 functionality that you wish it had, feel free to open an issue or pull request!
+The more hands on deck, the merrier :)
 
 
 License
