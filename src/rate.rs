@@ -1,5 +1,4 @@
 use {Duplex, Frame, Sample};
-use slice;
 
 /// An iterator that converts the rate at which frames are yielded from some given frame Iterator
 /// via some given ratio.
