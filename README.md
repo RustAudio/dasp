@@ -9,6 +9,8 @@ The `sample` crate requires **no dynamic allocations** and has **no
 dependencies**. The goal is to design a library akin to the **std, but for audio
 DSP**; keeping the focus on portable and fast fundamentals.
 
+Find the [API documentation here](http://rustaudio.github.io/sample/sample/).
+
 
 Features
 --------
@@ -33,7 +35,7 @@ up to 32 elements in length.
 
 ```rust
 let foo = [0.1, 0.2, -0.1, -0.2];
-let bar = foo.scale_amplitude(2.0);
+let bar = foo.scale_amp(2.0);
 assert_eq!(bar, [0.2, 0.4, -0.2, -0.4]);
 
 assert_eq!(Mono::<f32>::equilibrium(), [0.0]);
