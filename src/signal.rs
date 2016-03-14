@@ -191,6 +191,21 @@ pub trait Signal: Iterator + Sized
     ///
     /// This happens by wrapping `self` in a `rate::Converter` and calling `set_rate_multiplier`
     /// with the value yielded by `signal`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Signal;
+    ///
+    /// fn main() {
+    ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
+    ///     let mul = [1.0, 1.0, 2.0, 2.0, 2.0, 2.0];
+    ///     let frames: Vec<_> = foo.iter().cloned().mul_hz(mul.iter().cloned()).collect();
+    ///     assert_eq!(&frames[..], &[[0.0], [1.0], [0.0], [-0.5], [-1.0]][..]);
+    /// }
+    /// ```
     fn mul_hz<I>(self, mul_per_frame: I) -> MulHz<Self, I>
         where I: Iterator<Item=f64>,
     {
