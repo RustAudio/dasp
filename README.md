@@ -9,6 +9,8 @@ The `sample` crate requires **no dynamic allocations** and has **no
 dependencies**. The goal is to design a library akin to the **std, but for audio
 DSP**; keeping the focus on portable and fast fundamentals.
 
+Find the [API documentation here](http://rustaudio.github.io/sample/sample/).
+
 
 Features
 --------
