@@ -1,3 +1,8 @@
+//! Use the [**Frame**](./trait.Frame.html) trait to remain generic over the number of channels at
+//! a single discrete moment in time.
+//!
+//! Implementations are provided for all fixed-size arrays up to 32 elements in length.
+
 use Sample;
 
 pub type Mono<S> = [S; 1];
@@ -8,11 +13,13 @@ pub type Stereo<S> = [S; 2];
 ///
 /// We provide implementations for `Frame` for all fixed-size arrays up to a length of 32 elements.
 pub trait Frame: Copy + Clone + PartialEq {
-    /// The type of PCM samples stored within the frame.
+    /// The type of PCM sample stored at each channel within the frame.
     type Sample: Sample;
-    /// The number of channels in the `Frame`.
+    /// A typified version of a number of channels in the `Frame`, used for safely mapping frames
+    /// of the same length to other `Frame`s, perhaps with a different `Sample` associated type.
     type NumChannels: NumChannels;
-    /// An iterator yielding the sample in each channel.
+    /// An iterator yielding the sample in each channel, starting from left (channel 0) and ending
+    /// at the right (channel NumChannels-1).
     type Channels: Iterator<Item=Self::Sample>;
 
     /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
@@ -37,11 +44,20 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// ```
     fn equilibrium() -> Self;
 
-    /// Create a new `Self` where the `Sample` for each channel is produced by the given function.
+    /// Create a new `Frame` where the `Sample` for each channel is produced by the given function.
     ///
     /// The given function should map each channel index to its respective sample.
     fn from_fn<F>(from: F) -> Self
         where F: FnMut(usize) -> Self::Sample;
+
+    /// Create a new `Frame` from a borrowed `Iterator` yielding samples for each channel.
+    ///
+    /// Returns `None` if the given `Iterator` does not yield enough `Sample`s.
+    ///
+    /// This is necessary for the `signal::FromSamples` `Iterator`, that converts some `Iterator`
+    /// yielding `Sample`s to an `Iterator` yielding `Frame`s.
+    fn from_samples<I>(samples: &mut I) -> Option<Self>
+        where I: Iterator<Item=Self::Sample>;
 
     /// The total number of channels (and in turn samples) stored within the frame.
     fn n_channels() -> usize;
@@ -183,7 +199,7 @@ pub trait Frame: Copy + Clone + PartialEq {
 }
 
 /// An iterator that yields the sample for each channel in the frame by value.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Channels<F> {
     next_idx: usize,
     frame: F,
@@ -202,8 +218,7 @@ pub trait NumChannels {}
 macro_rules! impl_frame {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
         $(
-            /// A typified version of the number of channels, used for safely mapping frames of the
-            /// same length to another `Frame` with a different `Sample` associated type.
+            /// A typified version of a number of channels.
             pub struct $NChan;
             impl NumChannels for $NChan {}
 
@@ -242,6 +257,19 @@ macro_rules! impl_frame {
                     where F: FnMut(usize) -> S,
                 {
                     [$(from($idx), )*]
+                }
+
+                #[inline]
+                fn from_samples<I>(samples: &mut I) -> Option<Self>
+                    where I: Iterator<Item=Self::Sample>
+                {
+                    Some([$( {
+                        $idx;
+                        match samples.next() {
+                            Some(sample) => sample,
+                            None => return None,
+                        }
+                    }, )*])
                 }
 
                 #[inline(always)]

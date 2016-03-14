@@ -9,3 +9,8 @@ keywords = ["dsp", "bit", "depth", "pcm", "audio"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/RustAudio/sample.git"
 homepage = "https://github.com/RustAudio/sample"
+
+[dev-dependencies]
+find_folder = "0.3.0"
+hound = "1.1.0"
+portaudio = "0.6.3"

@@ -5,6 +5,10 @@ DSP (digital signal processing). In other words, `sample` provides a suite of
 low-level, high-performance tools including types, traits and functions for
 working with digital audio signals.
 
+The `sample` crate requires **no dynamic allocations** and has **no
+dependencies**. The goal is to design a library akin to the **std, but for audio
+DSP**; keeping the focus on portable and fast fundamentals.
+
 
 Features
 --------
@@ -41,23 +45,49 @@ let bar: [u8; 2] = foo.map(Sample::to_sample);
 assert_eq!(bar, [128u8, 128]);
 ```
 
-Use the **buffer** module functions for processing chunks of `Frame`s.
+Use the **Signal** trait for working with `Iterator`s that yield `Frame`s.
+To complement the `Iterator` trait, **Signal** provides methods for adding,
+scaling, offsetting, multiplying, clipping and generating frame iterators and
+more. Working with **Signal**s allows for easy, readable creation of rich and
+complex DSP graphs with a simple and familiar API.
+
+```rust
+// Clip to an amplitude of 0.9.
+let frames = [[1.2, 0.8], [-0.7, -1.4]];
+let clipped: Vec<_> = frames.iter().cloned().clip_amp(0.9).collect();
+assert_eq!(clipped, vec![[0.9, 0.8], [-0.7, -0.9]]);
+
+// Add `a` with `b` and yield the result.
+let a = [[0.2], [-0.6], [0.5]];
+let b = [[0.2], [0.1], [-0.8]];
+let a_signal = a.iter().cloned();
+let b_signal = b.iter().cloned();
+let added: Vec<[f32; 1]> = a_signal.add_amp(b_signal).collect();
+assert_eq!(added, vec![[0.4], [-0.5], [-0.3]]);
+
+// Scale the playback rate by `0.5`.
+let foo = [[0.0], [1.0], [0.0], [-1.0]];
+let frames: Vec<_> = foo.iter().cloned().scale_hz(0.5).collect();
+assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0]][..]);
+```
+
+Use the **slice** module functions for processing chunks of `Frame`s.
 Conversion functions are provided for safely converting between slices of
 interleaved `Sample`s and slices of `Frame`s without requiring any allocation.
 For example:
 
 ```rust
-let foo = &[[0.0, 0.5], [0.0, -0.5]][..];
-let bar = sample::buffer::to_sample_slice(foo);
-assert_eq!(bar, &[0.0, 0.5, 0.0, -0.5][..]);
+let frames = &[[0.0, 0.5], [0.0, -0.5]][..];
+let samples = sample::slice::to_sample_slice(frames);
+assert_eq!(samples, &[0.0, 0.5, 0.0, -0.5][..]);
 
-let foo = &[0.0, 0.5, 0.0, -0.5][..];
-let bar = sample::buffer::to_frame_slice(foo);
-assert_eq!(bar, Some(&[[0.0, 0.5], [0.0, -0.5]][..]));
+let samples = &[0.0, 0.5, 0.0, -0.5][..];
+let frames = sample::slice::to_frame_slice(samples);
+assert_eq!(frames, Some(&[[0.0, 0.5], [0.0, -0.5]][..]));
 
-let foo = &[0.0, 0.5, 0.0][..];
-let bar = sample::buffer::to_frame_slice(foo);
-assert_eq!(bar, None::<&[[f32; 2]]>);
+let samples = &[0.0, 0.5, 0.0][..];
+let frames = sample::slice::to_frame_slice(samples);
+assert_eq!(frames, None::<&[[f32; 2]]>);
 ```
 
 The **conv** module provides pure functions and traits for more specific
@@ -71,16 +101,17 @@ of sample types. Traits include:
 - `FromFrameSliceMut`, `ToFrameSliceMut`, `DuplexFrameSliceMut`,
 - `DuplexSlice`, `DuplexSliceMut`,
 
+The **rate** module provides a **Converter** type, for converting and
+interpolating the rate of **Signal**s. This can be useful for both sample rate
+conversion and playback rate multiplication.
 
-Coming Soon
------------
 
-The **rate** module for handling sample rate conversion.
+Contributions
+-------------
 
-The **Signal** trait for working with `Frame` `Iterator`s.
-
-If `sample` is missing types, conversions or other functionality that you wish
-it had, feel free to open an issue or pull request!
+If the **sample** crate is missing types, conversions or other fundamental
+functionality that you wish it had, feel free to open an issue or pull request!
+The more hands on deck, the merrier :)
 
 
 License
