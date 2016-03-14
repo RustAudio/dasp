@@ -37,11 +37,20 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// ```
     fn equilibrium() -> Self;
 
-    /// Create a new `Self` where the `Sample` for each channel is produced by the given function.
+    /// Create a new `Frame` where the `Sample` for each channel is produced by the given function.
     ///
     /// The given function should map each channel index to its respective sample.
     fn from_fn<F>(from: F) -> Self
         where F: FnMut(usize) -> Self::Sample;
+
+    /// Create a new `Frame` from a borrowed `Iterator` yielding samples for each channel.
+    ///
+    /// Returns `None` if the given `Iterator` does not yield enough `Sample`s.
+    ///
+    /// This is necessary for the `signal::FromSamples` `Iterator`, that converts some `Iterator`
+    /// yielding `Sample`s to an `Iterator` yielding `Frame`s.
+    fn from_samples<I>(samples: &mut I) -> Option<Self>
+        where I: Iterator<Item=Self::Sample>;
 
     /// The total number of channels (and in turn samples) stored within the frame.
     fn n_channels() -> usize;
@@ -183,7 +192,7 @@ pub trait Frame: Copy + Clone + PartialEq {
 }
 
 /// An iterator that yields the sample for each channel in the frame by value.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Channels<F> {
     next_idx: usize,
     frame: F,
@@ -242,6 +251,19 @@ macro_rules! impl_frame {
                     where F: FnMut(usize) -> S,
                 {
                     [$(from($idx), )*]
+                }
+
+                #[inline]
+                fn from_samples<I>(samples: &mut I) -> Option<Self>
+                    where I: Iterator<Item=Self::Sample>
+                {
+                    Some([$( {
+                        $idx;
+                        match samples.next() {
+                            Some(sample) => sample,
+                            None => return None,
+                        }
+                    }, )*])
                 }
 
                 #[inline(always)]
