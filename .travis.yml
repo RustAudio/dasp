@@ -6,6 +6,9 @@ script:
 - cargo test -v
 - cargo test --release -v
 - cargo doc -v
+env:
+  global:
+    secure: Egx0z7WBPNOrsg6UB37hddxrTNeFoiidIiy6imvApJBAjjKpiXir1XvqzVYl6pg9g2D9fBA33p4A+JBZzsT66ekW+Kgq/CduMVh2/Ufa4CEB9KRtfhzrF1fRl0q5Q31G1F1ryxZt63AFBsW4cVeNFU5U897PYnodOyHY7X6fhcI=
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
   [ $TRAVIS_PULL_REQUEST = false ] &&
@@ -14,6 +17,3 @@ after_success: |
   sudo pip install ghp-import &&
   ghp-import -n target/doc &&
   git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
-env:
-  global:
-  - secure: Egx0z7WBPNOrsg6UB37hddxrTNeFoiidIiy6imvApJBAjjKpiXir1XvqzVYl6pg9g2D9fBA33p4A+JBZzsT66ekW+Kgq/CduMVh2/Ufa4CEB9KRtfhzrF1fRl0q5Q31G1F1ryxZt63AFBsW4cVeNFU5U897PYnodOyHY7X6fhcI=
