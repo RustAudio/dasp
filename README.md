@@ -5,9 +5,12 @@ DSP (digital signal processing). In other words, `sample` provides a suite of
 low-level, high-performance tools including types, traits and functions for
 working with digital audio signals.
 
-The `sample` crate requires **no dynamic allocations** and has **no
+The `sample` crate requires **no dynamic allocations**<sup>1</sup> and has **no
 dependencies**. The goal is to design a library akin to the **std, but for audio
 DSP**; keeping the focus on portable and fast fundamentals.
+
+<sup>1: Besides the `Signal::bus` method, which is only necessary when
+converting a `Signal` tree into a directed acyclic graph.</sup>
 
 Find the [API documentation here](http://rustaudio.github.io/sample/sample/).
 
