@@ -384,3 +384,12 @@ impl<F> Iterator for Channels<F>
         })
     }
 }
+
+impl<F> ExactSizeIterator for Channels<F>
+    where F: Frame,
+{
+    #[inline]
+    fn len(&self) -> usize {
+        F::n_channels() - self.next_idx
+    }
+}

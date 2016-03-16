@@ -345,6 +345,11 @@ pub trait Signal: Iterator + Sized
     /// incorporate concepts like sends, side-chaining, etc, rather than being restricted to tree
     /// structures where signals can only ever be joined but never divided.
     ///
+    /// Note: When using multiple `Output`s in this fashion, you will need to be sure to pull the
+    /// frames from each `Output` in sync (whether per frame or per buffer). This is because when
+    /// output A requests `Frame`s before output B, those frames mjust remain available for output
+    /// B and in turn must be stored in an intermediary ring buffer.
+    ///
     /// # Example
     ///
     /// ```rust
@@ -1158,6 +1163,7 @@ impl<A, B> ExactSizeIterator for MulAmp<A, B>
           A: ExactSizeIterator,
           B: ExactSizeIterator,
 {
+    #[inline]
     fn len(&self) -> usize {
         std::cmp::min(self.a.len(), self.b.len())
     }
@@ -1316,6 +1322,16 @@ impl<S> Iterator for Delay<S>
     }
 }
 
+impl<S> ExactSizeIterator for Delay<S>
+    where Delay<S>: Iterator,
+          S: ExactSizeIterator,
+{
+    #[inline]
+    fn len(&self) -> usize {
+        self.signal.len() + self.n_frames
+    }
+}
+
 
 impl<S> Iterator for ToSamples<S>
     where S: Signal,
@@ -1368,6 +1384,19 @@ impl<S> Clone for ToSamples<S>
     }
 }
 
+impl<S> ExactSizeIterator for ToSamples<S>
+    where ToSamples<S>: Iterator,
+          S: ExactSizeIterator,
+          S::Item: Frame,
+          <S::Item as Frame>::Channels: ExactSizeIterator,
+{
+    #[inline]
+    fn len(&self) -> usize {
+        self.signal.len() * <S::Item as Frame>::n_channels()
+            + self.current_frame.as_ref().map(|f| f.len()).unwrap_or(0)
+    }
+}
+
 
 impl<S> Iterator for ClipAmp<S>
     where S: Signal,
@@ -1405,6 +1434,10 @@ impl<S> SharedNode<S>
     where S: Signal,
           S::Item: Frame,
 {
+    /// Requests the next frame for the `Output` whose ring buffer lies at the given index.
+    ///
+    /// If there are no frames waiting in the front of the ring buffer, a new frame will be
+    /// requested from the `signal` and appended to the back of each ring buffer.
     #[inline]
     fn next_frame(&mut self, idx: usize) -> Option<S::Item> {
         loop {
