@@ -76,6 +76,20 @@ let frames: Vec<_> = foo.iter().cloned().scale_hz(0.5).collect();
 assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0]][..]);
 ```
 
+The **signal** module also provides a series of **Signal** source types,
+including:
+
+- `FromInterleavedSamples`
+- `Equilibrium` (silent signal)
+- `Phase`
+- `Sine`
+- `Saw`
+- `Square`
+- `Noise`
+- `NoiseSimplex`
+- `Gen` (generate frames from a Fn() -> F)
+- `GenMut` (generate frames from a FnMut() -> F)
+
 Use the **slice** module functions for processing chunks of `Frame`s.
 Conversion functions are provided for safely converting between slices of
 interleaved `Sample`s and slices of `Frame`s without requiring any allocation.

@@ -2,9 +2,15 @@
 //! **Frame**s. To complement the **Iterator** trait, **Signal** provides methods for adding,
 //! scaling, offsetting, multiplying, clipping and generating frame iterators and more.
 //!
-//! You may also find a series of `Signal` source functions, including:
+//! You may also find a series of **Signal** source functions, including:
 //!
 //! - [equilibrium](./fn.equilibrium.html) for generating "silent" frames.
+//! - [phase](./fn.phase.html) for a stepping phase, useful for oscillators.
+//! - [sine](./fn.sine.html) for generating a sine waveform.
+//! - [saw](./fn.saw.html) for generating a sawtooth waveform.
+//! - [square](./fn.square.html) for generating a square waveform.
+//! - [noise](./fn.noise.html) for generating a noise waveform.
+//! - [noise_simplex](./fn.noise_simplex.html) for generating a 1D simplex noise waveform.
 //! - [gen](./fn.gen.html) for generating frames of type F from some `Fn() -> F`.
 //! - [gen_mut](./fn.gen_mut.html) for generating frames of type F from some `FnMut() -> F`.
 //! - [from_interleaved_samples](./fn.from_interleaved_samples.html) for converting an iterator yielding samples to an
