@@ -46,7 +46,9 @@ fn run() -> Result<(), pa::Error> {
     let mut stream = try!(pa.open_non_blocking_stream(settings, callback));
     try!(stream.start());
 
-    while let Ok(true) = stream.is_active() {}
+    while let Ok(true) = stream.is_active() {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 
     try!(stream.stop());
     try!(stream.close());
@@ -61,7 +63,7 @@ fn frames(file_name: &'static str) -> Vec<wav::Frame> {
     let mut reader = hound::WavReader::open(&sample_file).unwrap();
     let spec = reader.spec();
     let samples = reader.samples().map(|s| s.unwrap());
-    signal::from_samples::<_, wav::Frame>(samples)
+    signal::from_interleaved_samples::<_, wav::Frame>(samples)
         .from_hz_to_hz(spec.sample_rate as f64, SAMPLE_RATE as f64)
         .collect()
 }

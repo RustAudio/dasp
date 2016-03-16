@@ -5,9 +5,12 @@ DSP (digital signal processing). In other words, `sample` provides a suite of
 low-level, high-performance tools including types, traits and functions for
 working with digital audio signals.
 
-The `sample` crate requires **no dynamic allocations** and has **no
+The `sample` crate requires **no dynamic allocations**<sup>1</sup> and has **no
 dependencies**. The goal is to design a library akin to the **std, but for audio
 DSP**; keeping the focus on portable and fast fundamentals.
+
+<sup>1: Besides the `Signal::bus` method, which is only necessary when
+converting a `Signal` tree into a directed acyclic graph.</sup>
 
 Find the [API documentation here](http://rustaudio.github.io/sample/sample/).
 
@@ -72,6 +75,20 @@ let foo = [[0.0], [1.0], [0.0], [-1.0]];
 let frames: Vec<_> = foo.iter().cloned().scale_hz(0.5).collect();
 assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0]][..]);
 ```
+
+The **signal** module also provides a series of **Signal** source types,
+including:
+
+- `FromInterleavedSamples`
+- `Equilibrium` (silent signal)
+- `Phase`
+- `Sine`
+- `Saw`
+- `Square`
+- `Noise`
+- `NoiseSimplex`
+- `Gen` (generate frames from a Fn() -> F)
+- `GenMut` (generate frames from a FnMut() -> F)
 
 Use the **slice** module functions for processing chunks of `Frame`s.
 Conversion functions are provided for safely converting between slices of
