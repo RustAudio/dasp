@@ -1,8 +1,8 @@
 //! A crate of fundamentals for audio PCM DSP.
 //!
 //! - Use the [**Sample** trait](./trait.Sample.html) to remain generic across bit-depth.
-//! - Use the [**Frame** trait](./trait.Frame.html) to remain generic over channel layout.
-//! - Use the [**Signal** trait](./trait.Signal.html) for working with **Iterators** that yield **Frames**.
+//! - Use the [**Frame** trait](./frame/trait.Frame.html) to remain generic over channel layout.
+//! - Use the [**Signal** trait](./signal/trait.Signal.html) for working with **Iterators** that yield **Frames**.
 //! - Use the [**slice** module](./slice/index.html) for working with slices of **Samples** and **Frames**.
 //! - See the [**conv** module](./conv/index.html) for fast conversions between slices, frames and samples.
 //! - See the [**types** module](./types/index.html) for provided custom sample types.
@@ -120,7 +120,7 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// would be f32, etc.
     ///
     /// Specifying this as an associated type allows us to automatically determine the optimal,
-    /// lossless Multiplication format type for summing any two unique `Sample` types together.
+    /// lossless Multiplication format type for multiplying any two unique `Sample` types together.
     ///
     /// As a user of the `sample` crate, you will never need to be concerned with this type unless
     /// you are defining your own unique `Sample` type(s).
