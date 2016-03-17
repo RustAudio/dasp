@@ -418,29 +418,121 @@ pub struct FromInterleavedSamples<I, F>
     frame: std::marker::PhantomData<F>,
 }
 
+/// The rate at which phrase a **Signal** is sampled.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Rate {
+    hz: f64,
+}
+
+/// A constant phase step size.
+#[derive(Clone)]
+pub struct ConstHz {
+    step: f64,
+}
+
+/// An iterator that yields the step size for a phase.
+#[derive(Clone)]
+pub struct Hz<I> {
+    hz: I,
+    last_step_size: f64,
+    rate: Rate,
+}
+
+impl Rate {
+
+    /// Create a `ConstHz` iterator which consistently yields "hz / rate".
+    pub fn const_hz(self, hz: f64) -> ConstHz {
+        ConstHz { step: hz / self.hz }
+    }
+
+    /// Create a variable `hz` some iterator that yields hz and an initial hz.
+    ///
+    /// The `Hz` iterator yields phase step sizes equal to "hz / rate".
+    pub fn hz<I>(self, init: f64, hz: I) -> Hz<I> {
+        Hz {
+            hz: hz,
+            last_step_size: init / self.hz,
+            rate: self,
+        }
+    }
+
+}
+
+pub trait Step {
+    fn step(&mut self) -> f64;
+}
+
+// signal::rate(44_100.0).varistep(repeat(440.0), 440.0).sin()
+// signal::rate(44_100.0).step(440.0).sin()
+// step(440.0, 44_100.0).phase().sine()
+// vari_step(repeat(440.0), 440.0, 44_100.0).phase().sine()
+
+impl VariStep {
+    pub fn phase(self) -> Phase<Self> {
+        phase(self)
+    }
+}
+
+impl ConstStep {
+    pub fn phase(self) -> Phase<Self> {
+        phase(self)
+    }
+}
+
+impl Step for ConstStep {
+    #[inline]
+    fn step(&mut self) -> f64 {
+        self.step
+    }
+}
+
+impl<I> Step for VariStep<I>
+    where I: Iterator<Item=f64>,
+{
+    #[inline]
+    fn step(&mut self) -> f64 {
+        match self.hz.next() {
+            Some(hz) => {
+                self.last_step_size = hz / self.rate;
+                hz
+            },
+            None => self.last_step_size,
+        }
+    }
+}
+
 /// An iterator that yields a phase, useful for waveforms like Sine or Saw.
 #[derive(Clone)]
-pub struct Phase {
-    step: f64,
+pub struct Phase<S> {
+    step: S,
     next: f64,
 }
 
+// /// An iterator that yields a phase, useful for waveforms like Sine or Saw.
+// #[derive(Clone)]
+// pub struct Phase<I> {
+//     hz: I,
+//     last_hz: f64,
+//     rate: f64,
+//     next: f64,
+// }
+
 /// A sine wave signal generator.
 #[derive(Clone)]
-pub struct Sine {
-    phase: Phase,
+pub struct Sine<S> {
+    phase: Phase<S>,
 }
 
 /// A saw wave signal generator.
 #[derive(Clone)]
-pub struct Saw {
-    phase: Phase,
+pub struct Saw<S> {
+    phase: Phase<S>,
 }
 
 /// A square wave signal generator.
 #[derive(Clone)]
-pub struct Square {
-    phase: Phase,
+pub struct Square<S> {
+    phase: Phase<S>,
 }
 
 /// A noise signal generator.
@@ -451,8 +543,8 @@ pub struct Noise {
 
 /// A 1D simplex-noise generator.
 #[derive(Clone)]
-pub struct NoiseSimplex {
-    phase: Phase,
+pub struct NoiseSimplex<S> {
+    phase: Phase<S>,
 }
 
 /// An iterator that yields the sum of the frames yielded by both `other` and `self` in lock-step.
@@ -714,9 +806,20 @@ pub fn from_interleaved_samples<I, F>(samples: I) -> FromInterleavedSamples<I, F
 ///     assert_eq!(phase.next(), Some([0.25]));
 /// }
 /// ```
-pub fn phase(hz: f64, sample_rate: f64) -> Phase {
+pub fn phase(hz: f64, sample_rate: f64) -> Phase<ConstStep> {
     Phase {
-        step: hz / sample_rate,
+        step: ConstStep { step: hz / sample_rate },
+        next: 0.0,
+    }
+}
+
+pub fn vari_phase<I>(hz: I, init: f64, sample_rate: f64) -> Phase<VariStep<I>> {
+    Phase {
+        step: VariStep {
+            hz: hz,
+            rate: sample_rate,
+            last_step_size: init,
+        },
         next: 0.0,
     }
 }
