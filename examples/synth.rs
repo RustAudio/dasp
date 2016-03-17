@@ -15,12 +15,12 @@ fn main() {
 fn run() -> Result<(), pa::Error> {
 
     // Create a signal chain to play back 1 second of each oscillator at A4.
-    let phase = signal::phase(440.0, SAMPLE_RATE);
+    let hz = signal::rate(SAMPLE_RATE).const_hz(440.0);
     let one_sec = SAMPLE_RATE as usize;
-    let mut signal = phase.clone().sine().take(one_sec)
-        .chain(phase.clone().saw().take(one_sec))
-        .chain(phase.clone().square().take(one_sec))
-        .chain(phase.clone().noise_simplex().take(one_sec))
+    let mut signal = hz.clone().sine().take(one_sec)
+        .chain(hz.clone().saw().take(one_sec))
+        .chain(hz.clone().square().take(one_sec))
+        .chain(hz.clone().noise_simplex().take(one_sec))
         .chain(signal::noise(0).take(one_sec))
         .map(|f| f.map(|s| s.to_sample::<f32>()))
         .scale_amp(0.2);
