@@ -438,68 +438,6 @@ pub struct Hz<I> {
     rate: Rate,
 }
 
-impl Rate {
-
-    /// Create a `ConstHz` iterator which consistently yields "hz / rate".
-    pub fn const_hz(self, hz: f64) -> ConstHz {
-        ConstHz { step: hz / self.hz }
-    }
-
-    /// Create a variable `hz` some iterator that yields hz and an initial hz.
-    ///
-    /// The `Hz` iterator yields phase step sizes equal to "hz / rate".
-    pub fn hz<I>(self, init: f64, hz: I) -> Hz<I> {
-        Hz {
-            hz: hz,
-            last_step_size: init / self.hz,
-            rate: self,
-        }
-    }
-
-}
-
-pub trait Step {
-    fn step(&mut self) -> f64;
-}
-
-// signal::rate(44_100.0).varistep(repeat(440.0), 440.0).sin()
-// signal::rate(44_100.0).step(440.0).sin()
-// step(440.0, 44_100.0).phase().sine()
-// vari_step(repeat(440.0), 440.0, 44_100.0).phase().sine()
-
-impl VariStep {
-    pub fn phase(self) -> Phase<Self> {
-        phase(self)
-    }
-}
-
-impl ConstStep {
-    pub fn phase(self) -> Phase<Self> {
-        phase(self)
-    }
-}
-
-impl Step for ConstStep {
-    #[inline]
-    fn step(&mut self) -> f64 {
-        self.step
-    }
-}
-
-impl<I> Step for VariStep<I>
-    where I: Iterator<Item=f64>,
-{
-    #[inline]
-    fn step(&mut self) -> f64 {
-        match self.hz.next() {
-            Some(hz) => {
-                self.last_step_size = hz / self.rate;
-                hz
-            },
-            None => self.last_step_size,
-        }
-    }
-}
 
 /// An iterator that yields a phase, useful for waveforms like Sine or Saw.
 #[derive(Clone)]
@@ -507,15 +445,6 @@ pub struct Phase<S> {
     step: S,
     next: f64,
 }
-
-// /// An iterator that yields a phase, useful for waveforms like Sine or Saw.
-// #[derive(Clone)]
-// pub struct Phase<I> {
-//     hz: I,
-//     last_hz: f64,
-//     rate: f64,
-//     next: f64,
-// }
 
 /// A sine wave signal generator.
 #[derive(Clone)]
@@ -789,15 +718,19 @@ pub fn from_interleaved_samples<I, F>(samples: I) -> FromInterleavedSamples<I, F
 }
 
 
-/// Creates a `Phase` that continuously steps forward by `hz / sample_rate`
+/// Creates a `Phase` that continuously steps forward by the given `step` size yielder.
 ///
 /// # Example
 ///
 /// ```rust
 /// extern crate sample;
 ///
+/// use sample::signal;
+///
 /// fn main() {
-///     let mut phase = sample::signal::phase(1.0, 4.0);
+///     let step = signal::rate(4.0).const_hz(1.0);
+///     // Note that this is the same as `step.phase()`, a composable alternative.
+///     let mut phase = signal::phase(step);
 ///     assert_eq!(phase.next(), Some([0.0]));
 ///     assert_eq!(phase.next(), Some([0.25]));
 ///     assert_eq!(phase.next(), Some([0.5]));
@@ -806,22 +739,24 @@ pub fn from_interleaved_samples<I, F>(samples: I) -> FromInterleavedSamples<I, F
 ///     assert_eq!(phase.next(), Some([0.25]));
 /// }
 /// ```
-pub fn phase(hz: f64, sample_rate: f64) -> Phase<ConstStep> {
+pub fn phase<S>(step: S) -> Phase<S>
+    where S: Step,
+{
     Phase {
-        step: ConstStep { step: hz / sample_rate },
+        step: step,
         next: 0.0,
     }
 }
 
-pub fn vari_phase<I>(hz: I, init: f64, sample_rate: f64) -> Phase<VariStep<I>> {
-    Phase {
-        step: VariStep {
-            hz: hz,
-            rate: sample_rate,
-            last_step_size: init,
-        },
-        next: 0.0,
-    }
+
+/// Creates a frame `Rate` (aka sample rate) representing the rate at which a signal may be
+/// sampled.
+///
+/// This is necessary for composing `Hz` or `ConstHz`, both of which may be used to step forward
+/// the `Phase` for some kind of oscillator (i.e. `Sine`, `Saw`, `Square` or `NoiseSimplex`).
+/// ```
+pub fn rate(hz: f64) -> Rate {
+    Rate { hz: hz }
 }
 
 
@@ -836,14 +771,14 @@ pub fn vari_phase<I>(hz: I, init: f64, sample_rate: f64) -> Phase<VariStep<I>> {
 ///
 /// fn main() {
 ///     // Generates a sine wave signal at 1hz to be sampled 4 times per second.
-///     let mut signal = signal::sine(signal::phase(1.0, 4.0));
+///     let mut signal = signal::rate(4.0).const_hz(1.0).sine();
 ///     assert_eq!(signal.next(), Some([0.0]));
 ///     assert_eq!(signal.next(), Some([1.0]));
 ///     signal.next();
 ///     assert_eq!(signal.next(), Some([-1.0]));
 /// }
 /// ```
-pub fn sine(phase: Phase) -> Sine {
+pub fn sine<S>(phase: Phase<S>) -> Sine<S> {
     Sine { phase: phase }
 }
 
@@ -858,14 +793,14 @@ pub fn sine(phase: Phase) -> Sine {
 ///
 /// fn main() {
 ///     // Generates a saw wave signal at 1hz to be sampled 4 times per second.
-///     let mut signal = signal::saw(signal::phase(1.0, 4.0));
+///     let mut signal = signal::rate(4.0).const_hz(1.0).saw();
 ///     assert_eq!(signal.next(), Some([1.0]));
 ///     assert_eq!(signal.next(), Some([0.5]));
 ///     assert_eq!(signal.next(), Some([0.0]));
 ///     assert_eq!(signal.next(), Some([-0.5]));
 /// }
 /// ```
-pub fn saw(phase: Phase) -> Saw {
+pub fn saw<S>(phase: Phase<S>) -> Saw<S> {
     Saw { phase: phase }
 }
 
@@ -880,14 +815,14 @@ pub fn saw(phase: Phase) -> Saw {
 ///
 /// fn main() {
 ///     // Generates a square wave signal at 1hz to be sampled 4 times per second.
-///     let mut signal = signal::square(signal::phase(1.0, 4.0));
+///     let mut signal = signal::rate(4.0).const_hz(1.0).square();
 ///     assert_eq!(signal.next(), Some([1.0]));
 ///     assert_eq!(signal.next(), Some([1.0]));
 ///     assert_eq!(signal.next(), Some([-1.0]));
 ///     assert_eq!(signal.next(), Some([-1.0]));
 /// }
 /// ```
-pub fn square(phase: Phase) -> Square {
+pub fn square<S>(phase: Phase<S>) -> Square<S> {
     Square { phase: phase }
 }
 
@@ -922,13 +857,13 @@ pub fn noise(seed: u64) -> Noise {
 ///
 /// fn main() {
 ///     // Creates a simplex noise signal oscillating at 440hz sampled 44_100 times per second.
-///     let mut signal = signal::noise_simplex(signal::phase(440.0, 44_100.0));
+///     let mut signal = signal::rate(44_100.0).const_hz(440.0).noise_simplex();
 ///     for n in signal.take(1_000_000) {
 ///         assert!(-1.0 <= n[0] && n[0] < 1.0);
 ///     }
 /// }
 /// ```
-pub fn noise_simplex(phase: Phase) -> NoiseSimplex {
+pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
     NoiseSimplex { phase: phase }
 }
 
@@ -991,14 +926,140 @@ impl<I, F> Iterator for FromInterleavedSamples<I, F>
 }
 
 
-impl Phase {
+impl Rate {
+
+    /// Create a `ConstHz` iterator which consistently yields "hz / rate".
+    pub fn const_hz(self, hz: f64) -> ConstHz {
+        ConstHz { step: hz / self.hz }
+    }
+
+    /// Create a variable `hz` some iterator that yields hz and an initial hz.
+    ///
+    /// The `Hz` iterator yields phase step sizes equal to "hz / rate".
+    pub fn hz<I>(self, init: f64, hz: I) -> Hz<I>
+        where I: Iterator<Item=f64>,
+    {
+        Hz {
+            hz: hz,
+            last_step_size: init / self.hz,
+            rate: self,
+        }
+    }
+
+}
+
+impl<I> Hz<I>
+    where I: Iterator<Item=f64>,
+{
+
+    /// Construct a `Phase` iterator that, for every `hz` yielded by `self`, yields a phase that is
+    /// stepped by `hz / self.rate.hz`.
+    #[inline]
+    pub fn phase(self) -> Phase<Self> {
+        phase(self)
+    }
+
+    /// A composable alternative to the `signal::sine` function.
+    #[inline]
+    pub fn sine(self) -> Sine<Self> {
+        self.phase().sine()
+    }
+
+    /// A composable alternative to the `signal::saw` function.
+    #[inline]
+    pub fn saw(self) -> Saw<Self> {
+        self.phase().saw()
+    }
+
+    /// A composable alternative to the `signal::square` function.
+    #[inline]
+    pub fn square(self) -> Square<Self> {
+        self.phase().square()
+    }
+
+    /// A composable alternative to the `signal::noise_simplex` function.
+    #[inline]
+    pub fn noise_simplex(self) -> NoiseSimplex<Self> {
+        self.phase().noise_simplex()
+    }
+
+}
+
+impl ConstHz {
+
+    /// Construct a `Phase` iterator that is incremented via the constant step size, `self.step`.
+    #[inline]
+    pub fn phase(self) -> Phase<Self> {
+        phase(self)
+    }
+
+    /// A composable alternative to the `signal::sine` function.
+    #[inline]
+    pub fn sine(self) -> Sine<Self> {
+        self.phase().sine()
+    }
+
+    /// A composable alternative to the `signal::saw` function.
+    #[inline]
+    pub fn saw(self) -> Saw<Self> {
+        self.phase().saw()
+    }
+
+    /// A composable alternative to the `signal::square` function.
+    #[inline]
+    pub fn square(self) -> Square<Self> {
+        self.phase().square()
+    }
+
+    /// A composable alternative to the `signal::noise_simplex` function.
+    #[inline]
+    pub fn noise_simplex(self) -> NoiseSimplex<Self> {
+        self.phase().noise_simplex()
+    }
+
+}
+
+/// Types that may be used to give a phase step size based on some `hz / sample rate`.
+///
+/// This allos the `Phase` to be generic over either `ConstHz` and `Hz<I>`.
+pub trait Step {
+    /// Yield the step size.
+    fn step(&mut self) -> f64;
+}
+
+impl Step for ConstHz {
+    #[inline]
+    fn step(&mut self) -> f64 {
+        self.step
+    }
+}
+
+impl<I> Step for Hz<I>
+    where I: Iterator<Item=f64>,
+{
+    #[inline]
+    fn step(&mut self) -> f64 {
+        match self.hz.next() {
+            Some(hz) => {
+                self.last_step_size = hz / self.rate.hz;
+                hz
+            },
+            None => self.last_step_size,
+        }
+    }
+}
+
+
+impl<S> Phase<S>
+    where S: Step,
+{
 
     /// Before yielding the current phase, the internal phase is stepped forward and wrapped via
     /// the given value.
     #[inline]
     pub fn next_phase_wrapped_to(&mut self, rem: f64) -> f64 {
         let phase = self.next;
-        self.next = (self.next + self.step) % rem;
+        self.next = (self.next + self.step.step()) % rem;
         phase
     }
 
@@ -1010,31 +1071,54 @@ impl Phase {
 
     /// A composable version of the `signal::sine` function.
     #[inline]
-    pub fn sine(self) -> Sine {
+    pub fn sine(self) -> Sine<S> {
         sine(self)
     }
 
     /// A composable version of the `signal::saw` function.
     #[inline]
-    pub fn saw(self) -> Saw {
+    pub fn saw(self) -> Saw<S> {
         saw(self)
     }
 
     /// A composable version of the `signal::square` function.
     #[inline]
-    pub fn square(self) -> Square {
+    pub fn square(self) -> Square<S> {
         square(self)
     }
 
     /// A composable version of the `signal::noise_simplex` function.
     #[inline]
-    pub fn noise_simplex(self) -> NoiseSimplex {
+    pub fn noise_simplex(self) -> NoiseSimplex<S> {
         noise_simplex(self)
     }
 
 }
 
-impl Iterator for Phase {
+
+impl<I> Iterator for Hz<I>
+    where I: Iterator<Item=f64>,
+{
+    type Item = f64;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.step())
+    }
+}
+
+
+impl Iterator for ConstHz {
+    type Item = f64;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.step())
+    }
+}
+
+
+impl<S> Iterator for Phase<S>
+    where S: Step,
+{
     type Item = [f64; 1];
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -1043,7 +1127,9 @@ impl Iterator for Phase {
 }
 
 
-impl Iterator for Sine {
+impl<S> Iterator for Sine<S>
+    where S: Step,
+{
     type Item = [f64; 1];
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -1054,7 +1140,9 @@ impl Iterator for Sine {
 }
 
 
-impl Iterator for Saw {
+impl<S> Iterator for Saw<S>
+    where S: Step,
+{
     type Item = [f64; 1];
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -1064,7 +1152,9 @@ impl Iterator for Saw {
 }
 
 
-impl Iterator for Square {
+impl<S> Iterator for Square<S>
+    where S: Step,
+{
     type Item = [f64; 1];
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -1108,7 +1198,9 @@ impl Iterator for Noise {
 }
 
 
-impl NoiseSimplex {
+impl<S> NoiseSimplex<S>
+    where S: Step,
+{
     #[inline]
     pub fn next_sample(&mut self) -> f64 {
         // The constant remainder used to wrap the phase back to 0.0.
@@ -1192,7 +1284,9 @@ impl NoiseSimplex {
     }
 }
 
-impl Iterator for NoiseSimplex {
+impl<S> Iterator for NoiseSimplex<S>
+    where S: Step,
+{
     type Item = [f64; 1];
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
