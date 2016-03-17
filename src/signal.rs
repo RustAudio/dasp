@@ -1021,9 +1021,14 @@ impl ConstHz {
 
 /// Types that may be used to give a phase step size based on some `hz / sample rate`.
 ///
-/// This allos the `Phase` to be generic over either `ConstHz` and `Hz<I>`.
+/// This allows the `Phase` to be generic over either `ConstHz` and `Hz<I>`.
+///
+/// Generally, users need not be concerned with this trait unless writing code that must remain
+/// generic over phase stepping types like oscillators.
 pub trait Step {
-    /// Yield the step size.
+    /// Yield the phase step size (normally `hz / sampling rate`).
+    ///
+    /// The `Phase` calls this and uses the returned value to step forward its internal `phase`.
     fn step(&mut self) -> f64;
 }
 
