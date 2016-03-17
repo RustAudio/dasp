@@ -9,6 +9,33 @@
 //! - See the [**rate** module](./rate/index.html) for sample rate conversion and scaling.
 
 #![recursion_limit="512"]
+#![cfg_attr(feature = "no_std", no_std)]
+#![cfg_attr(feature = "no_std", feature(alloc, collections, core_intrinsics))]
+
+#[cfg(not(feature = "no_std"))]
+extern crate core;
+
+#[cfg(feature = "no_std")]
+extern crate alloc;
+
+#[cfg(feature = "no_std")]
+#[macro_use]
+extern crate collections;
+
+#[cfg(feature = "no_std")]
+type Vec<T> = collections::vec::Vec<T>;
+#[cfg(not(feature = "no_std"))]
+type Vec<T> = std::vec::Vec<T>;
+
+#[cfg(feature = "no_std")]
+type VecDeque<T> = collections::vec_deque::VecDeque<T>;
+#[cfg(not(feature = "no_std"))]
+type VecDeque<T> = std::collections::vec_deque::VecDeque<T>;
+
+#[cfg(feature = "no_std")]
+type Rc<T> = alloc::rc::Rc<T>;
+#[cfg(not(feature = "no_std"))]
+type Rc<T> = std::rc::Rc<T>;
 
 pub use conv::{
     FromSample, ToSample, Duplex,
@@ -28,6 +55,24 @@ pub mod frame;
 pub mod signal;
 pub mod rate;
 pub mod types;
+
+#[cfg(feature = "no_std")]
+fn floor(x: f64) -> f64 {
+    unsafe { core::intrinsics::floorf64(x) }
+}
+#[cfg(not(feature = "no_std"))]
+fn floor(x: f64) -> f64 {
+    x.floor()
+}
+
+#[cfg(feature = "no_std")]
+fn sin(x: f64) -> f64 {
+    unsafe { core::intrinsics::sinf64(x) }
+}
+#[cfg(not(feature = "no_std"))]
+fn sin(x: f64) -> f64 {
+    x.sin()
+}
 
 /// A trait for working generically across different **Sample** format types.
 ///
@@ -245,9 +290,9 @@ impl_sample!{
 /// **Sample**s often need to be converted to some mutual **SignedSample** type for signal
 /// addition.
 pub trait SignedSample: Sample
-    + std::ops::Add<Output=Self>
-    + std::ops::Sub<Output=Self>
-    + std::ops::Neg<Output=Self> {}
+    + core::ops::Add<Output=Self>
+    + core::ops::Sub<Output=Self>
+    + core::ops::Neg<Output=Self> {}
 macro_rules! impl_signed_sample { ($($T:ty)*) => { $( impl SignedSample for $T {} )* } }
 impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 
@@ -256,7 +301,7 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 /// **Sample**s often need to be converted to some mutual **FloatSample** type for signal scaling
 /// and modulation.
 pub trait FloatSample: SignedSample
-    + std::ops::Mul<Output=Self>
-    + std::ops::Div<Output=Self> {}
+    + core::ops::Mul<Output=Self>
+    + core::ops::Div<Output=Self> {}
 impl FloatSample for f32 {}
 impl FloatSample for f64 {}

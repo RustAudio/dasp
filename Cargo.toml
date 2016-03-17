@@ -14,3 +14,6 @@ homepage = "https://github.com/RustAudio/sample"
 find_folder = "0.3.0"
 hound = "1.1.0"
 portaudio = "0.6.3"
+
+[features]
+no_std = []

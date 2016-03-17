@@ -11,7 +11,7 @@
 //! or any of the custom `I24`, `U24`, `I48` and `U48` types.
 
 use {Frame, Sample};
-use std;
+use core;
 use types::{I24, U24, I48, U48};
 
 
@@ -851,7 +851,7 @@ macro_rules! impl_from_slice_conversions {
                         let new_len = len / $N;
                         let ptr = slice.as_ptr() as *const _;
                         let new_slice = unsafe {
-                            std::slice::from_raw_parts(ptr, new_len)
+                            core::slice::from_raw_parts(ptr, new_len)
                         };
                         Some(new_slice)
                     } else {
@@ -871,7 +871,7 @@ macro_rules! impl_from_slice_conversions {
                         let new_len = len / $N;
                         let ptr = slice.as_ptr() as *mut _;
                         let new_slice = unsafe {
-                            std::slice::from_raw_parts_mut(ptr, new_len)
+                            core::slice::from_raw_parts_mut(ptr, new_len)
                         };
                         Some(new_slice)
                     } else {
@@ -888,7 +888,7 @@ macro_rules! impl_from_slice_conversions {
                     let new_len = slice.len() * $N;
                     let ptr = slice.as_ptr() as *const _;
                     unsafe {
-                        std::slice::from_raw_parts(ptr, new_len)
+                        core::slice::from_raw_parts(ptr, new_len)
                     }
                 }
             }
@@ -901,7 +901,7 @@ macro_rules! impl_from_slice_conversions {
                     let new_len = slice.len() * $N;
                     let ptr = slice.as_ptr() as *mut _;
                     unsafe {
-                        std::slice::from_raw_parts_mut(ptr, new_len)
+                        core::slice::from_raw_parts_mut(ptr, new_len)
                     }
                 }
             }
