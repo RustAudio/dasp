@@ -49,7 +49,7 @@ macro_rules! impl_froms {
 
 macro_rules! impl_neg {
     ($T:ident) => {
-        impl ::std::ops::Neg for $T {
+        impl ::core::ops::Neg for $T {
             type Output = $T;
             #[inline]
             fn neg(self) -> $T {
@@ -129,7 +129,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Add<$T> for $T {
+        impl ::core::ops::Add<$T> for $T {
             type Output = $T;
             #[inline]
             fn add(self, other: Self) -> Self {
@@ -141,7 +141,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Sub<$T> for $T {
+        impl ::core::ops::Sub<$T> for $T {
             type Output = $T;
             #[inline]
             fn sub(self, other: Self) -> Self {
@@ -153,7 +153,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Mul<$T> for $T {
+        impl ::core::ops::Mul<$T> for $T {
             type Output = $T;
             #[inline]
             fn mul(self, other: Self) -> Self {
@@ -165,7 +165,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Div<$T> for $T {
+        impl ::core::ops::Div<$T> for $T {
             type Output = $T;
             #[inline]
             fn div(self, other: Self) -> Self {
@@ -173,7 +173,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Not for $T {
+        impl ::core::ops::Not for $T {
             type Output = $T;
             #[inline]
             fn not(self) -> $T {
@@ -181,7 +181,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Rem<$T> for $T {
+        impl ::core::ops::Rem<$T> for $T {
             type Output = $T;
             #[inline]
             fn rem(self, other: Self) -> Self {
@@ -189,7 +189,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Shl<$T> for $T {
+        impl ::core::ops::Shl<$T> for $T {
             type Output = $T;
             #[inline]
             fn shl(self, other: Self) -> Self {
@@ -198,7 +198,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::Shr<$T> for $T {
+        impl ::core::ops::Shr<$T> for $T {
             type Output = $T;
             #[inline]
             fn shr(self, other: Self) -> Self {
@@ -207,7 +207,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::BitAnd<$T> for $T {
+        impl ::core::ops::BitAnd<$T> for $T {
             type Output = $T;
             #[inline]
             fn bitand(self, other: Self) -> Self {
@@ -215,7 +215,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::BitOr<$T> for $T {
+        impl ::core::ops::BitOr<$T> for $T {
             type Output = $T;
             #[inline]
             fn bitor(self, other: Self) -> Self {
@@ -223,7 +223,7 @@ macro_rules! new_sample_type {
             }
         }
 
-        impl ::std::ops::BitXor<$T> for $T {
+        impl ::core::ops::BitXor<$T> for $T {
             type Output = $T;
             #[inline]
             fn bitxor(self, other: Self) -> Self {

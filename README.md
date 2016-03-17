@@ -124,6 +124,15 @@ The **rate** module provides a **Converter** type, for converting and
 interpolating the rate of **Signal**s. This can be useful for both sample rate
 conversion and playback rate multiplication.
 
+Using in a `no_std` environment
+-------------------------------
+
+This crate is largely dependency free, even of things outside `core`. The
+`no_std` cargo feature will enable using `sample` in these environments.
+Currently, only nightly is supported, because it explicitly depends on the
+`alloc` and `collections` for datastructures and `core_intrinsics` for some of
+the math. If this restriction is onerous for you, it can be lifted with minor
+loss of functionality (the `Signal::bus` method), so open an issue!
 
 Contributions
 -------------

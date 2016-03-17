@@ -19,9 +19,9 @@
 //! Working with **Signal**s allows for easy, readable creation of rich and complex DSP graphs with
 //! a simple and familiar API.
 
-use {Duplex, Frame, Sample};
+use {Duplex, Frame, Sample, Vec, Rc, VecDeque};
 use rate;
-use std;
+use core;
 
 
 /// Implement `Signal` for all `Iterator`s that yield `Frame`s.
@@ -374,9 +374,9 @@ pub trait Signal: Iterator + Sized
     /// ```
     fn bus(self) -> Bus<Self> {
         Bus {
-            node: std::rc::Rc::new(std::cell::RefCell::new(SharedNode {
+            node: Rc::new(core::cell::RefCell::new(SharedNode {
                 signal: self,
-                buffers: vec![std::collections::VecDeque::new()],
+                buffers: vec![VecDeque::new()],
             })),
         }
     }
@@ -390,21 +390,21 @@ pub trait Signal: Iterator + Sized
 /// An iterator that endlessly yields `Frame`s of type `F` at equilibrium.
 #[derive(Clone)]
 pub struct Equilibrium<F> {
-    frame: std::marker::PhantomData<F>,
+    frame: core::marker::PhantomData<F>,
 }
 
 /// A signal that generates frames using the given function.
 #[derive(Clone)]
 pub struct Gen<G, F> {
     gen: G,
-    frame: std::marker::PhantomData<F>,
+    frame: core::marker::PhantomData<F>,
 }
 
 /// A signal that generates frames using the given function which may mutate some state.
 #[derive(Clone)]
 pub struct GenMut<G, F> {
     gen_mut: G,
-    frame: std::marker::PhantomData<F>,
+    frame: core::marker::PhantomData<F>,
 }
 
 /// An iterator that converts an iterator of `Sample`s to an iterator of `Frame`s.
@@ -415,7 +415,7 @@ pub struct FromInterleavedSamples<I, F>
           F: Frame<Sample=I::Item>,
 {
     samples: I,
-    frame: std::marker::PhantomData<F>,
+    frame: core::marker::PhantomData<F>,
 }
 
 /// The rate at which phrase a **Signal** is sampled.
@@ -578,7 +578,7 @@ pub struct Bus<S>
     where S: Signal,
           S::Item: Frame,
 {
-    node: std::rc::Rc<std::cell::RefCell<SharedNode<S>>>,
+    node: Rc<core::cell::RefCell<SharedNode<S>>>,
 }
 
 /// The data shared between each `Output`.
@@ -587,7 +587,7 @@ struct SharedNode<S>
           S::Item: Frame,
 {
     signal: S,
-    buffers: Vec<std::collections::VecDeque<S::Item>>,
+    buffers: Vec<VecDeque<S::Item>>,
 }
 
 /// An output node to which some signal `S` is `Output`ing its frames.
@@ -598,7 +598,7 @@ pub struct Output<S>
           S::Item: Frame,
 {
     idx: usize,
-    node: std::rc::Rc<std::cell::RefCell<SharedNode<S>>>,
+    node: Rc<core::cell::RefCell<SharedNode<S>>>,
 }
 
 
@@ -625,7 +625,7 @@ pub struct Output<S>
 pub fn equilibrium<F>() -> Equilibrium<F>
     where F: Frame,
 {
-    Equilibrium { frame: std::marker::PhantomData }
+    Equilibrium { frame: core::marker::PhantomData }
 }
 
 
@@ -648,7 +648,7 @@ pub fn gen<G, F>(gen: G) -> Gen<G, F>
 {
     Gen {
         gen: gen,
-        frame: std::marker::PhantomData,
+        frame: core::marker::PhantomData,
     }
 }
 
@@ -678,7 +678,7 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 {
     GenMut {
         gen_mut: gen_mut,
-        frame: std::marker::PhantomData,
+        frame: core::marker::PhantomData,
     }
 }
 
@@ -713,7 +713,7 @@ pub fn from_interleaved_samples<I, F>(samples: I) -> FromInterleavedSamples<I, F
 {
     FromInterleavedSamples {
         samples: samples,
-        frame: std::marker::PhantomData,
+        frame: core::marker::PhantomData,
     }
 }
 
@@ -1138,9 +1138,9 @@ impl<S> Iterator for Sine<S>
     type Item = [f64; 1];
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        const PI_2: f64 = std::f64::consts::PI * 2.0;
+        const PI_2: f64 = core::f64::consts::PI * 2.0;
         let phase = self.phase.next_phase();
-        Some([(PI_2 * phase).sin()])
+        Some([::sin(PI_2 * phase)])
     }
 }
 
@@ -1264,7 +1264,7 @@ impl<S> NoiseSimplex<S>
             }
 
             // Corners coordinates (nearest integer values).
-            let i0 = x.floor() as i64;
+            let i0 = ::floor(x) as i64;
             let i1 = i0 + 1;
 
             // Distances to corners (between 0 and 1);
@@ -1307,9 +1307,9 @@ fn zipped_size_hint<A, B>(a: &A, b: &B) -> (usize, Option<usize>)
 {
     let (a_lower, a_upper) = a.size_hint();
     let (b_lower, b_upper) = b.size_hint();
-    let lower = std::cmp::min(a_lower, b_lower);
+    let lower = core::cmp::min(a_lower, b_lower);
     let upper = match (a_upper, b_upper) {
-        (Some(a), Some(b)) => Some(std::cmp::min(a, b)),
+        (Some(a), Some(b)) => Some(core::cmp::min(a, b)),
         (Some(a), None) => Some(a),
         (None, Some(b)) => Some(b),
         (None, None) => None,
@@ -1343,7 +1343,7 @@ impl<A, B> ExactSizeIterator for AddAmp<A, B>
 {
     #[inline]
     fn len(&self) -> usize {
-        std::cmp::min(self.a.len(), self.b.len())
+        core::cmp::min(self.a.len(), self.b.len())
     }
 }
 
@@ -1373,7 +1373,7 @@ impl<A, B> ExactSizeIterator for MulAmp<A, B>
 {
     #[inline]
     fn len(&self) -> usize {
-        std::cmp::min(self.a.len(), self.b.len())
+        core::cmp::min(self.a.len(), self.b.len())
     }
 }
 
@@ -1630,7 +1630,7 @@ impl<S> Bus<S>
     #[inline]
     pub fn send(&self) -> Output<S> {
         let idx = self.node.borrow().buffers.len();
-        self.node.borrow_mut().buffers.push(std::collections::VecDeque::new());
+        self.node.borrow_mut().buffers.push(VecDeque::new());
         Output {
             idx: idx,
             node: self.node.clone(),
