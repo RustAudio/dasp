@@ -9,32 +9,32 @@
 //! - See the [**rate** module](./rate/index.html) for sample rate conversion and scaling.
 
 #![recursion_limit="512"]
-#![cfg_attr(feature = "no_std", no_std)]
-#![cfg_attr(feature = "no_std", feature(alloc, collections, core_intrinsics))]
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(alloc, collections, core_intrinsics))]
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 extern crate core;
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 extern crate alloc;
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate collections;
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 type Vec<T> = collections::vec::Vec<T>;
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 type Vec<T> = std::vec::Vec<T>;
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 type VecDeque<T> = collections::vec_deque::VecDeque<T>;
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 type VecDeque<T> = std::collections::vec_deque::VecDeque<T>;
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 type Rc<T> = alloc::rc::Rc<T>;
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 type Rc<T> = std::rc::Rc<T>;
 
 pub use conv::{
@@ -56,20 +56,20 @@ pub mod signal;
 pub mod rate;
 pub mod types;
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 fn floor(x: f64) -> f64 {
     unsafe { core::intrinsics::floorf64(x) }
 }
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 fn floor(x: f64) -> f64 {
     x.floor()
 }
 
-#[cfg(feature = "no_std")]
+#[cfg(not(feature = "std"))]
 fn sin(x: f64) -> f64 {
     unsafe { core::intrinsics::sinf64(x) }
 }
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 fn sin(x: f64) -> f64 {
     x.sin()
 }

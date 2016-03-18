@@ -16,4 +16,5 @@ hound = "1.1.0"
 portaudio = "0.6.3"
 
 [features]
-no_std = []
+default = ["std"]
+std = []
