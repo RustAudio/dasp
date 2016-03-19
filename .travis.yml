@@ -10,7 +10,7 @@ env:
     secure: br54RjnCMOuprqRZa58Yu1fyMQyvwQ7vnj6dqduN5469TontyImmqA8usSuGDLHLkvihAwNspfey7y3UaZIsRqUjfefp2sW6ACccVlC4IiQRgnCi3vmPoqkicUPvDKjzNMVRqTVdJ4CET/gM2OMRhD5rE+sgHegTttC8QTObvT4=
 script:
 - | 
-  ([ "$TRAVIS_RUST_VERSION" = "nightly" ] && cargo build -v --features 'no_std') || [ "$TRAVIS_RUST_VERSION" != "nightly" ]
+  ([ "$TRAVIS_RUST_VERSION" = "nightly" ] && cargo build -v --no-default-features) || [ "$TRAVIS_RUST_VERSION" != "nightly" ]
 - cargo build -v
 - cargo test -v
 - cargo test --release -v
