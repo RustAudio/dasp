@@ -1701,7 +1701,7 @@ impl<S> Output<S>
     /// ```
     #[inline]
     pub fn pending_frames(&self) -> usize {
-        self.node.pending_frames(self.idx);
+        self.node.borrow().pending_frames(self.idx)
     }
 }
 
