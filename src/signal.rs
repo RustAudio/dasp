@@ -1642,6 +1642,7 @@ impl<S> SharedNode<S>
     where S: Signal,
           S::Item: Frame,
 {
+
     /// Requests the next frame for the `Output` whose ring buffer lies at the given index.
     ///
     /// If there are no frames waiting in the front of the ring buffer, a new frame will be
@@ -1661,6 +1662,46 @@ impl<S> SharedNode<S>
                 }
             }
         }
+    }
+
+    #[inline]
+    fn pending_frames(&self, idx: usize) -> usize {
+        self.buffers[idx].len()
+    }
+
+}
+
+impl<S> Output<S>
+    where S: Signal,
+          S::Item: Frame,
+{
+    /// The number of frames that have been requested from the `Signal` `S` by some other `Output`
+    /// that have not yet been requested by this `Output`.
+    ///
+    /// This is useful when using an `Output` to "monitor" some signal, allowing the user to drain
+    /// only frames that have already been requested by some other `Output`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Signal;
+    ///
+    /// fn main() {
+    ///     let frames = [[0.1], [0.2], [0.3]];
+    ///     let bus = frames.iter().cloned().bus();
+    ///     let mut signal = bus.send();
+    ///     let mut monitor = bus.send();
+    ///     assert_eq!(signal.collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
+    ///     assert_eq!(monitor.pending_frames(), 3);
+    ///     assert_eq!(monitor.next(), Some([0.1]));
+    ///     assert_eq!(monitor.pending_frames(), 2);
+    /// }
+    /// ```
+    #[inline]
+    pub fn pending_frames(&self) -> usize {
+        self.node.pending_frames(self.idx);
     }
 }
 
