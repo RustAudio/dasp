@@ -32,7 +32,7 @@ impl<I> Signal for I where I: Iterator, I::Item: Frame {}
 /// For example, `Signal` allows us to add two signals, modulate a signal's amplitude by another
 /// signal, scale a signals amplitude and much more.
 ///
-/// `Signal` has a blanked implementation for all `Iterator`s whose `Item` associated types
+/// `Signal` has a blanket implementation for all `Iterator`s whose `Item` associated types
 /// implement `Frame`.
 pub trait Signal: Iterator + Sized
     where Self::Item: Frame,
