@@ -147,6 +147,32 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// **Note:** This will likely be changed to an "associated const" if the feature lands.
     fn equilibrium() -> Self;
 
+    /// The multiplicative identity of the signal.
+    ///
+    /// In other words: A value which when used to scale/multiply the amplitude or frequency of a
+    /// signal, returns the same signal.
+    ///
+    /// This is useful as a default, non-affecting amplitude or frequency multiplier.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{Sample, U48};
+    ///
+    /// fn main() {
+    ///     assert_eq!(1.0, f32::identity());
+    ///     assert_eq!(1.0, i8::identity());
+    ///     assert_eq!(1.0, u8::identity());
+    ///     assert_eq!(1.0, U48::identity());
+    /// }
+    /// ```
+    #[inline]
+    fn identity() -> Self::Float {
+        <Self::Float as FloatSample>::identity()
+    }
+
     /// Convert `self` to any type that implements `FromSample<Self>`.
     ///
     /// # Example
@@ -302,6 +328,18 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 /// and modulation.
 pub trait FloatSample: SignedSample
     + core::ops::Mul<Output=Self>
-    + core::ops::Div<Output=Self> {}
-impl FloatSample for f32 {}
-impl FloatSample for f64 {}
+    + core::ops::Div<Output=Self>
+{
+    /// Represents the multiplicative identity of the floating point signal.
+    fn identity() -> Self;
+}
+
+impl FloatSample for f32 {
+    #[inline]
+    fn identity() -> Self { 1.0 }
+}
+
+impl FloatSample for f64 {
+    #[inline]
+    fn identity() -> Self { 1.0 }
+}
