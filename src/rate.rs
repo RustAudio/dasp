@@ -33,7 +33,8 @@ pub struct Converter<I>
     source_frames: I,
     /// The ratio between the target and source sample rates.
     ///
-    /// This value is equal to `source_sample_rate / target_sample_rate`.
+    /// This value is equal to `source_sample_rate / target_sample_rate` and `target_playback_rate
+    /// / source_playback_rate`.
     source_to_target_ratio: f64,
     /// The "left" side of the source frame window that is used for interpolation when calculating
     /// new target frames.
@@ -64,19 +65,17 @@ impl<I> Converter<I>
     /// (in Hz).
     #[inline]
     pub fn from_hz_to_hz(source_frames: I, source_hz: f64, target_hz: f64) -> Self {
-        Self::scale_hz(source_frames, source_hz / target_hz)
+        Self::scale_playback_hz(source_frames, source_hz / target_hz)
     }
 
     /// Construct a new `Converter` from the source frames and the amount by which the current
-    /// playback rate (not sample rate) should be multiplied to reach the new playback rate.
+    /// ***playback*** **rate** (not sample rate) should be multiplied to reach the new playback
+    /// rate.
     ///
     /// For example, if our `source_frames` is a sine wave oscillating at a frequency of 2hz and
     /// we wanted to convert it to a frequency of 3hz, the given `scale` should be `1.5`.
-    ///
-    /// However, if our `source_frames` are being sampled at a rate of 44_100hz and we want to
-    /// convert to a sample rate of 96_000hz, the given `scale` should be `44_100.0 / 96_000.0`.
     #[inline]
-    pub fn scale_hz(source_frames: I, scale: f64) -> Self {
+    pub fn scale_playback_hz(source_frames: I, scale: f64) -> Self {
         assert!(scale > 0.0, "We can't yield any frames at 0 times a second!");
         Converter {
             source_frames: source_frames,
@@ -87,28 +86,59 @@ impl<I> Converter<I>
         }
     }
 
+    /// Construct a new `Converter` from the source frames and the amount by which the current
+    /// ***sample*** **rate** (not playback rate) should be multiplied to reach the new sample
+    /// rate.
+    ///
+    /// If our `source_frames` are being sampled at a rate of 44_100hz and we want to
+    /// convert to a sample rate of 96_000hz, the given `scale` should be `96_000.0 / 44_100.0`.
+    ///
+    /// This is the same as calling `Converter::scale_playback_hz(source_frames, 1.0 / scale)`.
+    #[inline]
+    pub fn scale_sample_hz(source_frames: I, scale: f64) -> Self {
+        Self::scale_playback_hz(source_frames, 1.0 / scale)
+    }
+
     /// Update the `source_to_target_ratio` internally given the source and target hz.
     ///
     /// This method might be useful for changing the sample rate during playback.
     #[inline]
-    pub fn set_source_and_target_hz(&mut self, source_hz: f64, target_hz: f64) {
-        self.set_source_to_target_ratio(source_hz / target_hz)
+    pub fn set_hz_to_hz(&mut self, source_hz: f64, target_hz: f64) {
+        self.set_playback_hz_scale(source_hz / target_hz)
     }
 
-    /// Update the `source_to_target_ratio` internally given a new rate multiplier.
+    /// Update the `source_to_target_ratio` internally given a new **playback rate** multiplier.
     ///
     /// This method is useful for dynamically changing rates.
     #[inline]
-    pub fn set_rate_multiplier(&mut self, rate_multiplier: f64) {
-        self.set_source_to_target_ratio(1.0 / rate_multiplier)
+    pub fn set_playback_hz_scale(&mut self, scale: f64) {
+        self.source_to_target_ratio = scale;
     }
 
-    /// Update the `source_to_target_ratio`.
+    /// Update the `source_to_target_ratio` internally given a new **sample rate** multiplier.
     ///
-    /// For constant rate conversions, this method is unnecessary.
+    /// This method is useful for dynamically changing rates.
     #[inline]
-    pub fn set_source_to_target_ratio(&mut self, source_to_target_ratio: f64) {
-        self.source_to_target_ratio = source_to_target_ratio;
+    pub fn set_sample_hz_scale(&mut self, scale: f64) {
+        self.set_playback_hz_scale(1.0 / scale);
+    }
+
+    /// Borrow the `source_frames` Iterator from the `Converter`.
+    #[inline]
+    pub fn source(&self) -> &I {
+        &self.source_frames
+    }
+
+    /// Mutably borrow the `source_frames` Iterator from the `Converter`.
+    #[inline]
+    pub fn source_mut(&mut self) -> &I {
+        &mut self.source_frames
+    }
+
+    /// Drop `self` and return the internal `source_frames` Iterator.
+    #[inline]
+    pub fn into_source(self) -> I {
+        self.source_frames
     }
 
     /// Yields the next interpolated target frame.
