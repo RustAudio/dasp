@@ -41,9 +41,11 @@ pub use conv::{
     FromSample, ToSample, Duplex,
     FromSampleSlice, ToSampleSlice, DuplexSampleSlice,
     FromSampleSliceMut, ToSampleSliceMut, DuplexSampleSliceMut,
+    FromBoxedSampleSlice, ToBoxedSampleSlice, DuplexBoxedSampleSlice,
     FromFrameSlice, ToFrameSlice, DuplexFrameSlice,
     FromFrameSliceMut, ToFrameSliceMut, DuplexFrameSliceMut,
-    DuplexSlice, DuplexSliceMut,
+    FromBoxedFrameSlice, ToBoxedFrameSlice, DuplexBoxedFrameSlice,
+    DuplexSlice, DuplexSliceMut, DuplexBoxedSlice,
 };
 pub use frame::Frame;
 pub use signal::Signal;
