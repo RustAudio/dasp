@@ -210,7 +210,7 @@ pub trait Signal: Iterator + Sized
 
     /// Multiplies the rate at which frames of `self` are yielded by the given `signal`.
     ///
-    /// This happens by wrapping `self` in a `rate::Converter` and calling `set_rate_multiplier`
+    /// This happens by wrapping `self` in a `rate::Converter` and calling `set_playback_hz_scale`
     /// with the value yielded by `signal`
     ///
     /// # Example
@@ -222,7 +222,7 @@ pub trait Signal: Iterator + Sized
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let mul = [1.0, 1.0, 2.0, 2.0, 2.0, 2.0];
+    ///     let mul = [1.0, 1.0, 0.5, 0.5, 0.5, 0.5];
     ///     let frames: Vec<_> = foo.iter().cloned().mul_hz(mul.iter().cloned()).collect();
     ///     assert_eq!(&frames[..], &[[0.0], [1.0], [0.0], [-0.5], [-1.0]][..]);
     /// }
@@ -231,7 +231,7 @@ pub trait Signal: Iterator + Sized
         where I: Iterator<Item=f64>,
     {
         MulHz {
-            signal: rate::Converter::scale_hz(self, 1.0),
+            signal: rate::Converter::scale_playback_hz(self, 1.0),
             mul_per_frame: mul_per_frame,
         }
     }
@@ -271,7 +271,7 @@ pub trait Signal: Iterator + Sized
     /// }
     /// ```
     fn scale_hz(self, multi: f64) -> rate::Converter<Self> {
-        rate::Converter::scale_hz(self, multi)
+        rate::Converter::scale_playback_hz(self, multi)
     }
 
     /// Delays the `Signal` by the given number of frames.
@@ -531,7 +531,7 @@ pub struct ScaleAmpPerChannel<S, F> {
 
 /// Multiplies the rate at which frames of `self` are yielded by the given `signal`.
 ///
-/// This happens by wrapping `self` in a `rate::Converter` and calling `set_rate_multiplier`
+/// This happens by wrapping `self` in a `rate::Converter` and calling `set_playback_hz_scale`
 /// with the value yielded by `signal`
 #[derive(Clone)]
 pub struct MulHz<S, M>
@@ -1496,7 +1496,7 @@ impl<S, M> Iterator for MulHz<S, M>
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.mul_per_frame.next().and_then(|mul| {
-            self.signal.set_rate_multiplier(mul);
+            self.signal.set_playback_hz_scale(mul);
             self.signal.next()
         })
     }
