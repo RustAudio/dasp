@@ -2,8 +2,10 @@
 
 use {
     Frame, Sample,
-    ToSampleSlice, ToSampleSliceMut, ToFrameSlice, ToFrameSliceMut,
-    FromSampleSlice, FromSampleSliceMut, FromFrameSlice, FromFrameSliceMut,
+    ToSampleSlice, ToSampleSliceMut, ToBoxedSampleSlice,
+    ToFrameSlice, ToFrameSliceMut, ToBoxedFrameSlice,
+    FromSampleSlice, FromSampleSliceMut, FromBoxedSampleSlice,
+    FromFrameSlice, FromFrameSliceMut, FromBoxedFrameSlice,
 };
 
 
@@ -70,6 +72,35 @@ pub fn to_frame_slice_mut<'a, T, F>(slice: T) -> Option<&'a mut [F]>
     slice.to_frame_slice_mut()
 }
 
+/// Converts the given boxed slice into a boxed slice of `Frame`s.
+///
+/// Returns `None` if the number of channels in a single frame `F` is not a multiple of the number
+/// of samples in the given slice.
+///
+/// This is a convenience function that wraps the `ToBoxedFrameSlice` trait.
+///
+/// # Examples
+///
+/// ```
+/// extern crate sample;
+///
+/// fn main() {
+///     let foo = vec![0.0, 0.5, 0.0, -0.5].into_boxed_slice();
+///     let bar: Box<[[f32; 2]]> = sample::slice::to_boxed_frame_slice(foo).unwrap();
+///     assert_eq!(bar.into_vec(), vec![[0.0, 0.5], [0.0, -0.5]]);
+///
+///     let foo = vec![0.0, 0.5, 0.0].into_boxed_slice();
+///     let bar = sample::slice::to_boxed_frame_slice(foo);
+///     assert_eq!(bar, None::<Box<[[f32; 2]]>>);
+/// }
+/// ```
+pub fn to_boxed_frame_slice<T, F>(slice: T) -> Option<Box<[F]>>
+    where F: Frame,
+          T: ToBoxedFrameSlice<F>,
+{
+    slice.to_boxed_frame_slice()
+}
+
 /// Converts the given slice into a slice of `Sample`s.
 ///
 /// This is a convenience function that wraps the `ToSampleSlice` trait.
@@ -112,6 +143,28 @@ pub fn to_sample_slice_mut<'a, T, S>(slice: T) -> &'a mut [S]
           T: ToSampleSliceMut<'a, S>,
 {
     slice.to_sample_slice_mut()
+}
+
+/// Converts the given boxed slice into a boxed slice of `Sample`s.
+///
+/// This is a convenience function that wraps the `ToBoxedSampleSlice` trait.
+///
+/// # Examples
+///
+/// ```
+/// extern crate sample;
+///
+/// fn main() {
+///     let foo = vec![[0.0, 0.5], [0.0, -0.5]].into_boxed_slice();
+///     let bar = sample::slice::to_boxed_sample_slice(foo);
+///     assert_eq!(bar.into_vec(), vec![0.0, 0.5, 0.0, -0.5]);
+/// }
+/// ```
+pub fn to_boxed_sample_slice<T, S>(slice: T) -> Box<[S]>
+    where S: Sample,
+          T: ToBoxedSampleSlice<S>,
+{
+    slice.to_boxed_sample_slice()
 }
 
 /// Converts the given slice of `Sample`s into some slice `T`.
@@ -164,6 +217,31 @@ pub fn from_sample_slice_mut<'a, T, S>(slice: &'a mut [S]) -> Option<T>
     T::from_sample_slice_mut(slice)
 }
 
+/// Converts the given boxed slice of `Sample`s into some slice `T`.
+///
+/// Returns `None` if the number of channels in a single frame is not a multiple of the number of
+/// samples in the given slice.
+///
+/// This is a convenience function that wraps the `FromBoxedSampleSlice` trait.
+///
+/// # Examples
+///
+/// ```
+/// extern crate sample;
+///
+/// fn main() {
+///     let foo = vec![0.0, 0.5, 0.0, -0.5].into_boxed_slice();
+///     let bar: Box<[[f32; 2]]> = sample::slice::from_boxed_sample_slice(foo).unwrap();
+///     assert_eq!(bar.into_vec(), vec![[0.0, 0.5], [0.0, -0.5]]);
+/// }
+/// ```
+pub fn from_boxed_sample_slice<T, S>(slice: Box<[S]>) -> Option<T>
+    where S: Sample,
+          T: FromBoxedSampleSlice<S>,
+{
+    T::from_boxed_sample_slice(slice)
+}
+
 /// Converts the given slice of `Frame`s into some slice `T`.
 ///
 /// This is a convenience function that wraps the `FromFrameSlice` trait.
@@ -206,6 +284,28 @@ pub fn from_frame_slice_mut<'a, T, F>(slice: &'a mut [F]) -> T
           T: FromFrameSliceMut<'a, F>,
 {
     T::from_frame_slice_mut(slice)
+}
+
+/// Converts the given boxed slice of `Frame`s into some slice `T`.
+///
+/// This is a convenience function that wraps the `FromBoxedFrameSlice` trait.
+///
+/// # Examples
+///
+/// ```
+/// extern crate sample;
+///
+/// fn main() {
+///     let foo = vec![[0.0, 0.5], [0.0, -0.5]].into_boxed_slice();
+///     let bar: Box<[f32]> = sample::slice::from_boxed_frame_slice(foo);
+///     assert_eq!(bar.into_vec(), vec![0.0, 0.5, 0.0, -0.5]);
+/// }
+/// ```
+pub fn from_boxed_frame_slice<T, F>(slice: Box<[F]>) -> T
+    where F: Frame,
+          T: FromBoxedFrameSlice<F>,
+{
+    T::from_boxed_frame_slice(slice)
 }
 
 

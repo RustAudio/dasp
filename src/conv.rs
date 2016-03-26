@@ -12,6 +12,7 @@
 
 use {Frame, Sample};
 use core;
+use std;
 use types::{I24, U24, I48, U48};
 
 
@@ -717,6 +718,13 @@ pub trait FromSampleSliceMut<'a, S>: Sized
     fn from_sample_slice_mut(slice: &'a mut [S]) -> Option<Self>;
 }
 
+/// For converting a boxed slice of `Sample`s to a boxed slice of `Frame`s.
+pub trait FromBoxedSampleSlice<S>: Sized
+    where S: Sample,
+{
+    fn from_boxed_sample_slice(slice: Box<[S]>) -> Option<Self>;
+}
+
 /// For converting from a slice of `Frame`s to a slice of `Sample`s.
 pub trait FromFrameSlice<'a, F>
     where F: Frame,
@@ -729,6 +737,13 @@ pub trait FromFrameSliceMut<'a, F>
     where F: Frame,
 {
     fn from_frame_slice_mut(slice: &'a mut [F]) -> Self;
+}
+
+/// For converting from a boxed slice of `Frame`s to a boxed slice of `Sample`s.
+pub trait FromBoxedFrameSlice<F>
+    where F: Frame,
+{
+    fn from_boxed_frame_slice(slice: Box<[F]>) -> Self;
 }
 
 /// For converting from a slice of `Frame`s to a slice of `Sample`s.
@@ -745,6 +760,13 @@ pub trait ToSampleSliceMut<'a, S>
     fn to_sample_slice_mut(self) -> &'a mut [S];
 }
 
+/// For converting from a boxed slice of `Frame`s to a boxed slice of `Sample`s.
+pub trait ToBoxedSampleSlice<S>
+    where S: Sample,
+{
+    fn to_boxed_sample_slice(self) -> Box<[S]>;
+}
+
 /// For converting from a slice of `Sample`s to a slice of `Frame`s.
 pub trait ToFrameSlice<'a, F>
     where F: Frame,
@@ -757,6 +779,13 @@ pub trait ToFrameSliceMut<'a, F>
     where F: Frame,
 {
     fn to_frame_slice_mut(self) -> Option<&'a mut [F]>;
+}
+
+/// For converting from a boxed slice of `Sample`s to a boxed slice of `Frame`s.
+pub trait ToBoxedFrameSlice<F>
+    where F: Frame,
+{
+    fn to_boxed_frame_slice(self) -> Option<Box<[F]>>;
 }
 
 
@@ -781,6 +810,15 @@ impl<'a, S> FromSampleSliceMut<'a, S> for &'a mut [S]
     }
 }
 
+impl<S> FromBoxedSampleSlice<S> for Box<[S]>
+    where S: Sample,
+{
+    #[inline]
+    fn from_boxed_sample_slice(slice: Box<[S]>) -> Option<Self> {
+        Some(slice)
+    }
+}
+
 impl<'a, F> FromFrameSlice<'a, F> for &'a [F]
     where F: Frame,
 {
@@ -795,6 +833,15 @@ impl<'a, F> FromFrameSliceMut<'a, F> for &'a mut [F]
 {
     #[inline]
     fn from_frame_slice_mut(slice: &'a mut [F]) -> Self {
+        slice
+    }
+}
+
+impl<F> FromBoxedFrameSlice<F> for Box<[F]>
+    where F: Frame,
+{
+    #[inline]
+    fn from_boxed_frame_slice(slice: Box<[F]>) -> Self {
         slice
     }
 }
@@ -817,6 +864,15 @@ impl<'a, S> ToSampleSliceMut<'a, S> for &'a mut [S]
     }
 }
 
+impl<S> ToBoxedSampleSlice<S> for Box<[S]>
+    where S: Sample,
+{
+    #[inline]
+    fn to_boxed_sample_slice(self) -> Box<[S]> {
+        self
+    }
+}
+
 impl<'a, F> ToFrameSlice<'a, F> for &'a [F]
     where F: Frame,
 {
@@ -831,6 +887,15 @@ impl<'a, F> ToFrameSliceMut<'a, F> for &'a mut [F]
 {
     #[inline]
     fn to_frame_slice_mut(self) -> Option<&'a mut [F]> {
+        Some(self)
+    }
+}
+
+impl<F> ToBoxedFrameSlice<F> for Box<[F]>
+    where F: Frame,
+{
+    #[inline]
+    fn to_boxed_frame_slice(self) -> Option<Box<[F]>> {
         Some(self)
     }
 }
@@ -880,6 +945,38 @@ macro_rules! impl_from_slice_conversions {
                 }
             }
 
+            impl<S> FromBoxedSampleSlice<S> for Box<[[S; $N]]>
+                where S: Sample,
+                      [S; $N]: Frame,
+            {
+                #[inline]
+                fn from_boxed_sample_slice(mut slice: Box<[S]>) -> Option<Self> {
+
+                    // First, we need a raw pointer to the slice and to make sure that the `Box` is
+                    // forgotten so that our slice does not get deallocated.
+                    let len = slice.len();
+                    let slice_ptr = &mut slice as &mut [S] as *mut [S];
+                    std::mem::forget(slice);
+                    let sample_slice = unsafe {
+                        std::slice::from_raw_parts_mut((*slice_ptr).as_mut_ptr(), len)
+                    };
+
+                    // Convert to our frame slice if possible.
+                    let frame_slice = match <&mut [[S; $N]]>::from_sample_slice_mut(sample_slice) {
+                        Some(slice) => slice,
+                        None => return None,
+                    };
+                    let ptr = frame_slice as *mut [[S; $N]];
+
+                    // Take ownership over the slice again before returning it.
+                    let new_slice = unsafe {
+                        Box::from_raw(ptr)
+                    };
+
+                    Some(new_slice)
+                }
+            }
+
             impl<'a, S> FromFrameSlice<'a, [S; $N]> for &'a [S]
                 where [S; $N]: Frame,
             {
@@ -906,6 +1003,23 @@ macro_rules! impl_from_slice_conversions {
                 }
             }
 
+            impl<S> FromBoxedFrameSlice<[S; $N]> for Box<[S]>
+                where [S; $N]: Frame,
+            {
+                #[inline]
+                fn from_boxed_frame_slice(mut slice: Box<[[S; $N]]>) -> Self {
+                    let new_len = slice.len() * $N;
+                    let frame_slice_ptr = &mut slice as &mut [[S; $N]] as *mut [[S; $N]];
+                    std::mem::forget(slice);
+                    let sample_slice_ptr = frame_slice_ptr as *mut [S];
+                    unsafe {
+                        let ptr = (*sample_slice_ptr).as_mut_ptr();
+                        let sample_slice = std::slice::from_raw_parts_mut(ptr, new_len);
+                        Box::from_raw(sample_slice as *mut _)
+                    }
+                }
+            }
+
             impl<'a, S> ToSampleSlice<'a, S> for &'a [[S; $N]]
                 where S: Sample,
             {
@@ -921,6 +1035,15 @@ macro_rules! impl_from_slice_conversions {
                 #[inline]
                 fn to_sample_slice_mut(self) -> &'a mut [S] {
                     FromFrameSliceMut::from_frame_slice_mut(self)
+                }
+            }
+
+            impl<S> ToBoxedSampleSlice<S> for Box<[[S; $N]]>
+                where S: Sample,
+            {
+                #[inline]
+                fn to_boxed_sample_slice(self) -> Box<[S]> {
+                    FromBoxedFrameSlice::from_boxed_frame_slice(self)
                 }
             }
 
@@ -941,6 +1064,16 @@ macro_rules! impl_from_slice_conversions {
                 #[inline]
                 fn to_frame_slice_mut(self) -> Option<&'a mut [[S; $N]]> {
                     FromSampleSliceMut::from_sample_slice_mut(self)
+                }
+            }
+
+            impl<S> ToBoxedFrameSlice<[S; $N]> for Box<[S]>
+                where S: Sample,
+                      [S; $N]: Frame,
+            {
+                #[inline]
+                fn to_boxed_frame_slice(self) -> Option<Box<[[S; $N]]>> {
+                    FromBoxedSampleSlice::from_boxed_sample_slice(self)
                 }
             }
 
@@ -976,6 +1109,15 @@ pub trait DuplexSliceMut<'a, S, F>: DuplexSampleSliceMut<'a, S> + DuplexFrameSli
     where S: Sample,
           F: Frame<Sample=S> {}
 
+pub trait DuplexBoxedSampleSlice<S>: FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S>
+    where S: Sample {}
+
+pub trait DuplexBoxedFrameSlice<F>: FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>
+    where F: Frame {}
+
+pub trait DuplexBoxedSlice<S, F>: DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>
+    where S: Sample,
+          F: Frame<Sample=S> {}
 
 ///// Bi-Directional DSP Slice Conversion Trait Implementations
 
@@ -1005,3 +1147,16 @@ impl<'a, S, F, T> DuplexSliceMut<'a, S, F> for T
     where S: Sample,
           F: Frame<Sample=S>,
           T: DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F> {}
+
+impl<S, T> DuplexBoxedSampleSlice<S> for T
+    where S: Sample,
+          T: FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S> {}
+
+impl<F, T> DuplexBoxedFrameSlice<F> for T
+    where F: Frame,
+          T: FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F> {}
+
+impl<S, F, T> DuplexBoxedSlice<S, F> for T
+    where S: Sample,
+          F: Frame<Sample=S>,
+          T: DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F> {}
