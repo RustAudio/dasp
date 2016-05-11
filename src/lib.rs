@@ -55,6 +55,7 @@ pub mod frame;
 pub mod signal;
 pub mod rate;
 pub mod types;
+pub mod window;
 
 #[cfg(not(feature = "std"))]
 fn floor(x: f64) -> f64 {
