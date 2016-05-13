@@ -40,7 +40,7 @@ pub struct Window<S: Sample, T: Step, F: Frame<Sample=S>, WT: WindowType<S, T>> 
 
 impl<S: Sample, F: Frame<Sample=S>, WT: WindowType<S, ConstHz>> Window<S, ConstHz, F, WT> {
     pub fn new(len: usize) -> Self {
-        let step = signal::rate(len as f64).const_hz(1.);
+        let step = signal::rate(len as f64 - 1.).const_hz(1.);
         Window {
             phase: signal::phase(step),
             stype: PhantomData,
@@ -81,9 +81,8 @@ impl<'a, S: Sample<Float=S> + FloatSample + FromSample<f64>, T: Step, F: 'a + Fr
 
     fn next(&mut self) -> Option<Self::Item> {
         self.window.next().and_then(|v| {
-            let out = self.data.get(self.idx).and_then(|d| {
-                Some(v.mul_amp(*d))
-            });
+            let out = self.data.get(self.idx)
+                .and_then(|d| Some(v.mul_amp(*d)));
             self.idx += 1;
             out
         })
