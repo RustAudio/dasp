@@ -21,6 +21,10 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// An iterator yielding the sample in each channel, starting from left (channel 0) and ending
     /// at the right (channel NumChannels-1).
     type Channels: Iterator<Item=Self::Sample>;
+    /// A frame type with equilavent number of channels using the associated `Sample::Signed` format.
+    type Signed: Frame<Sample=<Self::Sample as Sample>::Signed, NumChannels=Self::NumChannels>;
+    /// A frame type with equilavent number of channels using the associated `Sample::Float` format.
+    type Float: Frame<Sample=<Self::Sample as Sample>::Float, NumChannels=Self::NumChannels>;
 
     /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
     /// value that is equal distance from both the min and max ranges of the sample.
@@ -105,6 +109,40 @@ pub trait Frame: Copy + Clone + PartialEq {
         where O: Frame<NumChannels=Self::NumChannels>,
               F: Frame<NumChannels=Self::NumChannels>,
               M: FnMut(Self::Sample, O::Sample) -> F::Sample;
+
+    /// Converts the frame type to the equivalent signal in its associated `Float`ing point format.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Frame;
+    ///
+    /// fn main() {
+    ///     let foo = [128u8; 2];
+    ///     let signed = foo.to_signed_frame();
+    ///     assert_eq!(signed, [0i8; 2]);
+    /// }
+    /// ```
+    fn to_signed_frame(self) -> Self::Signed;
+
+    /// Converts the frame type to the equivalent signal in its associated `Signed` format.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Frame;
+    ///
+    /// fn main() {
+    ///     let foo = [128u8; 2];
+    ///     let float = foo.to_float_frame();
+    ///     assert_eq!(float, [0.0; 2]);
+    /// }
+    /// ```
+    fn to_float_frame(self) -> Self::Float;
 
     /// Offsets the amplitude of every channel in the frame by the given `offset` and yields the
     /// resulting frame.
@@ -228,6 +266,8 @@ macro_rules! impl_frame {
                 type Sample = S;
                 type NumChannels = $NChan;
                 type Channels = Channels<Self>;
+                type Float = [S::Float; $N];
+                type Signed = [S::Signed; $N];
 
                 #[inline]
                 fn equilibrium() -> Self {
@@ -275,6 +315,16 @@ macro_rules! impl_frame {
                 #[inline(always)]
                 unsafe fn channel_unchecked(&self, idx: usize) -> &Self::Sample {
                     self.get_unchecked(idx)
+                }
+
+                #[inline]
+                fn to_signed_frame(self) -> Self::Signed {
+                    self.map(|s| s.to_sample())
+                }
+
+                #[inline]
+                fn to_float_frame(self) -> Self::Float {
+                    self.map(|s| s.to_sample())
                 }
 
                 #[inline]
