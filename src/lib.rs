@@ -76,6 +76,24 @@ fn sin(x: f64) -> f64 {
     x.sin()
 }
 
+#[cfg(not(feature = "std"))]
+fn sqrt_f32(x: f32) -> f32 {
+    unsafe { core::intrinsics::sqrtf32(x) }
+}
+#[cfg(feature = "std")]
+fn sqrt_f32(x: f32) -> f32 {
+    x.sqrt()
+}
+
+#[cfg(not(feature = "std"))]
+fn sqrt_f64(x: f64) -> f64 {
+    unsafe { core::intrinsics::sqrt(f64) }
+}
+#[cfg(feature = "std")]
+fn sqrt_f64(x: f64) -> f64 {
+    x.sqrt()
+}
+
 /// A trait for working generically across different **Sample** format types.
 ///
 /// Provides methods for converting to and from any type that implements the
@@ -386,12 +404,12 @@ impl FloatSample for f32 {
     #[inline]
     fn identity() -> Self { 1.0 }
     #[inline]
-    fn sample_sqrt(self) -> Self { self.sqrt() }
+    fn sample_sqrt(self) -> Self { sqrt_f32(self) }
 }
 
 impl FloatSample for f64 {
     #[inline]
     fn identity() -> Self { 1.0 }
     #[inline]
-    fn sample_sqrt(self) -> Self { self.sqrt() }
+    fn sample_sqrt(self) -> Self { sqrt_f64(self) }
 }
