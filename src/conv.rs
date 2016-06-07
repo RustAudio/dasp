@@ -10,9 +10,8 @@
 //! The conversion functions do *not* check the range of incoming values for floating point values
 //! or any of the custom `I24`, `U24`, `I48` and `U48` types.
 
-use {Frame, Sample};
+use {Box, Frame, Sample};
 use core;
-use std;
 use types::{I24, U24, I48, U48};
 
 
@@ -956,9 +955,9 @@ macro_rules! impl_from_slice_conversions {
                     // forgotten so that our slice does not get deallocated.
                     let len = slice.len();
                     let slice_ptr = &mut slice as &mut [S] as *mut [S];
-                    std::mem::forget(slice);
+                    core::mem::forget(slice);
                     let sample_slice = unsafe {
-                        std::slice::from_raw_parts_mut((*slice_ptr).as_mut_ptr(), len)
+                        core::slice::from_raw_parts_mut((*slice_ptr).as_mut_ptr(), len)
                     };
 
                     // Convert to our frame slice if possible.
@@ -1010,11 +1009,11 @@ macro_rules! impl_from_slice_conversions {
                 fn from_boxed_frame_slice(mut slice: Box<[[S; $N]]>) -> Self {
                     let new_len = slice.len() * $N;
                     let frame_slice_ptr = &mut slice as &mut [[S; $N]] as *mut [[S; $N]];
-                    std::mem::forget(slice);
+                    core::mem::forget(slice);
                     let sample_slice_ptr = frame_slice_ptr as *mut [S];
                     unsafe {
                         let ptr = (*sample_slice_ptr).as_mut_ptr();
-                        let sample_slice = std::slice::from_raw_parts_mut(ptr, new_len);
+                        let sample_slice = core::slice::from_raw_parts_mut(ptr, new_len);
                         Box::from_raw(sample_slice as *mut _)
                     }
                 }

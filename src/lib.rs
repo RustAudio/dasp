@@ -33,6 +33,11 @@ type VecDeque<T> = collections::vec_deque::VecDeque<T>;
 type VecDeque<T> = std::collections::vec_deque::VecDeque<T>;
 
 #[cfg(not(feature = "std"))]
+pub type Box<T> = alloc::boxed::Box<T>;
+#[cfg(feature = "std")]
+pub type Box<T> = std::boxed::Box<T>;
+
+#[cfg(not(feature = "std"))]
 type Rc<T> = alloc::rc::Rc<T>;
 #[cfg(feature = "std")]
 type Rc<T> = std::rc::Rc<T>;

@@ -1,7 +1,7 @@
 //! This module provides various helper functions for performing operations on slices of frames.
 
 use {
-    Frame, Sample,
+    Box, Frame, Sample,
     ToSampleSlice, ToSampleSliceMut, ToBoxedSampleSlice,
     ToFrameSlice, ToFrameSliceMut, ToBoxedFrameSlice,
     FromSampleSlice, FromSampleSliceMut, FromBoxedSampleSlice,
