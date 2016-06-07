@@ -92,7 +92,7 @@ fn sqrt_f32(x: f32) -> f32 {
 
 #[cfg(not(feature = "std"))]
 fn sqrt_f64(x: f64) -> f64 {
-    unsafe { core::intrinsics::sqrt(f64) }
+    unsafe { core::intrinsics::sqrtf64(x) }
 }
 #[cfg(feature = "std")]
 fn sqrt_f64(x: f64) -> f64 {
