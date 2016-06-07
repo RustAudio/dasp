@@ -67,12 +67,30 @@ fn floor(x: f64) -> f64 {
 }
 
 #[cfg(not(feature = "std"))]
+fn ceil(x: f64) -> f64 {
+    unsafe { core::intrinsics::ceilf64(x) }
+}
+#[cfg(feature = "std")]
+fn ceil(x: f64) -> f64 {
+    x.ceil()
+}
+
+#[cfg(not(feature = "std"))]
 fn sin(x: f64) -> f64 {
     unsafe { core::intrinsics::sinf64(x) }
 }
 #[cfg(feature = "std")]
 fn sin(x: f64) -> f64 {
     x.sin()
+}
+
+#[cfg(not(feature = "std"))]
+fn cos(x: f64) -> f64 {
+    unsafe { core::intrinsics::cosf64(x) }
+}
+#[cfg(feature = "std")]
+fn cos(x: f64) -> f64 {
+    x.cos()
 }
 
 /// A trait for working generically across different **Sample** format types.

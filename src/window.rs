@@ -54,7 +54,7 @@ pub struct Windower<'a, S, F, WT>
 impl<S: Sample + ToSample<f64> + FromSample<f64>> Type<S> for Hanning {
     fn at_phase(phase: S) -> S {
         let v = phase.to_sample::<f64>() * f64::consts::PI * 2.;
-        (0.5f64 * (1f64 - v.cos())).to_sample::<S>()
+        (0.5f64 * (1f64 - super::cos(v))).to_sample::<S>()
     }
 }
 
@@ -159,7 +159,7 @@ impl<'a, S, F, WT> Iterator for Windower<'a, S, F, WT>
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         let rem = (self.data.len() - self.idx) - (self.bin - self.hop);
-        ((rem as f64 / self.hop as f64).ceil() as usize, None)
+        (super::ceil(rem as f64 / self.hop as f64) as usize, None)
     }
 }
 
