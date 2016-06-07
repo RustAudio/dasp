@@ -104,8 +104,8 @@ impl<'a, F, WT> WindowedFrame<'a, F, WT>
 }
 
 impl<'a, F, WT> Iterator for WindowedFrame<'a, F, WT> 
-    where F: 'a + Frame<Sample=<<F as Frame>::Sample as Sample>::Float>, 
-          F::Sample: FloatSample + FromSample<f64>, 
+    where F: 'a + Frame, 
+          <F as Frame>::Sample: FloatSample<Float=F::Sample> + FromSample<f64>, 
           WT: Type<F::Sample>
 {
     type Item = F;
