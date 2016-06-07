@@ -16,38 +16,35 @@ pub struct Hanning;
 
 pub struct Rectangle;
 
-pub struct Window<S, F, WT> 
-    where S: Sample, 
-          F: Frame<Sample=S>,
-          WT: Type<S>
+pub struct Window<F, WT> 
+    where F: Frame,
+          WT: Type<F::Sample>
 {
     pub phase: Phase<ConstHz>,
-    stype: PhantomData<S>,
     ftype: PhantomData<F>,
     wttype: PhantomData<WT>
 }
 
-pub struct WindowedFrame<'a, S, F, WT> 
-    where S: Sample + FromSample<f64>, 
-          F: 'a + Frame<Sample=S>,
-          WT: Type<S>
+pub struct WindowedFrame<'a, F, WT> 
+    where F: 'a + Frame,
+          F::Sample: FromSample<f64>, 
+          WT: Type<F::Sample>
 {
     pub data: &'a [F],
-    pub window: Window<S, F, WT>,
+    pub window: Window<F, WT>,
     idx: usize
 }
 
 /// Windower takes a long slice of data and generates an iterator over its frames
-pub struct Windower<'a, S, F, WT> 
-    where S: Sample + FromSample<f64>, 
-          F: 'a + Frame<Sample=S>, 
-          WT: Type<S>
+pub struct Windower<'a, F, WT> 
+    where F: 'a + Frame, 
+          F::Sample: FromSample<f64>, 
+          WT: Type<F::Sample>
 {
     pub bin: usize,
     pub hop: usize,
     pub idx: usize,
     pub data: &'a [F],
-    stype: PhantomData<S>,
     wttype: PhantomData<WT>
 }
 
@@ -65,37 +62,39 @@ impl<S: Sample + FromSample<f64>> Type<S> for Rectangle {
     }
 }
 
-impl<S, F, WT> Window<S, F, WT> 
-    where S: Sample, 
-          F: Frame<Sample=S>,
-          WT: Type<S>
+impl<F, WT> Window<F, WT> 
+    where F: Frame,
+          WT: Type<F::Sample>
 {
     pub fn new(len: usize) -> Self {
         let step = signal::rate(len as f64 - 1.).const_hz(1.);
         Window {
             phase: signal::phase(step),
-            stype: PhantomData,
             ftype: PhantomData,
             wttype: PhantomData
         }
     }
 }
 
-impl<S, F, WT> Iterator for Window<S, F, WT> 
-    where S: Sample + FromSample<f64>,
-          F: Frame<Sample=S>,
-          WT: Type<S>
+impl<F, WT> Iterator for Window<F, WT> 
+    where F: Frame, 
+          F::Sample: FromSample<f64>,
+          WT: Type<F::Sample>
 {
     type Item = F;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let v = WT::at_phase((self.phase.next_phase()).to_sample::<S>());
+        let v = WT::at_phase((self.phase.next_phase()).to_sample::<F::Sample>());
         Some(F::from_fn(|_| v))
     }
 }
 
-impl<'a, S: Sample + FromSample<f64>, F: 'a + Frame<Sample=S>, WT: Type<S>> WindowedFrame<'a, S, F, WT> {
-    pub fn new(data: &'a [F], window: Window<S, F, WT>) -> Self {
+impl<'a, F, WT> WindowedFrame<'a, F, WT> 
+    where F: 'a + Frame, 
+          F::Sample: FromSample<f64>, 
+          WT: Type<F::Sample>
+{
+    pub fn new(data: &'a [F], window: Window<F, WT>) -> Self {
         WindowedFrame {
             data: data,
             window: window,
@@ -104,10 +103,10 @@ impl<'a, S: Sample + FromSample<f64>, F: 'a + Frame<Sample=S>, WT: Type<S>> Wind
     }
 }
 
-impl<'a, S, F, WT> Iterator for WindowedFrame<'a, S, F, WT> 
-    where S: Sample<Float=S> + FloatSample + FromSample<f64>, 
-          F: 'a + Frame<Sample=S::Float>, 
-          WT: Type<S>
+impl<'a, F, WT> Iterator for WindowedFrame<'a, F, WT> 
+    where F: 'a + Frame<Sample=<<F as Frame>::Sample as Sample>::Float>, 
+          F::Sample: FloatSample + FromSample<f64>, 
+          WT: Type<F::Sample>
 {
     type Item = F;
 
@@ -121,10 +120,10 @@ impl<'a, S, F, WT> Iterator for WindowedFrame<'a, S, F, WT>
     }
 }
 
-impl<'a, S, F, WT> Windower<'a, S, F, WT> 
-    where S: Sample + FromSample<f64>, 
-          F: 'a + Frame<Sample=S>, 
-          WT: Type<S>
+impl<'a, F, WT> Windower<'a, F, WT> 
+    where F: 'a + Frame, 
+          F::Sample: FromSample<f64>, 
+          WT: Type<F::Sample>
 {
     pub fn new(data: &'a [F], bin: usize, hop: usize) -> Self {
         Windower {
@@ -132,24 +131,23 @@ impl<'a, S, F, WT> Windower<'a, S, F, WT>
             hop: hop,
             idx: 0,
             data: data,
-            stype: PhantomData,
             wttype: PhantomData
         }
     }
 }
 
-impl<'a, S, F, WT> Iterator for Windower<'a, S, F, WT> 
-    where S: Sample + FromSample<f64>, 
-          F: 'a + Frame<Sample=S>, 
-          WT: Type<S>
+impl<'a, F, WT> Iterator for Windower<'a, F, WT> 
+    where F: 'a + Frame, 
+          F::Sample: FromSample<f64>, 
+          WT: Type<F::Sample>
 {
-    type Item = WindowedFrame<'a, S, F, WT>;
+    type Item = WindowedFrame<'a, F, WT>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let top = self.idx + self.bin;
         if top < self.data.len() {
             let data = &self.data[self.idx..top];
-            let window: Window<S, F, WT> = Window::new(self.bin);
+            let window: Window<F, WT> = Window::new(self.bin);
             self.idx += self.hop;
             Some(WindowedFrame::new(data, window))
         } else {
@@ -163,16 +161,16 @@ impl<'a, S, F, WT> Iterator for Windower<'a, S, F, WT>
     }
 }
 
-pub fn hanning<S, F>(len: usize) -> Window<S, F, Hanning> 
-    where S: Sample + FromSample<f64> + ToSample<f64>, 
-          F: Frame<Sample=S>
+pub fn hanning<F>(len: usize) -> Window<F, Hanning> 
+    where F: Frame,
+          F::Sample: FromSample<f64> + ToSample<f64> 
 {
     Window::new(len)
 }
 
-pub fn rectangle<S, F>(len: usize) -> Window<S, F, Rectangle> 
-    where S: Sample + FromSample<f64>, 
-          F: Frame<Sample=S>
+pub fn rectangle<F>(len: usize) -> Window<F, Rectangle> 
+    where F: Frame,
+          F::Sample: FromSample<f64> 
 {
     Window::new(len)
 }
