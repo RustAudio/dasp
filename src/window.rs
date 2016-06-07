@@ -14,21 +14,7 @@ pub trait Type<S: Sample> {
 
 pub struct Hanning;
 
-impl<S: Sample + ToSample<f64> + FromSample<f64>> Type<S> for Hanning {
-    fn at_phase(phase: S) -> S {
-        let v = phase.to_sample::<f64>() * f64::consts::PI * 2.;
-        (0.5f64 * (1f64 - v.cos())).to_sample::<S>()
-    }
-}
-
 pub struct Rectangle;
-
-impl<S: Sample + FromSample<f64>> Type<S> for Rectangle {
-    #[allow(unused)]
-    fn at_phase(phase: S) -> S {
-        (1.).to_sample::<S>()
-    }
-}
 
 pub struct Window<S, F, WT> 
     where S: Sample, 
@@ -39,6 +25,44 @@ pub struct Window<S, F, WT>
     stype: PhantomData<S>,
     ftype: PhantomData<F>,
     wttype: PhantomData<WT>
+}
+
+pub struct WindowedFrame<'a, S, F, WT> 
+    where S: Sample + FromSample<f64>, 
+          F: 'a + Frame<Sample=S>,
+          WT: Type<S>
+{
+    pub data: &'a [F],
+    pub window: Window<S, F, WT>,
+    idx: usize
+}
+
+/// Windower takes a long slice of data and generates an iterator over its frames
+pub struct Windower<'a, S, F, WT> 
+    where S: Sample + FromSample<f64>, 
+          F: 'a + Frame<Sample=S>, 
+          WT: Type<S>
+{
+    pub bin: usize,
+    pub hop: usize,
+    pub idx: usize,
+    pub data: &'a [F],
+    stype: PhantomData<S>,
+    wttype: PhantomData<WT>
+}
+
+impl<S: Sample + ToSample<f64> + FromSample<f64>> Type<S> for Hanning {
+    fn at_phase(phase: S) -> S {
+        let v = phase.to_sample::<f64>() * f64::consts::PI * 2.;
+        (0.5f64 * (1f64 - v.cos())).to_sample::<S>()
+    }
+}
+
+impl<S: Sample + FromSample<f64>> Type<S> for Rectangle {
+    #[allow(unused)]
+    fn at_phase(phase: S) -> S {
+        (1.).to_sample::<S>()
+    }
 }
 
 impl<S, F, WT> Window<S, F, WT> 
@@ -70,16 +94,6 @@ impl<S, F, WT> Iterator for Window<S, F, WT>
     }
 }
 
-pub struct WindowedFrame<'a, S, F, WT> 
-    where S: Sample + FromSample<f64>, 
-          F: 'a + Frame<Sample=S>,
-          WT: Type<S>
-{
-    pub data: &'a [F],
-    pub window: Window<S, F, WT>,
-    idx: usize
-}
-
 impl<'a, S: Sample + FromSample<f64>, F: 'a + Frame<Sample=S>, WT: Type<S>> WindowedFrame<'a, S, F, WT> {
     pub fn new(data: &'a [F], window: Window<S, F, WT>) -> Self {
         WindowedFrame {
@@ -105,20 +119,6 @@ impl<'a, S, F, WT> Iterator for WindowedFrame<'a, S, F, WT>
             out
         })
     }
-}
-
-/// Windower takes a long slice of data and generates an iterator over its frames
-pub struct Windower<'a, S, F, WT> 
-    where S: Sample + FromSample<f64>, 
-          F: 'a + Frame<Sample=S>, 
-          WT: Type<S>
-{
-    pub bin: usize,
-    pub hop: usize,
-    pub idx: usize,
-    pub data: &'a [F],
-    stype: PhantomData<S>,
-    wttype: PhantomData<WT>
 }
 
 impl<'a, S, F, WT> Windower<'a, S, F, WT> 
