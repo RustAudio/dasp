@@ -198,6 +198,7 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     }
 
     /// Create a `Self` from any type that implements `ToSample<Self>`.
+    ///
     /// # Example
     ///
     /// ```rust
@@ -216,6 +217,46 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
         where Self: FromSample<S>,
     {
         FromSample::from_sample_(s)
+    }
+
+    /// Converts `self` to the equivalent `Sample` in the associated `Signed` format.
+    ///
+    /// This is a simple wrapper around `Sample::to_sample` which may provide extra convenience in
+    /// some cases, particularly for assisting type inference.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Sample;
+    ///
+    /// fn main() {
+    ///     assert_eq!(128_u8.to_signed_sample(), 0i8);
+    /// }
+    /// ```
+    fn to_signed_sample(self) -> Self::Signed {
+        self.to_sample()
+    }
+
+    /// Converts `self` to the equivalent `Sample` in the associated `Float` format.
+    ///
+    /// This is a simple wrapper around `Sample::to_sample` which may provide extra convenience in
+    /// some cases, particularly for assisting type inference.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Sample;
+    ///
+    /// fn main() {
+    ///     assert_eq!(128_u8.to_float_sample(), 0.0);
+    /// }
+    /// ```
+    fn to_float_sample(self) -> Self::Float {
+        self.to_sample()
     }
 
     /// Adds (or "offsets") the amplitude of the `Sample` by the given signed amplitude.
@@ -238,7 +279,7 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// ```
     #[inline]
     fn add_amp(self, amp: Self::Signed) -> Self {
-        let self_s: Self::Signed = self.to_sample();
+        let self_s = self.to_signed_sample();
         (self_s + amp).to_sample()
     }
 
@@ -268,7 +309,7 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// ```
     #[inline]
     fn mul_amp(self, amp: Self::Float) -> Self {
-        let self_f: Self::Float = self.to_sample();
+        let self_f = self.to_float_sample();
         (self_f * amp).to_sample()
     }
 
@@ -317,7 +358,7 @@ impl_sample!{
 ///
 /// **Sample**s often need to be converted to some mutual **SignedSample** type for signal
 /// addition.
-pub trait SignedSample: Sample
+pub trait SignedSample: Sample<Signed=Self>
     + core::ops::Add<Output=Self>
     + core::ops::Sub<Output=Self>
     + core::ops::Neg<Output=Self> {}
@@ -328,20 +369,29 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 ///
 /// **Sample**s often need to be converted to some mutual **FloatSample** type for signal scaling
 /// and modulation.
-pub trait FloatSample: SignedSample
+pub trait FloatSample: Sample<Signed=Self, Float=Self>
+    + SignedSample
     + core::ops::Mul<Output=Self>
     + core::ops::Div<Output=Self>
+    + Duplex<f32>
+    + Duplex<f64>
 {
     /// Represents the multiplicative identity of the floating point signal.
     fn identity() -> Self;
+    /// Calculate the square root of `Self`. A convenience generic wrapper around `.sqrt()`.
+    fn sample_sqrt(self) -> Self;
 }
 
 impl FloatSample for f32 {
     #[inline]
     fn identity() -> Self { 1.0 }
+    #[inline]
+    fn sample_sqrt(self) -> Self { self.sqrt() }
 }
 
 impl FloatSample for f64 {
     #[inline]
     fn identity() -> Self { 1.0 }
+    #[inline]
+    fn sample_sqrt(self) -> Self { self.sqrt() }
 }
