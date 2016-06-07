@@ -100,6 +100,7 @@ fn cos(x: f64) -> f64 {
     x.cos()
 }
 
+#[cfg(not(feature = "std"))]
 fn sqrt_f32(x: f32) -> f32 {
     unsafe { core::intrinsics::sqrtf32(x) }
 }
