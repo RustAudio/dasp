@@ -126,11 +126,10 @@ impl<'a, S, F, WT> Windower<'a, S, F, WT>
           F: 'a + Frame<Sample=S>, 
           WT: Type<S>
 {
-    /// Providing some reasonable defaults of bin = 512, hop = 256
-    pub fn new(data: &'a [F]) -> Self {
+    pub fn new(data: &'a [F], bin: usize, hop: usize) -> Self {
         Windower {
-            bin: 512,
-            hop: 256,
+            bin: bin,
+            hop: hop,
             idx: 0,
             data: data,
             stype: PhantomData,
@@ -162,5 +161,19 @@ impl<'a, S, F, WT> Iterator for Windower<'a, S, F, WT>
         let rem = (self.data.len() - self.idx) - (self.bin - self.hop);
         ((rem as f64 / self.hop as f64).ceil() as usize, None)
     }
+}
+
+pub fn hanning<S, F>(len: usize) -> Window<S, F, Hanning> 
+    where S: Sample + FromSample<f64> + ToSample<f64>, 
+          F: Frame<Sample=S>
+{
+    Window::new(len)
+}
+
+pub fn rectangle<S, F>(len: usize) -> Window<S, F, Rectangle> 
+    where S: Sample + FromSample<f64>, 
+          F: Frame<Sample=S>
+{
+    Window::new(len)
 }
 
