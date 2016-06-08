@@ -68,6 +68,7 @@ pub mod window;
 mod ops {
 
     pub mod f32 {
+        use core;
 
         #[cfg(not(feature = "std"))]
         pub fn sin(x: f32) -> f32 {
@@ -99,6 +100,7 @@ mod ops {
     }
 
     pub mod f64 {
+        use core;
 
         #[cfg(not(feature = "std"))]
         pub fn floor(x: f64) -> f64 {
