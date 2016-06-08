@@ -36,18 +36,6 @@ pub struct Window<F, W>
     wttype: PhantomData<W>
 }
 
-/// An iterator that multiplies frames yielded by some `Signal` with a `Window`.
-///
-/// Yields `Windowed` frames.
-#[derive(Clone)]
-pub struct Windowed<S, W> 
-    where S: Signal,
-          S::Item: Frame,
-          W: Type,
-{
-    signal_with_window: core::iter::Zip<S, Window<S::Item, W>>,
-}
-
 /// Takes a long slice of frames and yields `Windowed` chunks of size `bin` once every `hop` frames.
 #[derive(Clone)]
 pub struct Windower<'a, F, W> 
@@ -96,18 +84,6 @@ impl<F, W> Window<F, W>
     }
 }
 
-impl<S, W> Windowed<S, W> 
-    where S: Signal, 
-          S::Item: Frame,
-          W: Type
-{
-    /// Construct a new `Windowed` signal.
-    pub fn new(signal: S, window: Window<S::Item, W>) -> Self {
-        Windowed {
-            signal_with_window: signal.zip(window),
-        }
-    }
-}
 
 impl<'a, F, W> Windower<'a, F, W> 
     where F: 'a + Frame, 
@@ -157,36 +133,19 @@ impl<F, W> Iterator for Window<F, W>
     }
 }
 
-impl<S, W> Iterator for Windowed<S, W> 
-    where S: Signal, 
-          S::Item: Frame,
-          W: Type
-{
-    type Item = S::Item;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.signal_with_window.next()
-            .map(|(f, w)| w.mul_amp(f.to_float_frame()))
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.signal_with_window.size_hint()
-    }
-}
-
 impl<'a, F, W> Iterator for Windower<'a, F, W> 
     where F: 'a + Frame, 
           W: Type
 {
-    type Item = Windowed<core::iter::Cloned<core::slice::Iter<'a, F>>, W>;
+    type Item = signal::MulAmp<core::iter::Cloned<core::slice::Iter<'a, F>>, Window<F::Float, W>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let top = self.idx + self.bin;
         if top < self.frames.len() {
-            let data = &self.frames[self.idx..top];
-            let window: Window<F, W> = Window::new(self.bin);
+            let frames = &self.frames[self.idx..top];
+            let window = Window::new(self.bin);
             self.idx += self.hop;
-            Some(Windowed::new(data.iter().cloned(), window))
+            Some(frames.iter().cloned().mul_amp(window))
         } else {
             None
         }
