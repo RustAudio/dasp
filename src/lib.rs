@@ -62,12 +62,14 @@ pub mod frame;
 pub mod signal;
 pub mod rate;
 pub mod types;
+#[cfg(feature = "window")]
 pub mod window;
 
 
 mod ops {
 
     pub mod f32 {
+        #[allow(unused_imports)]
         use core;
 
         #[cfg(not(feature = "std"))]
@@ -100,6 +102,7 @@ mod ops {
     }
 
     pub mod f64 {
+        #[allow(unused_imports)]
         use core;
 
         #[cfg(not(feature = "std"))]
@@ -112,10 +115,12 @@ mod ops {
         }
 
         #[cfg(not(feature = "std"))]
+        #[allow(dead_code)]
         pub fn ceil(x: f64) -> f64 {
             unsafe { core::intrinsics::ceilf64(x) }
         }
         #[cfg(feature = "std")]
+        #[allow(dead_code)]
         pub fn ceil(x: f64) -> f64 {
             x.ceil()
         }

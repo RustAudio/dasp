@@ -14,6 +14,7 @@ script:
 - cargo build -v
 - cargo test -v
 - cargo test --release -v
+- cargo test --features="window" -v
 - cargo doc -v
 after_success: |
   [ $TRAVIS_BRANCH = master ] &&
