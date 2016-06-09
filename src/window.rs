@@ -32,8 +32,7 @@ pub struct Window<F, W>
 {
     /// Yields phase stepped at a constant rate to be passed to the window function `W`.
     pub phase: signal::Phase<signal::ConstHz>,
-    ftype: PhantomData<F>,
-    wttype: PhantomData<W>
+    marker: PhantomData<(F, W)>,
 }
 
 /// Takes a long slice of frames and yields `Windowed` chunks of size `bin` once every `hop` frames.
@@ -46,8 +45,8 @@ pub struct Windower<'a, F, W>
     pub bin: usize,
     /// The step size over `frames` for the start of each new `Windowed` chunk.
     pub hop: usize,
-    idx: usize,
-    frames: &'a [F],
+    /// The beginning of the remaining slice to be yielded by the `Windower`.
+    pub frames: &'a [F],
     wttype: PhantomData<W>
 }
 
@@ -78,8 +77,7 @@ impl<F, W> Window<F, W>
         let step = signal::rate(len as f64 - 1.0).const_hz(1.0);
         Window {
             phase: signal::phase(step),
-            ftype: PhantomData,
-            wttype: PhantomData
+            marker: PhantomData,
         }
     }
 }
@@ -94,7 +92,6 @@ impl<'a, F, W> Windower<'a, F, W>
         Windower {
             bin: bin,
             hop: hop,
-            idx: 0,
             frames: frames,
             wttype: PhantomData
         }
@@ -140,11 +137,11 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
     type Item = signal::MulAmp<core::iter::Cloned<core::slice::Iter<'a, F>>, Window<F::Float, W>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let top = self.idx + self.bin;
-        if top < self.frames.len() {
-            let frames = &self.frames[self.idx..top];
+        let num_frames = self.frames.len();
+        if self.bin < num_frames {
+            let frames = &self.frames[..self.bin];
             let window = Window::new(self.bin);
-            self.idx += self.hop;
+            self.frames = if self.hop < num_frames { &self.frames[self.hop..] } else { &[] };
             Some(frames.iter().cloned().mul_amp(window))
         } else {
             None
@@ -152,8 +149,20 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let rem = (self.frames.len() - self.idx) - (self.bin - self.hop);
-        (super::ops::f64::ceil(rem as f64 / self.hop as f64) as usize, None)
+        let num_frames = self.frames.len();
+        // Must have at least `bin` number of frames left to iterate at all.
+        if self.bin < num_frames {
+            // If the hop size is 0, we'll iterate until the usize would overflow.
+            if self.hop == 0 {
+                return (core::usize::MAX, None);
+            }
+            // Otherwise we can determine exactly how many iterations remain.
+            let remaining_hop_frames = self.frames.len() - self.bin;
+            let remaining_iterations = remaining_hop_frames / self.hop;
+            (remaining_iterations, Some(remaining_iterations))
+        } else {
+            (0, Some(0))
+        }
     }
 }
 

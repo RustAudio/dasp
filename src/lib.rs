@@ -62,7 +62,6 @@ pub mod frame;
 pub mod signal;
 pub mod rate;
 pub mod types;
-#[cfg(feature = "window")]
 pub mod window;
 
 

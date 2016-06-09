@@ -1,4 +1,3 @@
-#![cfg(feature = "window")]
 extern crate sample;
 
 use sample::frame::Frame;
