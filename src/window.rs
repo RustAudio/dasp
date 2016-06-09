@@ -1,177 +1,182 @@
+use {FloatSample, Sample};
+use core;
 use core::marker::PhantomData;
-use core::f64;
-
-use {Sample, FloatSample};
-use signal;
-use signal::{Phase, ConstHz};
-use conv::{FromSample, ToSample};
 use frame::Frame;
+use signal::{self, Signal};
 
-// Using types instead of enum allows for static dispatch
-pub trait Type<S: Sample> {
-    fn at_phase(phase: S) -> S;
+
+/// The window function used within a `Window`.
+pub trait Type {
+    /// Returns the amplitude for the given phase, given as some `Sample` type.
+    fn at_phase<S: Sample>(phase: S) -> S;
 }
 
+
+/// A type of window function, also known as teh "raised cosine window".
+///
+/// [Wiki entry](https://en.wikipedia.org/wiki/Window_function#Hann_.28Hanning.29_window).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hanning;
 
+/// The simplest window type, equivalent to replacing all but *N* values of data sequence by
+/// zeroes, making it appear as though the waveform suddenly turns on and off.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Rectangle;
 
-pub struct Window<F, WT> 
+/// A `Signal` type that for every yielded `phase`, yields the amplitude across the `window::Type`
+/// for that phase.
+#[derive(Clone)]
+pub struct Window<F, W> 
     where F: Frame,
-          WT: Type<F::Sample>
+          W: Type,
 {
-    pub phase: Phase<ConstHz>,
-    ftype: PhantomData<F>,
-    wttype: PhantomData<WT>
+    /// Yields phase stepped at a constant rate to be passed to the window function `W`.
+    pub phase: signal::Phase<signal::ConstHz>,
+    marker: PhantomData<(F, W)>,
 }
 
-pub struct WindowedFrame<'a, F, WT> 
-    where F: 'a + Frame,
-          F::Sample: FromSample<f64>, 
-          WT: Type<F::Sample>
-{
-    pub data: &'a [F],
-    pub window: Window<F, WT>,
-    idx: usize
-}
-
-/// Windower takes a long slice of data and generates an iterator over its frames
-pub struct Windower<'a, F, WT> 
+/// Takes a long slice of frames and yields `Windowed` chunks of size `bin` once every `hop` frames.
+#[derive(Clone)]
+pub struct Windower<'a, F, W> 
     where F: 'a + Frame, 
-          F::Sample: FromSample<f64>, 
-          WT: Type<F::Sample>
+          W: Type,
 {
+    /// The size of each `Windowed` chunk to be yielded.
     pub bin: usize,
+    /// The step size over `frames` for the start of each new `Windowed` chunk.
     pub hop: usize,
-    pub idx: usize,
-    pub data: &'a [F],
-    wttype: PhantomData<WT>
+    /// The beginning of the remaining slice to be yielded by the `Windower`.
+    pub frames: &'a [F],
+    wttype: PhantomData<W>
 }
 
-impl<S: Sample + ToSample<f64> + FromSample<f64>> Type<S> for Hanning {
-    fn at_phase(phase: S) -> S {
-        let v = phase.to_sample::<f64>() * f64::consts::PI * 2.;
-        (0.5f64 * (1f64 - super::cos(v))).to_sample::<S>()
+
+impl Type for Hanning {
+    fn at_phase<S: Sample>(phase: S) -> S {
+        const PI_2: f64 = core::f64::consts::PI * 2.0;
+        let v = phase.to_float_sample().to_sample() * PI_2;
+        (0.5 * (1.0 - super::ops::f64::cos(v)))
+            .to_sample::<S::Float>()
+            .to_sample::<S>()
     }
 }
 
-impl<S: Sample + FromSample<f64>> Type<S> for Rectangle {
-    #[allow(unused)]
-    fn at_phase(phase: S) -> S {
-        (1.).to_sample::<S>()
+impl Type for Rectangle {
+    fn at_phase<S: Sample>(_phase: S) -> S {
+        <S::Float as FloatSample>::identity().to_sample::<S>()
     }
 }
 
-impl<F, WT> Window<F, WT> 
+
+impl<F, W> Window<F, W> 
     where F: Frame,
-          WT: Type<F::Sample>
+          W: Type
 {
+    /// Construct a new `Window` with the given length as a number of frames.
     pub fn new(len: usize) -> Self {
-        let step = signal::rate(len as f64 - 1.).const_hz(1.);
+        let step = signal::rate(len as f64 - 1.0).const_hz(1.0);
         Window {
             phase: signal::phase(step),
-            ftype: PhantomData,
-            wttype: PhantomData
+            marker: PhantomData,
         }
     }
 }
 
-impl<F, WT> Iterator for Window<F, WT> 
-    where F: Frame, 
-          F::Sample: FromSample<f64>,
-          WT: Type<F::Sample>
-{
-    type Item = F;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let v = WT::at_phase((self.phase.next_phase()).to_sample::<F::Sample>());
-        Some(F::from_fn(|_| v))
-    }
-}
-
-impl<'a, F, WT> WindowedFrame<'a, F, WT> 
+impl<'a, F, W> Windower<'a, F, W> 
     where F: 'a + Frame, 
-          F::Sample: FromSample<f64>, 
-          WT: Type<F::Sample>
+          W: Type
 {
-    pub fn new(data: &'a [F], window: Window<F, WT>) -> Self {
-        WindowedFrame {
-            data: data,
-            window: window,
-            idx: 0
-        }
-    }
-}
-
-impl<'a, F, WT> Iterator for WindowedFrame<'a, F, WT> 
-    where F: 'a + Frame, 
-          <F as Frame>::Sample: FloatSample<Float=F::Sample> + FromSample<f64>, 
-          WT: Type<F::Sample>
-{
-    type Item = F;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.window.next().and_then(|v| {
-            let out = self.data.get(self.idx)
-                .and_then(|d| Some(v.mul_amp(*d)));
-            self.idx += 1;
-            out
-        })
-    }
-}
-
-impl<'a, F, WT> Windower<'a, F, WT> 
-    where F: 'a + Frame, 
-          F::Sample: FromSample<f64>, 
-          WT: Type<F::Sample>
-{
-    pub fn new(data: &'a [F], bin: usize, hop: usize) -> Self {
+    /// Constructor for a new `Windower` iterator.
+    pub fn new(frames: &'a [F], bin: usize, hop: usize) -> Self {
         Windower {
             bin: bin,
             hop: hop,
-            idx: 0,
-            data: data,
+            frames: frames,
             wttype: PhantomData
         }
     }
 }
 
-impl<'a, F, WT> Iterator for Windower<'a, F, WT> 
-    where F: 'a + Frame, 
-          F::Sample: FromSample<f64>, 
-          WT: Type<F::Sample>
+impl<'a, F> Windower<'a, F, Rectangle>
+    where F: 'a + Frame,
 {
-    type Item = WindowedFrame<'a, F, WT>;
+    /// Constructor for a `Windower` using the `Rectangle` window function.
+    pub fn rectangle(frames: &'a [F], bin: usize, hop: usize) -> Self {
+        Windower::new(frames, bin, hop)
+    }
+}
+
+impl<'a, F> Windower<'a, F, Hanning>
+    where F: 'a + Frame,
+{
+    /// Constructor for a `Windower` using the `Hanning` window function.
+    pub fn hanning(frames: &'a [F], bin: usize, hop: usize) -> Self {
+        Windower::new(frames, bin, hop)
+    }
+}
+
+
+impl<F, W> Iterator for Window<F, W> 
+    where F: Frame, 
+          W: Type
+{
+    type Item = F;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let top = self.idx + self.bin;
-        if top < self.data.len() {
-            let data = &self.data[self.idx..top];
-            let window: Window<F, WT> = Window::new(self.bin);
-            self.idx += self.hop;
-            Some(WindowedFrame::new(data, window))
+        let v = W::at_phase(self.phase.next_phase());
+        let v_f: <F::Sample as Sample>::Float = v.to_sample();
+        Some(F::from_fn(|_| v_f.to_sample::<F::Sample>()))
+    }
+}
+
+impl<'a, F, W> Iterator for Windower<'a, F, W> 
+    where F: 'a + Frame, 
+          W: Type
+{
+    type Item = signal::MulAmp<core::iter::Cloned<core::slice::Iter<'a, F>>, Window<F::Float, W>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let num_frames = self.frames.len();
+        if self.bin < num_frames {
+            let frames = &self.frames[..self.bin];
+            let window = Window::new(self.bin);
+            self.frames = if self.hop < num_frames { &self.frames[self.hop..] } else { &[] };
+            Some(frames.iter().cloned().mul_amp(window))
         } else {
             None
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let rem = (self.data.len() - self.idx) - (self.bin - self.hop);
-        (super::ceil(rem as f64 / self.hop as f64) as usize, None)
+        let num_frames = self.frames.len();
+        // Must have at least `bin` number of frames left to iterate at all.
+        if self.bin < num_frames {
+            // If the hop size is 0, we'll iterate forever.
+            if self.hop == 0 {
+                return (core::usize::MAX, None);
+            }
+            // Otherwise we can determine exactly how many iterations remain.
+            let remaining_hop_frames = self.frames.len() - self.bin;
+            let remaining_iterations = remaining_hop_frames / self.hop;
+            (remaining_iterations, Some(remaining_iterations))
+        } else {
+            (0, Some(0))
+        }
     }
 }
 
-pub fn hanning<F>(len: usize) -> Window<F, Hanning> 
+
+/// A helper function for constructing a `Window` that uses a `Hanning` `Type` function.
+pub fn hanning<F>(num_frames: usize) -> Window<F, Hanning> 
     where F: Frame,
-          F::Sample: FromSample<f64> + ToSample<f64> 
 {
-    Window::new(len)
+    Window::new(num_frames)
 }
 
-pub fn rectangle<F>(len: usize) -> Window<F, Rectangle> 
+/// A helper function for constructing a `Window` that uses a `Rectangle` `Type` function.
+pub fn rectangle<F>(num_frames: usize) -> Window<F, Rectangle> 
     where F: Frame,
-          F::Sample: FromSample<f64> 
 {
-    Window::new(len)
+    Window::new(num_frames)
 }
-

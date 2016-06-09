@@ -1140,7 +1140,7 @@ impl<S> Iterator for Sine<S>
     fn next(&mut self) -> Option<Self::Item> {
         const PI_2: f64 = core::f64::consts::PI * 2.0;
         let phase = self.phase.next_phase();
-        Some([::sin(PI_2 * phase)])
+        Some([super::ops::f64::sin(PI_2 * phase)])
     }
 }
 
@@ -1264,7 +1264,7 @@ impl<S> NoiseSimplex<S>
             }
 
             // Corners coordinates (nearest integer values).
-            let i0 = ::floor(x) as i64;
+            let i0 = super::ops::f64::floor(x) as i64;
             let i1 = i0 + 1;
 
             // Distances to corners (between 0 and 1);

@@ -64,59 +64,78 @@ pub mod rate;
 pub mod types;
 pub mod window;
 
-#[cfg(not(feature = "std"))]
-fn floor(x: f64) -> f64 {
-    unsafe { core::intrinsics::floorf64(x) }
-}
-#[cfg(feature = "std")]
-fn floor(x: f64) -> f64 {
-    x.floor()
+
+mod ops {
+
+    pub mod f32 {
+        #[allow(unused_imports)]
+        use core;
+
+        #[cfg(not(feature = "std"))]
+        pub fn sqrt(x: f32) -> f32 {
+            unsafe { core::intrinsics::sqrtf32(x) }
+        }
+        #[cfg(feature = "std")]
+        pub fn sqrt(x: f32) -> f32 {
+            x.sqrt()
+        }
+    }
+
+    pub mod f64 {
+        #[allow(unused_imports)]
+        use core;
+
+        #[cfg(not(feature = "std"))]
+        pub fn floor(x: f64) -> f64 {
+            unsafe { core::intrinsics::floorf64(x) }
+        }
+        #[cfg(feature = "std")]
+        pub fn floor(x: f64) -> f64 {
+            x.floor()
+        }
+
+        #[cfg(not(feature = "std"))]
+        #[allow(dead_code)]
+        pub fn ceil(x: f64) -> f64 {
+            unsafe { core::intrinsics::ceilf64(x) }
+        }
+        #[cfg(feature = "std")]
+        #[allow(dead_code)]
+        pub fn ceil(x: f64) -> f64 {
+            x.ceil()
+        }
+
+        #[cfg(not(feature = "std"))]
+        pub fn sin(x: f64) -> f64 {
+            unsafe { core::intrinsics::sinf64(x) }
+        }
+        #[cfg(feature = "std")]
+        pub fn sin(x: f64) -> f64 {
+            x.sin()
+        }
+
+        #[cfg(not(feature = "std"))]
+        pub fn cos(x: f64) -> f64 {
+            unsafe { core::intrinsics::cosf64(x) }
+        }
+        #[cfg(feature = "std")]
+        pub fn cos(x: f64) -> f64 {
+            x.cos()
+        }
+
+        #[cfg(not(feature = "std"))]
+        pub fn sqrt(x: f64) -> f64 {
+            unsafe { core::intrinsics::sqrtf64(x) }
+        }
+        #[cfg(feature = "std")]
+        pub fn sqrt(x: f64) -> f64 {
+            x.sqrt()
+        }
+
+    }
+
 }
 
-#[cfg(not(feature = "std"))]
-fn ceil(x: f64) -> f64 {
-    unsafe { core::intrinsics::ceilf64(x) }
-}
-#[cfg(feature = "std")]
-fn ceil(x: f64) -> f64 {
-    x.ceil()
-}
-
-#[cfg(not(feature = "std"))]
-fn sin(x: f64) -> f64 {
-    unsafe { core::intrinsics::sinf64(x) }
-}
-#[cfg(feature = "std")]
-fn sin(x: f64) -> f64 {
-    x.sin()
-}
-
-#[cfg(not(feature = "std"))]
-fn cos(x: f64) -> f64 {
-    unsafe { core::intrinsics::cosf64(x) }
-}
-#[cfg(feature = "std")]
-fn cos(x: f64) -> f64 {
-    x.cos()
-}
-
-#[cfg(not(feature = "std"))]
-fn sqrt_f32(x: f32) -> f32 {
-    unsafe { core::intrinsics::sqrtf32(x) }
-}
-#[cfg(feature = "std")]
-fn sqrt_f32(x: f32) -> f32 {
-    x.sqrt()
-}
-
-#[cfg(not(feature = "std"))]
-fn sqrt_f64(x: f64) -> f64 {
-    unsafe { core::intrinsics::sqrtf64(x) }
-}
-#[cfg(feature = "std")]
-fn sqrt_f64(x: f64) -> f64 {
-    x.sqrt()
-}
 
 /// A trait for working generically across different **Sample** format types.
 ///
@@ -420,7 +439,7 @@ pub trait FloatSample: Sample<Signed=Self, Float=Self>
 {
     /// Represents the multiplicative identity of the floating point signal.
     fn identity() -> Self;
-    /// Calculate the square root of `Self`. A convenience generic wrapper around `.sqrt()`.
+    /// Calculate the square root of `Self`.
     fn sample_sqrt(self) -> Self;
 }
 
@@ -428,12 +447,12 @@ impl FloatSample for f32 {
     #[inline]
     fn identity() -> Self { 1.0 }
     #[inline]
-    fn sample_sqrt(self) -> Self { sqrt_f32(self) }
+    fn sample_sqrt(self) -> Self { ops::f32::sqrt(self) }
 }
 
 impl FloatSample for f64 {
     #[inline]
     fn identity() -> Self { 1.0 }
     #[inline]
-    fn sample_sqrt(self) -> Self { sqrt_f64(self) }
+    fn sample_sqrt(self) -> Self { ops::f64::sqrt(self) }
 }

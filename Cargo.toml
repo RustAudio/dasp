@@ -2,7 +2,7 @@
 
 name = "sample"
 description = "A crate providing the fundamentals for working with audio PCM DSP."
-version = "0.6.0"
+version = "0.6.1"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 readme = "README.md"
 keywords = ["dsp", "bit-depth", "rate", "pcm", "audio"]
