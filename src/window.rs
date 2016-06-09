@@ -152,7 +152,7 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
         let num_frames = self.frames.len();
         // Must have at least `bin` number of frames left to iterate at all.
         if self.bin < num_frames {
-            // If the hop size is 0, we'll iterate until the usize would overflow.
+            // If the hop size is 0, we'll iterate forever.
             if self.hop == 0 {
                 return (core::usize::MAX, None);
             }
