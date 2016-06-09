@@ -72,24 +72,6 @@ mod ops {
         use core;
 
         #[cfg(not(feature = "std"))]
-        pub fn sin(x: f32) -> f32 {
-            unsafe { core::intrinsics::sinf32(x) }
-        }
-        #[cfg(feature = "std")]
-        pub fn sin(x: f32) -> f32 {
-            x.sin()
-        }
-
-        #[cfg(not(feature = "std"))]
-        pub fn cos(x: f32) -> f32 {
-            unsafe { core::intrinsics::cosf32(x) }
-        }
-        #[cfg(feature = "std")]
-        pub fn cos(x: f32) -> f32 {
-            x.cos()
-        }
-
-        #[cfg(not(feature = "std"))]
         pub fn sqrt(x: f32) -> f32 {
             unsafe { core::intrinsics::sqrtf32(x) }
         }
@@ -97,7 +79,6 @@ mod ops {
         pub fn sqrt(x: f32) -> f32 {
             x.sqrt()
         }
-
     }
 
     pub mod f64 {
@@ -252,7 +233,7 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// ```
     #[inline]
     fn identity() -> Self::Float {
-        <Self::Float as Float>::identity()
+        <Self::Float as FloatSample>::identity()
     }
 
     /// Convert `self` to any type that implements `FromSample<Self>`.
@@ -451,55 +432,27 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 /// and modulation.
 pub trait FloatSample: Sample<Signed=Self, Float=Self>
     + SignedSample
-    + Float
-    + Duplex<f32>
-    + Duplex<f64> {}
-
-impl FloatSample for f32 {}
-impl FloatSample for f64 {}
-
-/// A trait for floating point values.
-pub trait Float: Sized
-    + core::ops::Add<Output=Self>
-    + core::ops::Sub<Output=Self>
-    + core::ops::Neg<Output=Self>
     + core::ops::Mul<Output=Self>
     + core::ops::Div<Output=Self>
+    + Duplex<f32>
+    + Duplex<f64>
 {
     /// Represents the multiplicative identity of the floating point signal.
     fn identity() -> Self;
-    /// The value of Pi.
-    fn pi() -> Self;
     /// Calculate the square root of `Self`.
-    fn sqrt(self) -> Self;
-    /// Calculate the `sine` of self.
-    fn sin(self) -> Self;
-    /// Calculate the `cosine` of self.
-    fn cos(self) -> Self;
+    fn sample_sqrt(self) -> Self;
 }
 
-impl Float for f32 {
+impl FloatSample for f32 {
     #[inline]
     fn identity() -> Self { 1.0 }
     #[inline]
-    fn pi() -> Self { core::f32::consts::PI }
-    #[inline]
-    fn sqrt(self) -> Self { ops::f32::sqrt(self) }
-    #[inline]
-    fn sin(self) -> Self { ops::f32::sin(self) }
-    #[inline]
-    fn cos(self) -> Self { ops::f32::cos(self) }
+    fn sample_sqrt(self) -> Self { ops::f32::sqrt(self) }
 }
 
-impl Float for f64 {
+impl FloatSample for f64 {
     #[inline]
     fn identity() -> Self { 1.0 }
     #[inline]
-    fn pi() -> Self { core::f64::consts::PI }
-    #[inline]
-    fn sqrt(self) -> Self { ops::f64::sqrt(self) }
-    #[inline]
-    fn sin(self) -> Self { ops::f64::sin(self) }
-    #[inline]
-    fn cos(self) -> Self { ops::f64::cos(self) }
+    fn sample_sqrt(self) -> Self { ops::f64::sqrt(self) }
 }

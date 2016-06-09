@@ -1,4 +1,4 @@
-use {Float, Sample};
+use {FloatSample, Sample};
 use core;
 use core::marker::PhantomData;
 use frame::Frame;
@@ -53,17 +53,17 @@ pub struct Windower<'a, F, W>
 
 impl Type for Hanning {
     fn at_phase<S: Sample>(phase: S) -> S {
-        let pi_2 = <S::Float as Float>::pi() * 2.0.to_sample();
-        let v = phase.to_float_sample() * pi_2;
-        let half: S::Float = 0.5.to_sample();
-        let one: S::Float = 1.0.to_sample();
-        (half * (one - v.cos())).to_sample::<S>()
+        const PI_2: f64 = core::f64::consts::PI * 2.0;
+        let v = phase.to_float_sample().to_sample() * PI_2;
+        (0.5 * (1.0 - super::ops::f64::cos(v)))
+            .to_sample::<S::Float>()
+            .to_sample::<S>()
     }
 }
 
 impl Type for Rectangle {
     fn at_phase<S: Sample>(_phase: S) -> S {
-        <S::Float as Float>::identity().to_sample::<S>()
+        <S::Float as FloatSample>::identity().to_sample::<S>()
     }
 }
 
