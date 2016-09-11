@@ -138,7 +138,7 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
 
     fn next(&mut self) -> Option<Self::Item> {
         let num_frames = self.frames.len();
-        if self.bin < num_frames {
+        if self.bin <= num_frames {
             let frames = &self.frames[..self.bin];
             let window = Window::new(self.bin);
             self.frames = if self.hop < num_frames { &self.frames[self.hop..] } else { &[] };
@@ -179,4 +179,16 @@ pub fn rectangle<F>(num_frames: usize) -> Window<F, Rectangle>
     where F: Frame,
 {
     Window::new(num_frames)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_window_size() {
+        let v = [[1f32; 1]; 16];
+        let windows: Vec<Vec<[f32; 1]>> = Windower::hanning(&v[..], 8, 4).map(|i| i.collect::<Vec<[f32; 1]>>()).collect();
+        assert_eq!(windows.len(), 3);
+    }
 }
