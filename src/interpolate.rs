@@ -194,12 +194,18 @@ impl<F> Interpolator for Linear<F>
     /// possible, although not advisable, to provide an x > 1.0 or < 0.0, but this will just
     /// continue to be a linear ramp in one direction or another.
     fn interpolate(&self, x: f64) -> Self::Frame {
-        <Self::Frame as Frame>::from_fn(|idx| {
-            let left = self.left.channel(idx).unwrap_or(&<Self::Frame as Frame>::Sample::equilibrium()).to_sample::<f64>();
-            let right = self.right.unwrap_or(self.left).channel(idx).unwrap_or(&<Self::Frame as Frame>::Sample::equilibrium()).to_sample::<f64>();
-            let diff = right - left;
-            ((diff * x) + left).to_sample::<<Self::Frame as Frame>::Sample>()
-        })
+        let left = self.left;
+        match self.right {
+            Some(right) => {
+                self.left.zip_map(right, |l, r| {
+                    let l_f = l.to_sample::<f64>();
+                    let r_f = r.to_sample::<f64>();
+                    let diff = r_f - l_f;
+                    ((diff * x) + l_f).to_sample::<<Self::Frame as Frame>::Sample>()
+                })
+            }
+            None => left
+        }
     }
 
     fn next_source_frame(&mut self, source_frame: Option<Self::Frame>) {
