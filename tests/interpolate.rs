@@ -38,7 +38,7 @@ fn test_linear_converter() {
     assert_eq!(conv.next(), Some([2.0]));
     // There's nothing else here to interpolate toward, but we do want to ensure that we're
     // emitting the correct number of frames.
-    assert_eq!(conv.next(), Some([2.0]));
+    assert_eq!(conv.next(), Some([1.0]));
     assert_eq!(conv.next(), None);
 }
 
