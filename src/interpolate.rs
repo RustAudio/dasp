@@ -23,14 +23,16 @@ pub struct Converter<T: Iterator, I: Interpolator>
 /// Interpolator that just rounds off any values to the previous value from the source
 pub struct Floor<F>
 {
-    left: F
+    left: F,
+    exhausted: bool
 }
 
 /// Interpolator that interpolates linearly between the previous value and the next value
 pub struct Linear<F>
 {
     left: F,
-    right: Option<F>
+    right: Option<F>,
+    exhausted: bool
 }
 
 /// Trait for all things that can interpolate between two values. Implementations should keep track
@@ -44,6 +46,9 @@ pub trait Interpolator
 
     /// Called whenever the Interpolator value is over 1.
     fn next_source_frame(&mut self, source_frame: Option<Self::Frame>);
+
+    /// Should indicate whether the Interpolator is out of values.
+    fn is_exhausted(&self) -> bool;
 }
 
 impl<T, I> Converter<T, I> 
@@ -146,16 +151,20 @@ impl<T, I> Iterator for Converter<T, I>
             ref mut interpolation_value,
             source_to_target_ratio
         } = *self;
- 
+
+        // Advance frames
         while *interpolation_value >= 1.0 {
             interpolator.next_source_frame(source.next());
             *interpolation_value -= 1.0;
         }
 
-        let out = Some(interpolator.interpolate(*interpolation_value));
-        *interpolation_value += source_to_target_ratio;
-
-        out
+        if interpolator.is_exhausted() {
+            None
+        } else {
+            let out = interpolator.interpolate(*interpolation_value);
+            *interpolation_value += source_to_target_ratio;
+            Some(out)
+        }
     }
 
     #[inline]
@@ -165,6 +174,58 @@ impl<T, I> Iterator for Converter<T, I>
         let lower = (source_lower as f64 * len_multiplier) as usize;
         let upper = source_upper.map(|upper| (upper as f64 * len_multiplier) as usize);
         (lower, upper)
+    }
+}
+
+impl<F> Floor<F>
+{
+    /// Create a new Floor Interpolator. 
+    pub fn new(left: F) -> Floor<F> {
+        Floor {
+            left: left,
+            exhausted: false
+        }
+    }
+
+    /// Consumes the first value from a given source in order to initialize itself. If the source
+    /// has no values at all, this will return None.
+    pub fn from_source<I>(source: &mut I) -> Option<Floor<F>>
+        where I: Iterator<Item=F>
+    {
+        source.by_ref().next().map(|left| Floor { 
+            left: left,
+            exhausted: false
+        })
+    }
+}
+
+impl<F> Linear<F>
+{
+    /// Create a new Linear Interpolator. 
+    pub fn new<T>(left: F, right: T) -> Linear<F> 
+        where Option<F>: From<T>
+    {
+        let right = Option::<F>::from(right);
+        Linear {
+            exhausted: right.is_none(),
+            left: left,
+            right: right
+        }
+    }
+
+    /// Consumes the first value from a given source to initialize itself. If the source has no
+    /// values, this will return None.
+    pub fn from_source<I>(source: &mut I) -> Option<Linear<F>>
+        where I: Iterator<Item=F>
+    {
+        source.by_ref().next().map(|left| {
+            let right = source.by_ref().next();
+            Linear { 
+                exhausted: right.is_none(),
+                left: left, 
+                right: right
+            }
+        })
     }
 }
 
@@ -179,7 +240,14 @@ impl<F> Interpolator for Floor<F>
     }
 
     fn next_source_frame(&mut self, source_frame: Option<Self::Frame>) {
-        self.left = source_frame.unwrap_or(self.left);
+        match source_frame {
+            Some(f) => { self.left = f; },
+            None => { self.exhausted = true; }
+        }
+    }
+
+    fn is_exhausted(&self) -> bool {
+        self.exhausted
     }
 }
 
@@ -208,8 +276,15 @@ impl<F> Interpolator for Linear<F>
     }
 
     fn next_source_frame(&mut self, source_frame: Option<Self::Frame>) {
-        self.left = self.right.unwrap_or(self.left);
+        match self.right {
+            Some(f) => { self.left = f; },
+            None => { self.exhausted = true; }
+        }
         self.right = source_frame;
+    }
+
+    fn is_exhausted(&self) -> bool {
+        self.exhausted
     }
 }
 
