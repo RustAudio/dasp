@@ -139,7 +139,6 @@ impl<T, I> Iterator for Converter<T, I>
 {
     type Item = <T as Iterator>::Item;
 
-    #[allow(unused_variables)]
     fn next(&mut self) -> Option<Self::Item> {
         let Converter {
             ref mut source, 
