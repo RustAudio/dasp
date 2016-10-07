@@ -381,6 +381,32 @@ pub trait Signal: Iterator + Sized
         }
     }
 
+    /// Pads the `Signal` with the given `frame`.
+    ///
+    /// Calling this will return a new `Iterator` that never yields `None`, instead yielding the
+    /// given `frame` whenever `Self` would return `None`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::Signal;
+    ///
+    /// fn main() {
+    ///     let arr = [[0.25], [0.75], [0.25], [-0.25]];
+    ///     let signal = arr.iter().cloned();
+    ///     let padded: Vec<_> = signal.pad_with([0.0]).take(6).collect();
+    ///     assert_eq!(padded, vec![[0.25], [0.75], [0.25], [-0.25], [0.0], [0.0]]);
+    /// }
+    /// ```
+    fn pad_with(self, frame: Self::Item) -> PadWith<Self> {
+        PadWith {
+            signal: self,
+            frame: frame,
+        }
+    }
+
 }
 
 
@@ -569,6 +595,16 @@ pub struct ClipAmp<S>
 {
     signal: S,
     thresh: <<S::Item as Frame>::Sample as Sample>::Signed,
+}
+
+/// Pads the inner `signal` with the given `frame` instead of returning `None`.
+#[derive(Clone)]
+pub struct PadWith<S>
+    where S: Signal,
+          S::Item: Frame,
+{
+    signal: S,
+    frame: S::Item,
 }
 
 /// A type which allows for `send`ing a single `Signal` to multiple outputs.
@@ -1618,6 +1654,18 @@ impl<S> Iterator for ClipAmp<S>
             if s > self.thresh { self.thresh } else if s < -self.thresh { -self.thresh } else { s }
                 .to_sample()
         }))
+    }
+}
+
+
+impl<S> Iterator for PadWith<S>
+    where S: Signal,
+          S::Item: Frame,
+{
+    type Item = S::Item;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.signal.next().unwrap_or(self.frame))
     }
 }
 
