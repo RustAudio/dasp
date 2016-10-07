@@ -63,6 +63,7 @@ pub mod signal;
 pub mod rate;
 pub mod types;
 pub mod window;
+pub mod interpolate;
 
 
 mod ops {
