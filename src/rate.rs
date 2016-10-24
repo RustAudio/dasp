@@ -131,7 +131,7 @@ impl<I> Converter<I>
 
     /// Mutably borrow the `source_frames` Iterator from the `Converter`.
     #[inline]
-    pub fn source_mut(&mut self) -> &I {
+    pub fn source_mut(&mut self) -> &mut I {
         &mut self.source_frames
     }
 
