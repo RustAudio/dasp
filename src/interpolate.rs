@@ -3,7 +3,7 @@ use {Duplex, Frame, Sample};
 /// An iterator that converts the rate at which frames are yielded from some given frame
 /// Interpolator into a new type.
 ///
-/// Other names for `sample::rate::Converter` might include:
+/// Other names for `sample::interpolate::Converter` might include:
 ///
 /// - Sample rate converter
 /// - {Up/Down}sampler
