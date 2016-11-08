@@ -1,4 +1,5 @@
-use {Duplex, Frame, Sample};
+use {Duplex, Frame, Sample, VecDeque};
+use core::f64::consts::PI;
 
 /// An iterator that converts the rate at which frames are yielded from some given frame
 /// Interpolator into a new type.
@@ -33,6 +34,15 @@ pub struct Linear<F>
     left: F,
     right: Option<F>,
     exhausted: bool
+}
+
+/// Interpolator for sinc interpolation. Generally accepted as one of the better sample rate
+/// converters, although it uses significantly more computation.
+pub struct Sinc<F>
+{
+    samples: VecDeque<F>,
+    idx: usize,
+    depth: usize,
 }
 
 /// Trait for all things that can interpolate between two values. Implementations should keep track
@@ -229,6 +239,26 @@ impl<F> Linear<F>
     }
 }
 
+impl<F> Sinc<F>
+{
+    pub fn new<I: Iterator<Item=F>>(depth: usize, buf: I) -> Sinc<F> {
+        let mut queue = VecDeque::with_capacity(depth * 2 + 1);
+        for v in buf.take(depth) {
+            queue.push_back(v);
+        }
+
+        Sinc {
+            samples: queue,
+            depth: depth,
+            idx: 0,
+        }
+    }
+
+    fn max_n(&self) -> usize {
+        self.depth * 2 + 1
+    }
+}
+
 impl<F> Interpolator for Floor<F>
     where F: Frame,
           <F as Frame>::Sample: Duplex<f64>
@@ -279,6 +309,76 @@ impl<F> Interpolator for Linear<F>
 
     fn is_exhausted(&self) -> bool {
         self.exhausted
+    }
+}
+
+impl<F> Interpolator for Sinc<F>
+    where F: Frame,
+          <F as Frame>::Sample: Duplex<f64>
+{
+    type Frame = F;
+
+    /// Sinc interpolation
+    fn interpolate(&self, x: f64) -> F {
+        let phil = x;
+        let phir = 1.0 - x;
+        let nl = self.idx;
+        let nr = self.idx + 1;
+
+        let rightmost = nl + self.depth;
+        let leftmost = nr as isize - self.depth as isize;
+        let max_depth = if rightmost >= self.samples.len() {
+            self.samples.len() - self.depth 
+        } else if leftmost < 0 {
+            (self.depth as isize + leftmost) as usize
+        } else {
+            self.depth
+        };
+
+        F::from_fn(|i| {
+            let mut v = 0.0;
+            for n in 0..max_depth {
+                v += {
+                    let a = PI * (phil + n as f64);
+                    let first = a.sin() / a;
+                    let second = 0.5 + 0.5 * (a / (phil + max_depth as f64)).cos();
+                    let r_lag = self.samples[nr - n].channel(i).unwrap().to_sample::<f64>();
+                    first * second * r_lag
+                };
+
+                v += {
+                    let a = PI * (phir + n as f64);
+                    let first = a.sin() / a;
+                    let second = 0.5 + 0.5 * (a / (phir + max_depth as f64)).cos();
+                    let r_lag = self.samples[nl + n].channel(i).unwrap().to_sample::<f64>();
+                    first * second * r_lag
+                };
+            }
+
+            v.to_sample::<<F as Frame>::Sample>()
+        })
+    }
+
+    fn next_source_frame(&mut self, source_frame: Option<F>) {
+        match source_frame {
+            Some(f) => { 
+                if self.samples.len() == self.max_n() {
+                    // make room if necessary
+                    self.samples.pop_front();
+                } 
+
+                self.samples.push_back(f);
+                if self.idx < self.depth {
+                    self.idx += 1;
+                }
+            },
+            None => { self.samples.pop_front(); },
+        }
+    }
+
+    fn is_exhausted(&self) -> bool {
+        self.samples.len() <= self.depth
+        && self.idx == self.depth
     }
 }
 
