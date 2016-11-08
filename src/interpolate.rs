@@ -1,5 +1,6 @@
 use {Duplex, Frame, Sample, VecDeque};
 use core::f64::consts::PI;
+use ops::f64::{sin, cos};
 
 /// An iterator that converts the rate at which frames are yielded from some given frame
 /// Interpolator into a new type.
@@ -340,16 +341,16 @@ impl<F> Interpolator for Sinc<F>
             for n in 0..max_depth {
                 v += {
                     let a = PI * (phil + n as f64);
-                    let first = a.sin() / a;
-                    let second = 0.5 + 0.5 * (a / (phil + max_depth as f64)).cos();
+                    let first = sin(a) / a;
+                    let second = 0.5 + 0.5 * cos(a / (phil + max_depth as f64));
                     let r_lag = self.samples[nr - n].channel(i).unwrap().to_sample::<f64>();
                     first * second * r_lag
                 };
 
                 v += {
                     let a = PI * (phir + n as f64);
-                    let first = a.sin() / a;
-                    let second = 0.5 + 0.5 * (a / (phir + max_depth as f64)).cos();
+                    let first = sin(a) / a;
+                    let second = 0.5 + 0.5 * cos(a / (phir + max_depth as f64));
                     let r_lag = self.samples[nl + n].channel(i).unwrap().to_sample::<f64>();
                     first * second * r_lag
                 };
