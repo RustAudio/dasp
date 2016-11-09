@@ -10,13 +10,12 @@ fn main() {
     let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
     let mut reader = WavReader::open(assets.join("two_vowels.wav")).unwrap();
     let samples: Vec<[f64; 1]> = reader.samples::<i16>()
-        .map(|s| [s.unwrap().to_sample::<f64>()])
+        .map(|s| [s.unwrap().to_sample()])
         .collect();
 
     let sample_rate = reader.spec().sample_rate as f64;
     let new_sample_rate = 10_000.0;
-    // Zero-pad the `Sinc` interpolater.
-    let sinc = Sinc::new(50, sample::signal::equilibrium::<[f64; 1]>());
+    let sinc = Sinc::zero_padded(50);
     let conv = Converter::from_hz_to_hz(samples.iter().cloned(), sinc, sample_rate, new_sample_rate);
 
     let spec = WavSpec {
