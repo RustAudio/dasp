@@ -41,7 +41,7 @@ pub struct Linear<F>
 /// converters, although it uses significantly more computation.
 pub struct Sinc<F>
 {
-    samples: VecDeque<F>,
+    frames: VecDeque<F>,
     idx: usize,
     depth: usize,
 }
@@ -242,14 +242,33 @@ impl<F> Linear<F>
 
 impl<F> Sinc<F>
 {
-    pub fn new<I: Iterator<Item=F>>(depth: usize, buf: I) -> Sinc<F> {
+    /// Create a new Sinc interpolater whose inner queue will be padded with the ghiven frames.
+    pub fn new<I>(depth: usize, padding: I) -> Self
+        where I: IntoIterator<Item=F>,
+    {
         let mut queue = VecDeque::with_capacity(depth * 2 + 1);
-        for v in buf.take(depth) {
+        for v in padding.into_iter().take(depth) {
             queue.push_back(v);
         }
 
         Sinc {
-            samples: queue,
+            frames: queue,
+            depth: depth,
+            idx: 0,
+        }
+    }
+
+    /// Create a new Sinc interpolator whose inner queue will be padded with equilibrium frames.
+    pub fn zero_padded(depth: usize) -> Self
+        where F: Frame,
+    {
+        let mut queue = VecDeque::with_capacity(depth * 2 + 1);
+        for _ in 0..depth {
+            queue.push_back(F::equilibrium());
+        }
+
+        Sinc {
+            frames: queue,
             depth: depth,
             idx: 0,
         }
@@ -328,57 +347,56 @@ impl<F> Interpolator for Sinc<F>
 
         let rightmost = nl + self.depth;
         let leftmost = nr as isize - self.depth as isize;
-        let max_depth = if rightmost >= self.samples.len() {
-            self.samples.len() - self.depth 
+        let max_depth = if rightmost >= self.frames.len() {
+            self.frames.len() - self.depth 
         } else if leftmost < 0 {
             (self.depth as isize + leftmost) as usize
         } else {
             self.depth
         };
 
-        F::from_fn(|i| {
-            let mut v = 0.0;
-            for n in 0..max_depth {
-                v += {
-                    let a = PI * (phil + n as f64);
-                    let first = sin(a) / a;
-                    let second = 0.5 + 0.5 * cos(a / (phil + max_depth as f64));
-                    let r_lag = self.samples[nr - n].channel(i).unwrap().to_sample::<f64>();
-                    first * second * r_lag
-                };
+        (0..max_depth).fold(F::equilibrium(), |mut v, n| {
+            v = {
+                let a = PI * (phil + n as f64);
+                let first = sin(a) / a;
+                let second = 0.5 + 0.5 * cos(a / (phil + max_depth as f64));
+                v.zip_map(self.frames[nr - n], |vs, r_lag| {
+                    vs.add_amp((first * second * r_lag.to_sample::<f64>())
+                              .to_sample::<<F as Frame>::Sample>()
+                              .to_signed_sample())
+                })
+            };
 
-                v += {
-                    let a = PI * (phir + n as f64);
-                    let first = sin(a) / a;
-                    let second = 0.5 + 0.5 * cos(a / (phir + max_depth as f64));
-                    let r_lag = self.samples[nl + n].channel(i).unwrap().to_sample::<f64>();
-                    first * second * r_lag
-                };
-            }
-
-            v.to_sample::<<F as Frame>::Sample>()
+            let a = PI * (phir + n as f64);
+            let first = sin(a) / a;
+            let second = 0.5 + 0.5 * cos(a / (phir + max_depth as f64));
+            v.zip_map(self.frames[nl + n], |vs, r_lag| {
+                vs.add_amp((first * second * r_lag.to_sample::<f64>())
+                           .to_sample::<<F as Frame>::Sample>()
+                           .to_signed_sample())
+            })
         })
     }
 
     fn next_source_frame(&mut self, source_frame: Option<F>) {
         match source_frame {
             Some(f) => { 
-                if self.samples.len() == self.max_n() {
+                if self.frames.len() == self.max_n() {
                     // make room if necessary
-                    self.samples.pop_front();
+                    self.frames.pop_front();
                 } 
 
-                self.samples.push_back(f);
+                self.frames.push_back(f);
                 if self.idx < self.depth {
                     self.idx += 1;
                 }
             },
-            None => { self.samples.pop_front(); },
+            None => { self.frames.pop_front(); },
         }
     }
 
     fn is_exhausted(&self) -> bool {
-        self.samples.len() <= self.depth
+        self.frames.len() <= self.depth
         && self.idx == self.depth
     }
 }
