@@ -150,7 +150,6 @@ impl<T, I> Converter<T, I>
 impl<T, I> Iterator for Converter<T, I> 
     where T: Iterator,
           <T as Iterator>::Item: Frame,
-          <<T as Iterator>::Item as Frame>::Sample: Duplex<f64>,
           I: Interpolator<Frame=<T as Iterator>::Item>
 {
     type Item = <T as Iterator>::Item;

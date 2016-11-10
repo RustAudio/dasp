@@ -4,6 +4,7 @@ extern crate portaudio as pa;
 extern crate sample;
 
 use sample::{signal, Signal, ToFrameSliceMut};
+use sample::interpolate::Linear;
 
 // Thumb piano.
 mod wav {
@@ -63,7 +64,8 @@ fn frames(file_name: &'static str) -> Vec<wav::Frame> {
     let mut reader = hound::WavReader::open(&sample_file).unwrap();
     let spec = reader.spec();
     let samples = reader.samples().map(|s| s.unwrap());
-    signal::from_interleaved_samples::<_, wav::Frame>(samples)
-        .from_hz_to_hz(spec.sample_rate as f64, SAMPLE_RATE as f64)
+    let mut signal = signal::from_interleaved_samples::<_, wav::Frame>(samples);
+    let interp = Linear::from_source(&mut signal).unwrap();
+    signal.from_hz_to_hz(interp, spec.sample_rate as f64, SAMPLE_RATE as f64)
         .collect()
 }
