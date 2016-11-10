@@ -1,20 +1,22 @@
+extern crate find_folder;
 extern crate hound;
 extern crate sample;
 
 use hound::{WavReader, WavSpec, WavWriter};
 use sample::interpolate::{Sinc, Converter};
-use std::i16;
+use sample::Sample;
 
 fn main() {
-    let mut reader = WavReader::open("./assets/two_vowels.wav").unwrap();
-    let samples: Vec<[f64; 1]> = reader.samples::<i32>().map(|sample| {
-        [sample.unwrap() as f64 / i16::MAX as f64]
-    }).collect();
+    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
+    let mut reader = WavReader::open(assets.join("two_vowels.wav")).unwrap();
+    let samples: Vec<[f64; 1]> = reader.samples::<i16>()
+        .map(|s| [s.unwrap().to_sample()])
+        .collect();
 
     let sample_rate = reader.spec().sample_rate as f64;
-    let new_sample_rate = 10000.0;
-    let sinc = Sinc::new(50, samples.iter().cloned());
-    let conv = Converter::scale_sample_hz(samples.iter().cloned(), sinc, new_sample_rate / sample_rate);
+    let new_sample_rate = 10_000.0;
+    let sinc = Sinc::zero_padded(50);
+    let conv = Converter::from_hz_to_hz(samples.iter().cloned(), sinc, sample_rate, new_sample_rate);
 
     let spec = WavSpec {
         channels: 1,
@@ -23,8 +25,8 @@ fn main() {
         sample_format: hound::SampleFormat::Int,
     };
 
-    let mut writer = WavWriter::create("./assets/two_vowels_10k.wav", spec).unwrap();
-    for s in conv {
-        writer.write_sample((s[0] * i16::MAX as f64) as i16).unwrap();
+    let mut writer = WavWriter::create(assets.join("two_vowels_10k.wav"), spec).unwrap();
+    for f in conv {
+        writer.write_sample((f[0].to_sample::<i16>())).unwrap();
     }
 }
