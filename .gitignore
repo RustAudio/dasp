@@ -31,3 +31,5 @@ Icon
 .Spotlight-V100
 .Trashes
 
+# Ignore the generated WAV file
+/assets/two_vowels_10k.wav
