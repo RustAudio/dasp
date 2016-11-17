@@ -396,7 +396,7 @@ impl<F> Interpolator for Sinc<F>
     }
 
     fn is_exhausted(&self) -> bool {
-        self.frames.len() <= self.depth
+        self.frames.len() <= (self.depth + 1)
         && self.idx == self.depth
     }
 }
