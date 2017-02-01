@@ -20,7 +20,7 @@
 //! a simple and familiar API.
 
 use {Duplex, Frame, Sample, Vec, Rc, VecDeque};
-use rate;
+use interpolate::{Converter, Interpolator};
 use core;
 
 
@@ -219,19 +219,23 @@ pub trait Signal: Iterator + Sized
     /// extern crate sample;
     ///
     /// use sample::Signal;
+    /// use sample::interpolate::Linear;
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
     ///     let mul = [1.0, 1.0, 0.5, 0.5, 0.5, 0.5];
-    ///     let frames: Vec<_> = foo.iter().cloned().mul_hz(mul.iter().cloned()).collect();
-    ///     assert_eq!(&frames[..], &[[0.0], [1.0], [0.0], [-0.5], [-1.0]][..]);
+    ///     let mut source = foo.iter().cloned();
+    ///     let interp = Linear::from_source(&mut source).unwrap();
+    ///     let frames: Vec<_> = source.mul_hz(interp, mul.iter().cloned()).collect();
+    ///     assert_eq!(&frames[..], &[[0.0], [1.0], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
-    fn mul_hz<I>(self, mul_per_frame: I) -> MulHz<Self, I>
-        where I: Iterator<Item=f64>,
+    fn mul_hz<M, I>(self, interpolator: I, mul_per_frame: M) -> MulHz<Self, M, I>
+        where M: Iterator<Item=f64>,
+              I: Interpolator,
     {
         MulHz {
-            signal: rate::Converter::scale_playback_hz(self, 1.0),
+            signal: Converter::scale_playback_hz(self, interpolator, 1.0),
             mul_per_frame: mul_per_frame,
         }
     }
@@ -244,15 +248,20 @@ pub trait Signal: Iterator + Sized
     /// extern crate sample;
     ///
     /// use sample::Signal;
+    /// use sample::interpolate::Linear;
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let frames: Vec<_> = foo.iter().cloned().from_hz_to_hz(1.0, 2.0).collect();
-    ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0]][..]);
+    ///     let mut source = foo.iter().cloned();
+    ///     let interp = Linear::from_source(&mut source).unwrap();
+    ///     let frames: Vec<_> = source.from_hz_to_hz(interp, 1.0, 2.0).collect();
+    ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
-    fn from_hz_to_hz(self, source_hz: f64, target_hz: f64) -> rate::Converter<Self> {
-        rate::Converter::from_hz_to_hz(self, source_hz, target_hz)
+    fn from_hz_to_hz<I>(self, interpolator: I, source_hz: f64, target_hz: f64) -> Converter<Self, I> 
+        where I: Interpolator,
+    {
+        Converter::from_hz_to_hz(self, interpolator, source_hz, target_hz)
     }
 
     /// Multiplies the rate at which frames of the `Signal` are yielded by the given value.
@@ -263,15 +272,20 @@ pub trait Signal: Iterator + Sized
     /// extern crate sample;
     ///
     /// use sample::Signal;
+    /// use sample::interpolate::Linear;
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let frames: Vec<_> = foo.iter().cloned().scale_hz(0.5).collect();
-    ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0]][..]);
+    ///     let mut source = foo.iter().cloned();
+    ///     let interp = Linear::from_source(&mut source).unwrap();
+    ///     let frames: Vec<_> = source.scale_hz(interp, 0.5).collect();
+    ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
-    fn scale_hz(self, multi: f64) -> rate::Converter<Self> {
-        rate::Converter::scale_playback_hz(self, multi)
+    fn scale_hz<I>(self, interpolator: I, multi: f64) -> Converter<Self, I> 
+        where I: Interpolator,
+    {
+        Converter::scale_playback_hz(self, interpolator, multi)
     }
 
     /// Delays the `Signal` by the given number of frames.
@@ -560,11 +574,12 @@ pub struct ScaleAmpPerChannel<S, F> {
 /// This happens by wrapping `self` in a `rate::Converter` and calling `set_playback_hz_scale`
 /// with the value yielded by `signal`
 #[derive(Clone)]
-pub struct MulHz<S, M>
+pub struct MulHz<S, M, I>
     where S: Signal,
           S::Item: Frame,
+          I: Interpolator,
 {
-    signal: rate::Converter<S>,
+    signal: Converter<S, I>,
     mul_per_frame: M,
 }
 
@@ -1522,11 +1537,12 @@ impl<S, F> ExactSizeIterator for OffsetAmpPerChannel<S, F>
 }
 
 
-impl<S, M> Iterator for MulHz<S, M>
+impl<S, M, I> Iterator for MulHz<S, M, I>
     where S: Signal,
           S::Item: Frame,
           <S::Item as Frame>::Sample: Duplex<f64>,
           M: Iterator<Item=f64>,
+          I: Interpolator<Frame=<S as Iterator>::Item>,
 {
     type Item = S::Item;
     #[inline]

@@ -60,7 +60,6 @@ pub mod slice;
 pub mod conv;
 pub mod frame;
 pub mod signal;
-pub mod rate;
 pub mod types;
 pub mod window;
 pub mod interpolate;
