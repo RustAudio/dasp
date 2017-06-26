@@ -3,6 +3,7 @@
 extern crate sample;
 
 use sample::interpolate::{Converter, Floor, Linear};
+use sample::Signal;
 
 #[test]
 fn test_floor_converter() {
@@ -42,3 +43,12 @@ fn test_linear_converter() {
     assert_eq!(conv.next(), None);
 }
 
+#[test]
+fn test_scale_playback_rate() {
+    // Scale the playback rate by `0.5`
+    let foo = [[0.0], [1.0], [0.0], [-1.0]];
+    let mut source = foo.iter().cloned();
+    let interp = Linear::from_source(&mut source).unwrap();
+    let frames: Vec<_> = source.scale_hz(interp, 0.5).collect();
+    assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
+}
