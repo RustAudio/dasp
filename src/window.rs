@@ -1,3 +1,6 @@
+//! Module for windowing over a batch of Frames. Includes default Hanning and Rectangle window
+//! types.
+
 use {FloatSample, Sample};
 use core;
 use core::marker::PhantomData;

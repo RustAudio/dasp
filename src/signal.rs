@@ -1,6 +1,6 @@
-//! Use the [**Signal** trait](./trait.Signal.html) for working with **Iterator**s that yield
-//! **Frame**s. To complement the **Iterator** trait, **Signal** provides methods for adding,
-//! scaling, offsetting, multiplying, clipping and generating frame iterators and more.
+//! Use the **Signal** trait for working with **Iterator**s that yield **Frame**s. To complement
+//! the **Iterator** trait, **Signal** provides methods for adding, scaling, offsetting,
+//! multiplying, clipping and generating frame iterators and more.
 //!
 //! You may also find a series of **Signal** source functions, including:
 //!
