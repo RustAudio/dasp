@@ -72,8 +72,10 @@ assert_eq!(added, vec![[0.4], [-0.5], [-0.3]]);
 
 // Scale the playback rate by `0.5`.
 let foo = [[0.0], [1.0], [0.0], [-1.0]];
-let frames: Vec<_> = foo.iter().cloned().scale_hz(0.5).collect();
-assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0]][..]);
+let mut source = foo.iter().cloned();
+let interp = Linear::from_source(&mut source).unwrap();
+let frames: Vec<_> = source.scale_hz(interp, 0.5).collect();
+assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
 ```
 
 The **signal** module also provides a series of **Signal** source types,
@@ -120,9 +122,12 @@ of sample types. Traits include:
 - `FromFrameSliceMut`, `ToFrameSliceMut`, `DuplexFrameSliceMut`,
 - `DuplexSlice`, `DuplexSliceMut`,
 
-The **rate** module provides a **Converter** type, for converting and
+The **interpolate** module provides a **Converter** type, for converting and
 interpolating the rate of **Signal**s. This can be useful for both sample rate
-conversion and playback rate multiplication.
+conversion and playback rate multiplication. **Converter**s can use a range of
+interpolation methods, with Floor, Linear, and Sinc interpolation provided in
+the library. (NB: Sinc interpolation currently requires heap allocation, as it
+uses VecDeque.)
 
 Using in a `no_std` environment
 -------------------------------
