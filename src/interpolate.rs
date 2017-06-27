@@ -1,3 +1,5 @@
+//! The Interpolate module allows for conversion between various sample rates.
+
 use {Duplex, Frame, Sample, VecDeque};
 use core::f64::consts::PI;
 use ops::f64::{sin, cos};
