@@ -21,7 +21,7 @@
 //! Working with **Signal**s allows for easy, readable creation of rich and complex DSP graphs with
 //! a simple and familiar API.
 
-use {Duplex, Frame, HashMap, RandomState, Sample, Rc, VecDeque};
+use {BTreeMap, Duplex, Frame, Sample, Rc, VecDeque};
 use interpolate::{Converter, Interpolator};
 use core;
 
@@ -428,10 +428,10 @@ pub trait Signal {
     ///     assert_eq!(a.take(3).collect::<Vec<_>>(), vec![[0.4], [0.5], [0.6]]);
     /// }
     /// ```
-    fn bus(self) -> Bus<Self, RandomState>
+    fn bus(self) -> Bus<Self>
         where Self: Sized,
     {
-        Bus::new(self, HashMap::new())
+        Bus::new(self, BTreeMap::new())
     }
 
     /// Converts the `Signal` into an `Iterator` that will yield the given number for `Frame`s
@@ -697,21 +697,21 @@ pub struct ClipAmp<S>
 /// A type which allows for `send`ing a single `Signal` to multiple outputs.
 ///
 /// This type manages
-pub struct Bus<S, H=RandomState>
+pub struct Bus<S>
     where S: Signal,
 {
-    node: Rc<core::cell::RefCell<SharedNode<S, H>>>,
+    node: Rc<core::cell::RefCell<SharedNode<S>>>,
 }
 
 /// The data shared between each `Output`.
-struct SharedNode<S, H=RandomState>
+struct SharedNode<S>
     where S: Signal,
 {
     signal: S,
     // The buffer of frames that have not yet been consumed by all outputs.
     buffer: VecDeque<S::Frame>,
     // The number of frames in `buffer` that have already been read for each output.
-    frames_read: HashMap<usize, usize, H>,
+    frames_read: BTreeMap<usize, usize>,
     // The next output key.
     next_key: usize,
 }
@@ -719,12 +719,11 @@ struct SharedNode<S, H=RandomState>
 /// An output node to which some signal `S` is `Output`ing its frames.
 ///
 /// It may be more accurate to say that the `Output` "pull"s frames from the signal.
-pub struct Output<S, H=RandomState>
+pub struct Output<S>
     where S: Signal,
-          H: core::hash::BuildHasher,
 {
     key: usize,
-    node: Rc<core::cell::RefCell<SharedNode<S, H>>>,
+    node: Rc<core::cell::RefCell<SharedNode<S>>>,
 }
 
 /// An iterator that yields `n` number of `Frame`s from the inner `signal`.
@@ -1682,21 +1681,10 @@ impl<S> Signal for ClipAmp<S>
 }
 
 
-impl<S> Bus<S, RandomState>
+impl<S> Bus<S>
     where S: Signal,
 {
-    /// Create a new **Bus** that initialises the map with the given capacity.
-    pub fn with_capacity(signal: S, capacity: usize) -> Self {
-        let hash_map = HashMap::with_capacity(capacity);
-        Bus::new(signal, hash_map)
-    }
-}
-
-impl<S, H> Bus<S, H>
-    where S: Signal,
-          H: core::hash::BuildHasher,
-{
-    fn new(signal: S, frames_read: HashMap<usize, usize, H>) -> Self {
+    fn new(signal: S, frames_read: BTreeMap<usize, usize>) -> Self {
         Bus {
             node: Rc::new(core::cell::RefCell::new(SharedNode {
                 signal: signal,
@@ -1707,22 +1695,9 @@ impl<S, H> Bus<S, H>
         }
     }
 
-    /// Create a new **Bus** that uses the given hasher for mapping its **Output**s.
-    pub fn with_hasher(signal: S, hash_builder: H) -> Self {
-        let hash_map = HashMap::with_hasher(hash_builder);
-        Bus::new(signal, hash_map)
-    }
-
-    /// Create a new **Bus** that uses the given hasher for mapping its **Output**s and initialises
-    /// the map with the given capacity.
-    pub fn with_capacity_and_hasher(signal: S, capacity: usize, hash_builder: H) -> Self {
-        let hash_map = HashMap::with_capacity_and_hasher(capacity, hash_builder);
-        Bus::new(signal, hash_map)
-    }
-
     /// Produce a new Output node to which the signal `S` will output its frames.
     #[inline]
-    pub fn send(&self) -> Output<S, H> {
+    pub fn send(&self) -> Output<S> {
         let mut node = self.node.borrow_mut();
 
         // Get the key and increment for the next output.
@@ -1740,9 +1715,8 @@ impl<S, H> Bus<S, H>
     }
 }
 
-impl<S, H> SharedNode<S, H>
+impl<S> SharedNode<S>
     where S: Signal,
-          H: core::hash::BuildHasher,
 {
     // Requests the next frame for the `Output` at the given key.
     //
@@ -1810,9 +1784,8 @@ impl<S, H> SharedNode<S, H>
     }
 }
 
-impl<S, H> Output<S, H>
+impl<S> Output<S>
     where S: Signal,
-          H: core::hash::BuildHasher,
 {
     /// The number of frames that have been requested from the `Signal` `S` by some other `Output`
     /// that have not yet been requested by this `Output`.
@@ -1844,9 +1817,8 @@ impl<S, H> Output<S, H>
     }
 }
 
-impl<S, H> Signal for Output<S, H>
+impl<S> Signal for Output<S>
     where S: Signal,
-          H: core::hash::BuildHasher,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1855,9 +1827,8 @@ impl<S, H> Signal for Output<S, H>
     }
 }
 
-impl<S, H> Drop for Output<S, H>
+impl<S> Drop for Output<S>
     where S: Signal,
-          H: core::hash::BuildHasher,
 {
     fn drop(&mut self) {
         self.node.borrow_mut().drop_output(self.key)

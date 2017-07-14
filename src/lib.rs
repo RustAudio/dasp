@@ -23,14 +23,9 @@ extern crate alloc;
 extern crate collections;
 
 #[cfg(not(feature = "std"))]
-type RandomState = collections::hash_map::RandomState;
+type BTreeMap<K, V> = collections::btree_map::BTreeMap<K, V>;
 #[cfg(feature = "std")]
-type RandomState = std::collections::hash_map::RandomState;
-
-#[cfg(not(feature = "std"))]
-type HashMap<K, V, S=RandomState> = collections::hash_map::HashMap<K, V, S>;
-#[cfg(feature = "std")]
-type HashMap<K, V, S=RandomState> = std::collections::HashMap<K, V, S>;
+type BTreeMap<K, V> = std::collections::BTreeMap<K, V>;
 
 #[cfg(not(feature = "std"))]
 type VecDeque<T> = collections::vec_deque::VecDeque<T>;
