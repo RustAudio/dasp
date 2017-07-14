@@ -694,15 +694,6 @@ pub struct ClipAmp<S>
     thresh: <<S::Frame as Frame>::Sample as Sample>::Signed,
 }
 
-/// Pads the inner `signal` with the given `frame` instead of returning `None`.
-#[derive(Clone)]
-pub struct PadWith<S>
-    where S: Signal,
-{
-    signal: S,
-    frame: S::Frame,
-}
-
 /// A type which allows for `send`ing a single `Signal` to multiple outputs.
 ///
 /// This type manages
