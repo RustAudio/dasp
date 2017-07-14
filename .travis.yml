@@ -3,23 +3,10 @@ rust:
 - stable
 - beta
 - nightly
-os:
-- linux
-env:
-  global:
-    secure: br54RjnCMOuprqRZa58Yu1fyMQyvwQ7vnj6dqduN5469TontyImmqA8usSuGDLHLkvihAwNspfey7y3UaZIsRqUjfefp2sW6ACccVlC4IiQRgnCi3vmPoqkicUPvDKjzNMVRqTVdJ4CET/gM2OMRhD5rE+sgHegTttC8QTObvT4=
 script:
 - | 
-  ([ "$TRAVIS_RUST_VERSION" = "nightly" ] && cargo build -v --no-default-features) || [ "$TRAVIS_RUST_VERSION" != "nightly" ]
-- cargo build -v
+  ([ "$TRAVIS_RUST_VERSION" = "nightly" ] && cargo check -v --no-default-features) || [ "$TRAVIS_RUST_VERSION" != "nightly" ]
+- cargo check -v
 - cargo test -v
 - cargo test --release -v
 - cargo doc -v
-after_success: |
-  [ $TRAVIS_BRANCH = master ] &&
-  [ $TRAVIS_PULL_REQUEST = false ] &&
-  cargo doc &&
-  echo "<meta http-equiv=refresh content=0;url=`echo $TRAVIS_REPO_SLUG | cut -d '/' -f 2`/index.html>" > target/doc/index.html &&
-  sudo pip install ghp-import &&
-  ghp-import -n target/doc &&
-  git push -fq https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages

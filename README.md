@@ -1,4 +1,4 @@
-# sample [![Build Status](https://travis-ci.org/RustAudio/sample.svg?branch=master)](https://travis-ci.org/RustAudio/sample) [![Crates.io](https://img.shields.io/crates/v/sample.svg)](https://crates.io/crates/sample) [![Crates.io](https://img.shields.io/crates/l/sample.svg)](https://github.com/RustAudio/sample/blob/master/LICENSE-MIT)
+# sample [![Build Status](https://travis-ci.org/RustAudio/sample.svg?branch=master)](https://travis-ci.org/RustAudio/sample) [![Crates.io](https://img.shields.io/crates/v/sample.svg)](https://crates.io/crates/sample) [![Crates.io](https://img.shields.io/crates/l/sample.svg)](https://github.com/RustAudio/sample/blob/master/LICENSE-MIT) [![docs.rs](https://docs.rs/sample/badge.svg)](https://docs.rs/sample/)
 
 A crate providing the fundamentals for working with PCM (pulse-code modulation)
 DSP (digital signal processing). In other words, `sample` provides a suite of
@@ -12,7 +12,7 @@ DSP**; keeping the focus on portable and fast fundamentals.
 <sup>1: Besides the `Signal::bus` method, which is only necessary when
 converting a `Signal` tree into a directed acyclic graph.</sup>
 
-Find the [API documentation here](http://rustaudio.github.io/sample/sample/).
+Find the [API documentation here](https://docs.rs/sample/).
 
 
 Features
