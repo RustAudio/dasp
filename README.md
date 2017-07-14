@@ -50,38 +50,39 @@ let bar: [u8; 2] = foo.map(Sample::to_sample);
 assert_eq!(bar, [128u8, 128]);
 ```
 
-Use the **Signal** trait for working with `Iterator`s that yield `Frame`s.
-To complement the `Iterator` trait, **Signal** provides methods for adding,
-scaling, offsetting, multiplying, clipping and generating frame iterators and
-more. Working with **Signal**s allows for easy, readable creation of rich and
-complex DSP graphs with a simple and familiar API.
+Use the **Signal** trait for working with infinite-iterator-like types that
+yield `Frame`s. **Signal** provides methods for adding, scaling, offsetting,
+multiplying, clipping and generating streams of `Frame`s. Working with
+**Signal**s allows for easy, readable creation of rich and complex DSP graphs
+with a simple and familiar API.
 
 ```rust
 // Clip to an amplitude of 0.9.
 let frames = [[1.2, 0.8], [-0.7, -1.4]];
-let clipped: Vec<_> = frames.iter().cloned().clip_amp(0.9).collect();
+let clipped: Vec<_> = signal::from_slice(&frames).clip_amp(0.9).take(2).collect();
 assert_eq!(clipped, vec![[0.9, 0.8], [-0.7, -0.9]]);
 
 // Add `a` with `b` and yield the result.
 let a = [[0.2], [-0.6], [0.5]];
 let b = [[0.2], [0.1], [-0.8]];
-let a_signal = a.iter().cloned();
-let b_signal = b.iter().cloned();
-let added: Vec<[f32; 1]> = a_signal.add_amp(b_signal).collect();
+let a_signal = signal::from_slice(&a);
+let b_signal = signal::from_slice(&b);
+let added: Vec<[f32; 1]> = a_signal.add_amp(b_signal).take(3).collect();
 assert_eq!(added, vec![[0.4], [-0.5], [-0.3]]);
 
 // Scale the playback rate by `0.5`.
 let foo = [[0.0], [1.0], [0.0], [-1.0]];
-let mut source = foo.iter().cloned();
-let interp = Linear::from_source(&mut source).unwrap();
-let frames: Vec<_> = source.scale_hz(interp, 0.5).collect();
+let mut source = signal::from_slice(&foo);
+let interp = Linear::from_source(&mut source);
+let frames: Vec<_> = source.scale_hz(interp, 0.5).take(8).collect();
 assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
 ```
 
 The **signal** module also provides a series of **Signal** source types,
 including:
 
-- `FromInterleavedSamples`
+- `FromIterator`
+- `FromInterleavedSamplesIterator`
 - `Equilibrium` (silent signal)
 - `Phase`
 - `Sine`

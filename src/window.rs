@@ -53,6 +53,18 @@ pub struct Windower<'a, F, W>
     wttype: PhantomData<W>
 }
 
+/// An Iterator that multiplies a Signal with a Window.
+///
+/// Returns `None` once the `Window` has been exhausted.
+#[derive(Clone)]
+pub struct Windowed<S, W>
+    where S: Signal,
+          W: Type,
+{
+    signal: S,
+    window: Window<<S::Frame as Frame>::Float, W>,
+}
+
 
 impl Type for Hanning {
     fn at_phase<S: Sample>(phase: S) -> S {
@@ -137,7 +149,7 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
     where F: 'a + Frame, 
           W: Type
 {
-    type Item = signal::MulAmp<core::iter::Cloned<core::slice::Iter<'a, F>>, Window<F::Float, W>>;
+    type Item = Windowed<signal::FromIterator<core::iter::Cloned<core::slice::Iter<'a, F>>>, W>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let num_frames = self.frames.len();
@@ -145,7 +157,10 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
             let frames = &self.frames[..self.bin];
             let window = Window::new(self.bin);
             self.frames = if self.hop < num_frames { &self.frames[self.hop..] } else { &[] };
-            Some(frames.iter().cloned().mul_amp(window))
+            Some(Windowed {
+                signal: signal::from_slice(frames),
+                window: window,
+            })
         } else {
             None
         }
@@ -169,6 +184,18 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
     }
 }
 
+impl<S, W> Iterator for Windowed<S, W>
+    where S: Signal,
+          W: Type,
+{
+    type Item = S::Frame;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.window.next().map(|w_f| {
+            let s_f = self.signal.next();
+            s_f.mul_amp(w_f)
+        })
+    }
+}
 
 /// A helper function for constructing a `Window` that uses a `Hanning` `Type` function.
 pub fn hanning<F>(num_frames: usize) -> Window<F, Hanning> 
@@ -182,16 +209,4 @@ pub fn rectangle<F>(num_frames: usize) -> Window<F, Rectangle>
     where F: Frame,
 {
     Window::new(num_frames)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_window_size() {
-        let v = [[1f32; 1]; 16];
-        let windows: Vec<Vec<[f32; 1]>> = Windower::hanning(&v[..], 8, 4).map(|i| i.collect::<Vec<[f32; 1]>>()).collect();
-        assert_eq!(windows.len(), 3);
-    }
 }

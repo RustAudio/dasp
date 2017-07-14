@@ -1,6 +1,6 @@
 //! The Interpolate module allows for conversion between various sample rates.
 
-use {Duplex, Frame, Sample, VecDeque};
+use {Duplex, Frame, Sample, Signal, VecDeque};
 use core::f64::consts::PI;
 use ops::f64::{sin, cos};
 
@@ -15,10 +15,11 @@ use ops::f64::{sin, cos};
 /// - Sample decimator
 ///
 #[derive(Clone)]
-pub struct Converter<T: Iterator, I: Interpolator>
-    where <T as Iterator>::Item: Frame
+pub struct Converter<S, I>
+    where S: Signal,
+          I: Interpolator,
 {
-    source: T,
+    source: S,
     interpolator: I,
     interpolation_value: f64,
     source_to_target_ratio: f64
@@ -28,15 +29,13 @@ pub struct Converter<T: Iterator, I: Interpolator>
 pub struct Floor<F>
 {
     left: F,
-    exhausted: bool
 }
 
 /// Interpolator that interpolates linearly between the previous value and the next value
 pub struct Linear<F>
 {
     left: F,
-    right: Option<F>,
-    exhausted: bool
+    right: F,
 }
 
 /// Interpolator for sinc interpolation. Generally accepted as one of the better sample rate
@@ -48,31 +47,29 @@ pub struct Sinc<F>
     depth: usize,
 }
 
-/// Trait for all things that can interpolate between two values. Implementations should keep track
-/// of the necessary data both before and after the current frame.
-pub trait Interpolator
-{
+/// Types that can interpolate between two values.
+///
+/// Implementations should keep track of the necessary data both before and after the current
+/// frame.
+pub trait Interpolator {
     type Frame: Frame;
 
-    /// Given a distance between [0. and 1.) to the following sample, return the interpolated value
+    /// Given a distance between [0.0 and 1.0) to the following sample, return the interpolated
+    /// value.
     fn interpolate(&self, x: f64) -> Self::Frame;
 
-    /// Called whenever the Interpolator value is over 1.
-    fn next_source_frame(&mut self, source_frame: Option<Self::Frame>);
-
-    /// Should indicate whether the Interpolator is out of values.
-    fn is_exhausted(&self) -> bool;
+    /// Called whenever the Interpolator value steps passed 1.0.
+    fn next_source_frame(&mut self, source_frame: Self::Frame);
 }
 
-impl<T, I> Converter<T, I> 
-    where T: Iterator,
-          <T as Iterator>::Item: Frame,
+impl<S, I> Converter<S, I>
+    where S: Signal,
           I: Interpolator
 {
     /// Construct a new `Converter` from the source frames and the source and target sample rates
     /// (in Hz).
     #[inline]
-    pub fn from_hz_to_hz(source: T, interpolator: I, source_hz: f64, target_hz: f64) -> Self {
+    pub fn from_hz_to_hz(source: S, interpolator: I, source_hz: f64, target_hz: f64) -> Self {
         Self::scale_playback_hz(source, interpolator, source_hz / target_hz)
     }
 
@@ -83,7 +80,7 @@ impl<T, I> Converter<T, I>
     /// For example, if our `source_frames` is a sine wave oscillating at a frequency of 2hz and
     /// we wanted to convert it to a frequency of 3hz, the given `scale` should be `1.5`.
     #[inline]
-    pub fn scale_playback_hz(source: T, interpolator: I, scale: f64) -> Self {
+    pub fn scale_playback_hz(source: S, interpolator: I, scale: f64) -> Self {
         assert!(scale > 0.0, "We can't yield any frames at 0 times a second!");
         Converter {
             source: source,
@@ -102,7 +99,7 @@ impl<T, I> Converter<T, I>
     ///
     /// This is the same as calling `Converter::scale_playback_hz(source_frames, 1.0 / scale)`.
     #[inline]
-    pub fn scale_sample_hz(source: T, interpolator: I, scale: f64) -> Self {
+    pub fn scale_sample_hz(source: S, interpolator: I, scale: f64) -> Self {
         Self::scale_playback_hz(source, interpolator, 1.0 / scale)
     }
 
@@ -132,33 +129,32 @@ impl<T, I> Converter<T, I>
 
     /// Borrow the `source_frames` Interpolator from the `Converter`.
     #[inline]
-    pub fn source(&self) -> &T {
+    pub fn source(&self) -> &S {
         &self.source
     }
 
     /// Mutably borrow the `source_frames` Iterator from the `Converter`.
     #[inline]
-    pub fn source_mut(&mut self) -> &mut T {
+    pub fn source_mut(&mut self) -> &mut S {
         &mut self.source
     }
 
     /// Drop `self` and return the internal `source_frames` Iterator.
     #[inline]
-    pub fn into_source(self) -> T {
+    pub fn into_source(self) -> S {
         self.source
     }
 }
 
-impl<T, I> Iterator for Converter<T, I> 
-    where T: Iterator,
-          <T as Iterator>::Item: Frame,
-          I: Interpolator<Frame=<T as Iterator>::Item>
+impl<S, I> Signal for Converter<S, I>
+    where S: Signal,
+          I: Interpolator<Frame=S::Frame>
 {
-    type Item = <T as Iterator>::Item;
+    type Frame = S::Frame;
 
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Self::Frame {
         let Converter {
-            ref mut source, 
+            ref mut source,
             ref mut interpolator,
             ref mut interpolation_value,
             source_to_target_ratio
@@ -170,56 +166,36 @@ impl<T, I> Iterator for Converter<T, I>
             *interpolation_value -= 1.0;
         }
 
-        if interpolator.is_exhausted() {
-            None
-        } else {
-            let out = interpolator.interpolate(*interpolation_value);
-            *interpolation_value += source_to_target_ratio;
-            Some(out)
-        }
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len_multiplier = self.source_to_target_ratio / 1.0;
-        let (source_lower, source_upper) = self.source.size_hint();
-        let lower = (source_lower as f64 * len_multiplier) as usize;
-        let upper = source_upper.map(|upper| (upper as f64 * len_multiplier) as usize);
-        (lower, upper)
+        let out = interpolator.interpolate(*interpolation_value);
+        *interpolation_value += source_to_target_ratio;
+        out
     }
 }
 
 impl<F> Floor<F>
 {
-    /// Create a new Floor Interpolator. 
+    /// Create a new Floor Interpolator.
     pub fn new(left: F) -> Floor<F> {
-        Floor {
-            left: left,
-            exhausted: false
-        }
+        Floor { left: left }
     }
 
     /// Consumes the first value from a given source in order to initialize itself. If the source
     /// has no values at all, this will return None.
-    pub fn from_source<I>(source: &mut I) -> Option<Floor<F>>
-        where I: Iterator<Item=F>
+    pub fn from_source<S>(source: &mut S) -> Floor<F>
+        where F: Frame,
+              S: Signal<Frame=F>
     {
-        source.by_ref().next().map(|left| Floor { 
-            left: left,
-            exhausted: false
-        })
+        let left = source.next();
+        Floor { left: left }
     }
 }
 
 impl<F> Linear<F>
 {
-    /// Create a new Linear Interpolator. 
-    pub fn new<T>(left: F, right: T) -> Linear<F> 
-        where Option<F>: From<T>
+    /// Create a new Linear Interpolator.
+    pub fn new(left: F, right: F) -> Linear<F>
     {
-        let right = Option::<F>::from(right);
         Linear {
-            exhausted: right.is_none(),
             left: left,
             right: right
         }
@@ -227,28 +203,28 @@ impl<F> Linear<F>
 
     /// Consumes the first value from a given source to initialize itself. If the source has no
     /// values, this will return None.
-    pub fn from_source<I>(source: &mut I) -> Option<Linear<F>>
-        where I: Iterator<Item=F>
+    pub fn from_source<S>(source: &mut S) -> Linear<F>
+        where F: Frame,
+              S: Signal<Frame=F>,
     {
-        source.by_ref().next().map(|left| {
-            let right = source.by_ref().next();
-            Linear { 
-                exhausted: right.is_none(),
-                left: left, 
-                right: right
-            }
-        })
+        let left = source.next();
+        let right = source.next();
+        Linear {
+            left: left,
+            right: right
+        }
     }
 }
 
 impl<F> Sinc<F>
 {
-    /// Create a new Sinc interpolater whose inner queue will be padded with the ghiven frames.
-    pub fn new<I>(depth: usize, padding: I) -> Self
-        where I: IntoIterator<Item=F>,
+    /// Create a new Sinc interpolater whose inner queue will be padded with the given signal.
+    pub fn new<S>(depth: usize, padding: S) -> Self
+        where F: Frame,
+              S: Signal<Frame=F>,
     {
         let mut queue = VecDeque::with_capacity(depth * 2 + 1);
-        for v in padding.into_iter().take(depth) {
+        for v in padding.take(depth) {
             queue.push_back(v);
         }
 
@@ -290,15 +266,8 @@ impl<F> Interpolator for Floor<F>
         self.left
     }
 
-    fn next_source_frame(&mut self, source_frame: Option<Self::Frame>) {
-        match source_frame {
-            Some(f) => { self.left = f; },
-            None => { self.exhausted = true; }
-        }
-    }
-
-    fn is_exhausted(&self) -> bool {
-        self.exhausted
+    fn next_source_frame(&mut self, source_frame: Self::Frame) {
+        self.left = source_frame;
     }
 }
 
@@ -312,7 +281,7 @@ impl<F> Interpolator for Linear<F>
     /// possible, although not advisable, to provide an x > 1.0 or < 0.0, but this will just
     /// continue to be a linear ramp in one direction or another.
     fn interpolate(&self, x: f64) -> Self::Frame {
-        self.left.zip_map(self.right.unwrap_or(Self::Frame::equilibrium()), |l, r| {
+        self.left.zip_map(self.right, |l, r| {
             let l_f = l.to_sample::<f64>();
             let r_f = r.to_sample::<f64>();
             let diff = r_f - l_f;
@@ -320,16 +289,9 @@ impl<F> Interpolator for Linear<F>
         })
     }
 
-    fn next_source_frame(&mut self, source_frame: Option<Self::Frame>) {
-        match self.right {
-            Some(f) => { self.left = f; },
-            None => { self.exhausted = true; }
-        }
+    fn next_source_frame(&mut self, source_frame: Self::Frame) {
+        self.left = self.right;
         self.right = source_frame;
-    }
-
-    fn is_exhausted(&self) -> bool {
-        self.exhausted
     }
 }
 
@@ -349,7 +311,7 @@ impl<F> Interpolator for Sinc<F>
         let rightmost = nl + self.depth;
         let leftmost = nr as isize - self.depth as isize;
         let max_depth = if rightmost >= self.frames.len() {
-            self.frames.len() - self.depth 
+            self.frames.len() - self.depth
         } else if leftmost < 0 {
             (self.depth as isize + leftmost) as usize
         } else {
@@ -379,26 +341,16 @@ impl<F> Interpolator for Sinc<F>
         })
     }
 
-    fn next_source_frame(&mut self, source_frame: Option<F>) {
-        match source_frame {
-            Some(f) => { 
-                if self.frames.len() == self.max_n() {
-                    // make room if necessary
-                    self.frames.pop_front();
-                } 
-
-                self.frames.push_back(f);
-                if self.idx < self.depth {
-                    self.idx += 1;
-                }
-            },
-            None => { self.frames.pop_front(); },
+    fn next_source_frame(&mut self, source_frame: F) {
+        if self.frames.len() == self.max_n() {
+            // make room if necessary
+            self.frames.pop_front();
         }
-    }
 
-    fn is_exhausted(&self) -> bool {
-        self.frames.len() <= (self.depth + 1)
-        && self.idx == self.depth
+        self.frames.push_back(source_frame);
+        if self.idx < self.depth {
+            self.idx += 1;
+        }
     }
 }
 

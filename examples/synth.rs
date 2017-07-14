@@ -1,8 +1,7 @@
 extern crate portaudio as pa;
 extern crate sample;
 
-use sample::{Frame, Sample, Signal, ToFrameSliceMut};
-use sample::signal;
+use sample::{signal, Frame, Sample, Signal, ToFrameSliceMut};
 
 const FRAMES_PER_BUFFER: u32 = 512;
 const NUM_CHANNELS: i32 = 1;
@@ -17,13 +16,12 @@ fn run() -> Result<(), pa::Error> {
     // Create a signal chain to play back 1 second of each oscillator at A4.
     let hz = signal::rate(SAMPLE_RATE).const_hz(440.0);
     let one_sec = SAMPLE_RATE as usize;
-    let mut signal = hz.clone().sine().take(one_sec)
+    let mut waves = hz.clone().sine().take(one_sec)
         .chain(hz.clone().saw().take(one_sec))
         .chain(hz.clone().square().take(one_sec))
         .chain(hz.clone().noise_simplex().take(one_sec))
         .chain(signal::noise(0).take(one_sec))
-        .map(|f| f.map(|s| s.to_sample::<f32>()))
-        .scale_amp(0.2);
+        .map(|f| f.map(|s| s.to_sample::<f32>() * 0.2));
 
     // Initialise PortAudio.
     let pa = try!(pa::PortAudio::new());
@@ -35,7 +33,7 @@ fn run() -> Result<(), pa::Error> {
     let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
         let buffer: &mut [[f32; 1]] = buffer.to_frame_slice_mut().unwrap();
         for out_frame in buffer {
-            match signal.next() {
+            match waves.next() {
                 Some(frame) => *out_frame = frame,
                 None => return pa::Complete,
             }

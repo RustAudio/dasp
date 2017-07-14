@@ -13,8 +13,10 @@
 //! - [noise_simplex](./fn.noise_simplex.html) for generating a 1D simplex noise waveform.
 //! - [gen](./fn.gen.html) for generating frames of type F from some `Fn() -> F`.
 //! - [gen_mut](./fn.gen_mut.html) for generating frames of type F from some `FnMut() -> F`.
-//! - [from_interleaved_samples](./fn.from_interleaved_samples.html) for converting an iterator yielding samples to an
-//! iterator yielding frames.
+//! - [from_iter](./fn.from_iter.html) for converting an iterator yielding frames to a signal.
+//! - [from_slice](./fn.from_slice.html) for converting a slice of frames into a signal.
+//! - [from_interleaved_samples_iter](./fn.from_interleaved_samples_iter.html) for converting an
+//! iterator yielding interleaved samples to a signal.
 //!
 //! Working with **Signal**s allows for easy, readable creation of rich and complex DSP graphs with
 //! a simple and familiar API.
@@ -24,19 +26,32 @@ use interpolate::{Converter, Interpolator};
 use core;
 
 
-/// Implement `Signal` for all `Iterator`s that yield `Frame`s.
-impl<I> Signal for I where I: Iterator, I::Item: Frame {}
-
-/// A trait that allows us to treat `Iterator`s that yield `Frame`s as a multi-channel PCM signal.
+/// Types that yield `Frame`s as a multi-channel PCM signal.
 ///
 /// For example, `Signal` allows us to add two signals, modulate a signal's amplitude by another
 /// signal, scale a signals amplitude and much more.
-///
-/// `Signal` has a blanket implementation for all `Iterator`s whose `Item` associated types
-/// implement `Frame`.
-pub trait Signal: Iterator + Sized
-    where Self::Item: Frame,
-{
+pub trait Signal {
+    /// The `Frame` type returned by the `Signal`.
+    type Frame: Frame;
+
+    /// Yield the next `Frame` in the `Signal`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{signal, Signal};
+    ///
+    /// fn main() {
+    ///     let frames = [[0.2], [-0.6], [0.4]];
+    ///     let mut signal = signal::from_slice(&frames);
+    ///     assert_eq!(signal.next(), [0.2]);
+    ///     assert_eq!(signal.next(), [-0.6]);
+    ///     assert_eq!(signal.next(), [0.4]);
+    /// }
+    /// ```
+    fn next(&mut self) -> Self::Frame;
 
     /// Provides an iterator that yields the sum of the frames yielded by both `other` and `self`
     /// in lock-step.
@@ -46,22 +61,23 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
-    ///     let a = [[0.2], [-0.6], [0.5]];
+    ///     let a = [[0.2], [-0.6], [0.4]];
     ///     let b = [[0.2], [0.1], [-0.8]];
-    ///     let a_signal = a.iter().cloned();
-    ///     let b_signal = b.iter().cloned();
-    ///     let added: Vec<[f32; 1]> = a_signal.add_amp(b_signal).collect();
-    ///     assert_eq!(added, vec![[0.4], [-0.5], [-0.3]]);
+    ///     let a_signal = signal::from_slice(&a);
+    ///     let b_signal = signal::from_slice(&b);
+    ///     let added: Vec<_> = a_signal.add_amp(b_signal).take(3).collect();
+    ///     assert_eq!(added, vec![[0.4], [-0.5], [-0.4]]);
     /// }
     /// ```
     #[inline]
     fn add_amp<S>(self, other: S) -> AddAmp<Self, S>
-        where S: Signal,
-              S::Item: Frame<Sample=<<Self::Item as Frame>::Sample as Sample>::Signed,
-                             NumChannels=<Self::Item as Frame>::NumChannels>,
+        where Self: Sized,
+              S: Signal,
+              S::Frame: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Signed,
+                              NumChannels=<Self::Frame as Frame>::NumChannels>,
     {
         AddAmp {
             a: self,
@@ -77,22 +93,23 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let a = [[0.25], [-0.8], [-0.5]];
     ///     let b = [[0.2], [0.5], [0.8]];
-    ///     let a_signal = a.iter().cloned();
-    ///     let b_signal = b.iter().cloned();
-    ///     let added: Vec<_> = a_signal.mul_amp(b_signal).collect();
+    ///     let a_signal = signal::from_slice(&a);
+    ///     let b_signal = signal::from_slice(&b);
+    ///     let added: Vec<_> = a_signal.mul_amp(b_signal).take(3).collect();
     ///     assert_eq!(added, vec![[0.05], [-0.4], [-0.4]]);
     /// }
     /// ```
     #[inline]
     fn mul_amp<S>(self, other: S) -> MulAmp<Self, S>
-        where S: Signal,
-              S::Item: Frame<Sample=<<Self::Item as Frame>::Sample as Sample>::Float,
-                             NumChannels=<Self::Item as Frame>::NumChannels>,
+        where Self: Sized,
+              S: Signal,
+              S::Frame: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Float,
+                              NumChannels=<Self::Frame as Frame>::NumChannels>,
     {
         MulAmp {
             a: self,
@@ -108,18 +125,19 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.25, 0.4], [-0.2, -0.5]];
-    ///     let signal = frames.iter().cloned();
-    ///     let offset: Vec<[f32; 2]> = signal.offset_amp(0.5).collect();
+    ///     let signal = signal::from_slice(&frames);
+    ///     let offset: Vec<_> = signal.offset_amp(0.5).take(2).collect();
     ///     assert_eq!(offset, vec![[0.75, 0.9], [0.3, 0.0]]);
     /// }
     /// ```
     #[inline]
-    fn offset_amp(self, offset: <<Self::Item as Frame>::Sample as Sample>::Signed)
+    fn offset_amp(self, offset: <<Self::Frame as Frame>::Sample as Sample>::Signed)
         -> OffsetAmp<Self>
+        where Self: Sized,
     {
         OffsetAmp {
             signal: self,
@@ -135,24 +153,26 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.2], [-0.5], [-0.4], [0.3]];
-    ///     let signal = frames.iter().cloned();
-    ///     let scaled: Vec<[f32; 1]> = signal.scale_amp(2.0).collect();
+    ///     let signal = signal::from_slice(&frames);
+    ///     let scaled: Vec<_> = signal.scale_amp(2.0).take(4).collect();
     ///     assert_eq!(scaled, vec![[0.4], [-1.0], [-0.8], [0.6]]);
     /// }
     /// ```
     #[inline]
-    fn scale_amp(self, amp: <<Self::Item as Frame>::Sample as Sample>::Float) -> ScaleAmp<Self> {
+    fn scale_amp(self, amp: <<Self::Frame as Frame>::Sample as Sample>::Float) -> ScaleAmp<Self>
+        where Self: Sized,
+    {
         ScaleAmp {
             signal: self,
             amp: amp,
         }
     }
 
-    /// Produces an `Iterator` that offsets the amplitude of every `Frame` in `self` by the
+    /// Produces a new `Signal` that offsets the amplitude of every `Frame` in `self` by the
     /// respective amplitudes in each channel of the given `amp_frame`.
     ///
     /// # Example
@@ -160,19 +180,20 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.5, 0.3], [-0.25, 0.9]];
-    ///     let mut signal = frames.iter().cloned().offset_amp_per_channel([0.25, -0.5]);
-    ///     assert_eq!(signal.next().unwrap(), [0.75, -0.2]);
-    ///     assert_eq!(signal.next().unwrap(), [0.0, 0.4]);
+    ///     let signal = signal::from_slice(&frames);
+    ///     let offset: Vec<_> = signal.offset_amp_per_channel([0.25, -0.5]).take(2).collect();
+    ///     assert_eq!(offset, vec![[0.75, -0.2], [0.0, 0.4]]);
     /// }
     /// ```
     #[inline]
     fn offset_amp_per_channel<F>(self, amp_frame: F) -> OffsetAmpPerChannel<Self, F>
-        where F: Frame<Sample=<<Self::Item as Frame>::Sample as Sample>::Signed,
-                       NumChannels=<Self::Item as Frame>::NumChannels>,
+        where Self: Sized,
+              F: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Signed,
+                       NumChannels=<Self::Frame as Frame>::NumChannels>,
     {
         OffsetAmpPerChannel {
             signal: self,
@@ -180,7 +201,7 @@ pub trait Signal: Iterator + Sized
         }
     }
 
-    /// Produces an `Iterator` that scales the amplitude of every `Frame` in `self` by the
+    /// Produces a new `Signal` that scales the amplitude of every `Frame` in `self` by the
     /// respective amplitudes in each channel of the given `amp_frame`.
     ///
     /// # Example
@@ -188,19 +209,20 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.2, -0.5], [-0.4, 0.3]];
-    ///     let mut signal = frames.iter().cloned().scale_amp_per_channel([0.5, 2.0]);
-    ///     assert_eq!(signal.next().unwrap(), [0.1, -1.0]);
-    ///     assert_eq!(signal.next().unwrap(), [-0.2, 0.6]);
+    ///     let signal = signal::from_slice(&frames);
+    ///     let scaled: Vec<_> = signal.scale_amp_per_channel([0.5, 2.0]).take(2).collect();
+    ///     assert_eq!(scaled, vec![[0.1, -1.0], [-0.2, 0.6]]);
     /// }
     /// ```
     #[inline]
     fn scale_amp_per_channel<F>(self, amp_frame: F) -> ScaleAmpPerChannel<Self, F>
-        where F: Frame<Sample=<<Self::Item as Frame>::Sample as Sample>::Float,
-                       NumChannels=<Self::Item as Frame>::NumChannels>,
+        where Self: Sized,
+              F: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Float,
+                       NumChannels=<Self::Frame as Frame>::NumChannels>,
     {
         ScaleAmpPerChannel {
             signal: self,
@@ -211,27 +233,28 @@ pub trait Signal: Iterator + Sized
     /// Multiplies the rate at which frames of `self` are yielded by the given `signal`.
     ///
     /// This happens by wrapping `self` in a `rate::Converter` and calling `set_playback_hz_scale`
-    /// with the value yielded by `signal`
+    /// with each value yielded by `signal`
     ///
     /// # Example
     ///
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     /// use sample::interpolate::Linear;
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let mul = [1.0, 1.0, 0.5, 0.5, 0.5, 0.5];
-    ///     let mut source = foo.iter().cloned();
-    ///     let interp = Linear::from_source(&mut source).unwrap();
-    ///     let frames: Vec<_> = source.mul_hz(interp, mul.iter().cloned()).collect();
+    ///     let mul = [[1.0], [1.0], [0.5], [0.5], [0.5], [0.5]];
+    ///     let mut source = signal::from_slice(&foo);
+    ///     let interp = Linear::from_source(&mut source);
+    ///     let frames: Vec<_> = source.mul_hz(interp, signal::from_slice(&mul)).take(6).collect();
     ///     assert_eq!(&frames[..], &[[0.0], [1.0], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
     fn mul_hz<M, I>(self, interpolator: I, mul_per_frame: M) -> MulHz<Self, M, I>
-        where M: Iterator<Item=f64>,
+        where Self: Sized,
+              M: Signal<Frame=[f64; 1]>,
               I: Interpolator,
     {
         MulHz {
@@ -247,19 +270,20 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     /// use sample::interpolate::Linear;
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let mut source = foo.iter().cloned();
-    ///     let interp = Linear::from_source(&mut source).unwrap();
-    ///     let frames: Vec<_> = source.from_hz_to_hz(interp, 1.0, 2.0).collect();
+    ///     let mut source = signal::from_slice(&foo);
+    ///     let interp = Linear::from_source(&mut source);
+    ///     let frames: Vec<_> = source.from_hz_to_hz(interp, 1.0, 2.0).take(8).collect();
     ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
     fn from_hz_to_hz<I>(self, interpolator: I, source_hz: f64, target_hz: f64) -> Converter<Self, I> 
-        where I: Interpolator,
+        where Self: Sized,
+              I: Interpolator,
     {
         Converter::from_hz_to_hz(self, interpolator, source_hz, target_hz)
     }
@@ -271,19 +295,20 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     /// use sample::interpolate::Linear;
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let mut source = foo.iter().cloned();
-    ///     let interp = Linear::from_source(&mut source).unwrap();
-    ///     let frames: Vec<_> = source.scale_hz(interp, 0.5).collect();
+    ///     let mut source = signal::from_slice(&foo);
+    ///     let interp = Linear::from_source(&mut source);
+    ///     let frames: Vec<_> = source.scale_hz(interp, 0.5).take(8).collect();
     ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
     fn scale_hz<I>(self, interpolator: I, multi: f64) -> Converter<Self, I> 
-        where I: Interpolator,
+        where Self: Sized,
+              I: Interpolator,
     {
         Converter::scale_playback_hz(self, interpolator, multi)
     }
@@ -298,40 +323,48 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.2], [0.4]];
-    ///     let delayed: Vec<_> = frames.iter().cloned().delay(2).collect();
+    ///     let signal = signal::from_slice(&frames);
+    ///     let delayed: Vec<_> = signal.delay(2).take(4).collect();
     ///     assert_eq!(delayed, vec![[0.0], [0.0], [0.2], [0.4]]);
     /// }
     /// ```
-    fn delay(self, n_frames: usize) -> Delay<Self> {
+    fn delay(self, n_frames: usize) -> Delay<Self>
+        where Self: Sized,
+    {
         Delay {
             signal: self,
             n_frames: n_frames,
         }
     }
 
-    /// Converts a `Iterator` yielding `Frame`s into an `Iterator` yielding `Sample`s.
+    /// Converts a `Signal` into a type that yields the interleaved `Sample`s.
     ///
     /// # Example
     ///
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.1, 0.2], [0.3, 0.4]];
-    ///     let samples: Vec<_> = frames.iter().cloned().to_samples().collect();
+    ///     let signal = signal::from_iter(frames.iter().cloned());
+    ///     let samples = signal.into_interleaved_samples();
+    ///     let samples: Vec<_> = samples.into_iter().take(4).collect();
     ///     assert_eq!(samples, vec![0.1, 0.2, 0.3, 0.4]);
     /// }
     /// ```
-    fn to_samples(self) -> ToSamples<Self> {
-        ToSamples {
+    fn into_interleaved_samples(mut self) -> IntoInterleavedSamples<Self>
+        where Self: Sized,
+    {
+        let first = self.next().channels();
+        IntoInterleavedSamples {
             signal: self,
-            current_frame: None,
+            current_frame: first,
         }
     }
 
@@ -343,15 +376,18 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[1.2, 0.8], [-0.7, -1.4]];
-    ///     let clipped: Vec<_> = frames.iter().cloned().clip_amp(0.9).collect();
+    ///     let signal = signal::from_slice(&frames);
+    ///     let clipped: Vec<_> = signal.clip_amp(0.9).take(2).collect();
     ///     assert_eq!(clipped, vec![[0.9, 0.8], [-0.7, -0.9]]);
     /// }
     /// ```
-    fn clip_amp(self, thresh: <<Self::Item as Frame>::Sample as Sample>::Signed) -> ClipAmp<Self> {
+    fn clip_amp(self, thresh: <<Self::Frame as Frame>::Sample as Sample>::Signed) -> ClipAmp<Self>
+        where Self: Sized,
+    {
         ClipAmp {
             signal: self,
             thresh: thresh,
@@ -367,7 +403,7 @@ pub trait Signal: Iterator + Sized
     ///
     /// Note: When using multiple `Output`s in this fashion, you will need to be sure to pull the
     /// frames from each `Output` in sync (whether per frame or per buffer). This is because when
-    /// output A requests `Frame`s before output B, those frames mjust remain available for output
+    /// output A requests `Frame`s before output B, those frames must remain available for output
     /// B and in turn must be stored in an intermediary ring buffer.
     ///
     /// # Example
@@ -375,18 +411,21 @@ pub trait Signal: Iterator + Sized
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.1], [0.2], [0.3]];
-    ///     let bus = frames.iter().cloned().bus();
+    ///     let signal = signal::from_slice(&frames);
+    ///     let bus = signal.bus();
     ///     let mut a = bus.send();
     ///     let mut b = bus.send();
-    ///     assert_eq!(a.collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
-    ///     assert_eq!(b.collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
+    ///     assert_eq!(a.take(3).collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
+    ///     assert_eq!(b.take(3).collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
     /// }
     /// ```
-    fn bus(self) -> Bus<Self> {
+    fn bus(self) -> Bus<Self>
+        where Self: Sized,
+    {
         Bus {
             node: Rc::new(core::cell::RefCell::new(SharedNode {
                 signal: self,
@@ -395,32 +434,67 @@ pub trait Signal: Iterator + Sized
         }
     }
 
-    /// Pads the `Signal` with the given `frame`.
-    ///
-    /// Calling this will return a new `Iterator` that never yields `None`, instead yielding the
-    /// given `frame` whenever `Self` would return `None`.
+    /// Converts the `Signal` into an `Iterator` that will yield the given number for `Frame`s
+    /// before returning `None`.
     ///
     /// # Example
     ///
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
-    ///     let arr = [[0.25], [0.75], [0.25], [-0.25]];
-    ///     let signal = arr.iter().cloned();
-    ///     let padded: Vec<_> = signal.pad_with([0.0]).take(6).collect();
-    ///     assert_eq!(padded, vec![[0.25], [0.75], [0.25], [-0.25], [0.0], [0.0]]);
+    ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
+    ///     let mut signal = signal::from_slice(&frames).take(2);
+    ///     assert_eq!(signal.next(), Some([0.1]));
+    ///     assert_eq!(signal.next(), Some([0.2]));
+    ///     assert_eq!(signal.next(), None);
     /// }
     /// ```
-    fn pad_with(self, frame: Self::Item) -> PadWith<Self> {
-        PadWith {
+    fn take(self, n: usize) -> Take<Self>
+        where Self: Sized,
+    {
+        Take {
             signal: self,
-            frame: frame,
+            n: n,
         }
     }
 
+    /// Borrows a Signal rather than consuming it.
+    ///
+    /// This is useful to allow applying signal adaptors while still retaining ownership of the
+    /// original signal.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{signal, Signal};
+    ///
+    /// fn main() {
+    ///     let frames = [[0], [1], [2], [3], [4]];
+    ///     let mut signal = signal::from_slice(&frames);
+    ///     assert_eq!(signal.next(), [0]);
+    ///     assert_eq!(signal.by_ref().take(2).collect::<Vec<_>>(), vec![[1], [2]]);
+    ///     assert_eq!(signal.next(), [3]);
+    ///     assert_eq!(signal.next(), [4]);
+    /// }
+    /// ```
+    fn by_ref(&mut self) -> &mut Self {
+        self
+    }
+}
+
+
+impl<'a, S> Signal for &'a mut S
+    where S: Signal,
+{
+    type Frame = S::Frame;
+    fn next(&mut self) -> Self::Frame {
+        (**self).next()
+    }
 }
 
 
@@ -447,9 +521,15 @@ pub struct GenMut<G, F> {
     frame: core::marker::PhantomData<F>,
 }
 
+/// A type that wraps an Iterator and provides a `Signal` implementation for it.
+#[derive(Clone)]
+pub struct FromIterator<I> {
+    iter: I,
+}
+
 /// An iterator that converts an iterator of `Sample`s to an iterator of `Frame`s.
 #[derive(Clone)]
-pub struct FromInterleavedSamples<I, F>
+pub struct FromInterleavedSamplesIterator<I, F>
     where I: Iterator,
           I::Item: Sample,
           F: Frame<Sample=I::Item>,
@@ -536,10 +616,9 @@ pub struct MulAmp<A, B> {
 #[derive(Clone)]
 pub struct OffsetAmp<S>
     where S: Signal,
-          S::Item: Frame,
 {
     signal: S,
-    offset: <<S::Item as Frame>::Sample as Sample>::Signed,
+    offset: <<S::Frame as Frame>::Sample as Sample>::Signed,
 }
 
 /// An `Iterator` that scales the amplitude of the sample of each channel in every `Frame` yielded
@@ -547,10 +626,9 @@ pub struct OffsetAmp<S>
 #[derive(Clone)]
 pub struct ScaleAmp<S>
     where S: Signal,
-          S::Item: Frame,
 {
     signal: S,
-    amp: <<S::Item as Frame>::Sample as Sample>::Float,
+    amp: <<S::Frame as Frame>::Sample as Sample>::Float,
 }
 
 /// An `Iterator` that scales the amplitude of every `Frame` in `self` by the respective amplitudes
@@ -576,7 +654,6 @@ pub struct ScaleAmpPerChannel<S, F> {
 #[derive(Clone)]
 pub struct MulHz<S, M, I>
     where S: Signal,
-          S::Item: Frame,
           I: Interpolator,
 {
     signal: Converter<S, I>,
@@ -593,33 +670,28 @@ pub struct Delay<S> {
     n_frames: usize,
 }
 
-/// Converts a `Signal` to an `Iterator` yielding `Sample`s of the signal.
-pub struct ToSamples<S>
+/// Converts a `Signal` to a type that yields the individual interleaved samples.
+pub struct IntoInterleavedSamples<S>
     where S: Signal,
-          S::Item: Frame,
 {
     signal: S,
-    current_frame: Option<<S::Item as Frame>::Channels>,
+    current_frame: <S::Frame as Frame>::Channels,
+}
+
+/// Converts the `IntoInterleavedSamples` into an `Iterator` that always returns `Some`.
+pub struct IntoInterleavedSamplesIterator<S>
+    where S: Signal,
+{
+    samples: IntoInterleavedSamples<S>,
 }
 
 /// Clips samples in each frame yielded by `signal` to the given threshhold amplitude.
 #[derive(Clone)]
 pub struct ClipAmp<S>
     where S: Signal,
-          S::Item: Frame,
 {
     signal: S,
-    thresh: <<S::Item as Frame>::Sample as Sample>::Signed,
-}
-
-/// Pads the inner `signal` with the given `frame` instead of returning `None`.
-#[derive(Clone)]
-pub struct PadWith<S>
-    where S: Signal,
-          S::Item: Frame,
-{
-    signal: S,
-    frame: S::Item,
+    thresh: <<S::Frame as Frame>::Sample as Sample>::Signed,
 }
 
 /// A type which allows for `send`ing a single `Signal` to multiple outputs.
@@ -627,7 +699,6 @@ pub struct PadWith<S>
 /// This type manages
 pub struct Bus<S>
     where S: Signal,
-          S::Item: Frame,
 {
     node: Rc<core::cell::RefCell<SharedNode<S>>>,
 }
@@ -635,10 +706,9 @@ pub struct Bus<S>
 /// The data shared between each `Output`.
 struct SharedNode<S>
     where S: Signal,
-          S::Item: Frame,
 {
     signal: S,
-    buffers: Vec<VecDeque<S::Item>>,
+    buffers: Vec<VecDeque<S::Frame>>,
 }
 
 /// An output node to which some signal `S` is `Output`ing its frames.
@@ -646,10 +716,18 @@ struct SharedNode<S>
 /// It may be more accurate to say that the `Output` "pull"s frames from the signal.
 pub struct Output<S>
     where S: Signal,
-          S::Item: Frame,
 {
     idx: usize,
     node: Rc<core::cell::RefCell<SharedNode<S>>>,
+}
+
+/// An iterator that yields `n` number of `Frame`s from the inner `signal`.
+#[derive(Clone)]
+pub struct Take<S>
+    where S: Signal,
+{
+    signal: S,
+    n: usize,
 }
 
 
@@ -687,10 +765,13 @@ pub fn equilibrium<F>() -> Equilibrium<F>
 /// ```rust
 /// extern crate sample;
 ///
+/// use sample::{signal, Signal};
+///
 /// fn main() {
-///     let mut frames = sample::signal::gen(|| [0.5]);
-///     assert_eq!(frames.next(), Some([0.5]));
-///     assert_eq!(frames.next(), Some([0.5]));
+///     let mut frames = signal::gen(|| [0.5]);
+///     assert_eq!(frames.next(), [0.5]);
+///     assert_eq!(frames.next(), [0.5]);
+///     assert_eq!(frames.next(), [0.5]);
 /// }
 /// ```
 pub fn gen<G, F>(gen: G) -> Gen<G, F>
@@ -711,16 +792,18 @@ pub fn gen<G, F>(gen: G) -> Gen<G, F>
 /// ```rust
 /// extern crate sample;
 ///
+/// use sample::{signal, Signal};
+///
 /// fn main() {
 ///     let mut f = [0.0];
-///     let mut frames = sample::signal::gen_mut(|| {
+///     let mut signal = signal::gen_mut(|| {
 ///         let r = f;
 ///         f[0] += 0.1;
 ///         r
 ///     });
-///     assert_eq!(frames.next(), Some([0.0]));
-///     assert_eq!(frames.next(), Some([0.1]));
-///     assert_eq!(frames.next(), Some([0.2]));
+///     assert_eq!(signal.next(), [0.0]);
+///     assert_eq!(signal.next(), [0.1]);
+///     assert_eq!(signal.next(), [0.2]);
 /// }
 /// ```
 pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
@@ -734,36 +817,98 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 }
 
 
-/// An iterator that converts the given `Iterator` yielding `Sample`s to a `Signal` yielding frames
-/// of type `F`.
+/// Create a new `Signal` from the given `Frame`-yielding `Iterator`.
+///
+/// When the `Iterator` is exhausted, the new `Signal` will yield `F::equilibrium`.
 ///
 /// # Example
 ///
 /// ```rust
 /// extern crate sample;
 ///
-/// use sample::signal;
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let frames = [[1], [-3], [5], [6]];
+///     let mut signal = signal::from_iter(frames.iter().cloned());
+///     assert_eq!(signal.next(), [1]);
+///     assert_eq!(signal.next(), [-3]);
+///     assert_eq!(signal.next(), [5]);
+///     assert_eq!(signal.next(), [6]);
+///     assert_eq!(signal.next(), [0]);
+/// }
+/// ```
+pub fn from_iter<I>(frames: I) -> FromIterator<I::IntoIter>
+    where I: IntoIterator,
+          I::Item: Frame,
+{
+    FromIterator {
+        iter: frames.into_iter(),
+    }
+}
+
+
+/// Create a new `Signal` from the given slice of `Frame`s.
+///
+/// When the given slice is exhausted, the new `Signal` will yield `F::equilibrium`.
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let frames = [[1], [-3], [5], [6]];
+///     let mut signal = signal::from_slice(&frames);
+///     assert_eq!(signal.next(), [1]);
+///     assert_eq!(signal.next(), [-3]);
+///     assert_eq!(signal.next(), [5]);
+///     assert_eq!(signal.next(), [6]);
+///     assert_eq!(signal.next(), [0]);
+/// }
+/// ```
+pub fn from_slice<F>(frames: &[F]) -> FromIterator<core::iter::Cloned<core::slice::Iter<F>>>
+    where F: Frame,
+{
+    FromIterator {
+        iter: frames.iter().cloned(),
+    }
+}
+
+
+/// Create a new `Signal` from the given `Frame`-yielding `Iterator`.
+///
+/// When the `Iterator` is exhausted, the new `Signal` will yield `F::equilibrium`.
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
 ///
 /// fn main() {
 ///     let foo = [0, 1, 2, 3];
-///     let mut signal = signal::from_interleaved_samples::<_, [i32; 2]>(foo.iter().cloned());
-///     assert_eq!(signal.next(), Some([0, 1]));
-///     assert_eq!(signal.next(), Some([2, 3]));
-///     assert_eq!(signal.next(), None);
+///     let mut signal = signal::from_interleaved_samples_iter::<_, [i32; 2]>(foo.iter().cloned());
+///     assert_eq!(signal.next(), [0, 1]);
+///     assert_eq!(signal.next(), [2, 3]);
+///     assert_eq!(signal.next(), [0, 0]);
 ///
 ///     let bar = [0, 1, 2];
-///     let mut signal = signal::from_interleaved_samples::<_, [i32; 2]>(bar.iter().cloned());
-///     assert_eq!(signal.next(), Some([0, 1]));
-///     assert_eq!(signal.next(), None);
+///     let mut signal = signal::from_interleaved_samples_iter::<_, [i32; 2]>(bar.iter().cloned());
+///     assert_eq!(signal.next(), [0, 1]);
+///     assert_eq!(signal.next(), [0, 0]);
 /// }
 /// ```
-pub fn from_interleaved_samples<I, F>(samples: I) -> FromInterleavedSamples<I, F>
-    where I: Iterator,
+pub fn from_interleaved_samples_iter<I, F>(samples: I) -> FromInterleavedSamplesIterator<I::IntoIter, F>
+    where I: IntoIterator,
           I::Item: Sample,
           F: Frame<Sample=I::Item>,
 {
-    FromInterleavedSamples {
-        samples: samples,
+    FromInterleavedSamplesIterator {
+        samples: samples.into_iter(),
         frame: core::marker::PhantomData,
     }
 }
@@ -776,18 +921,18 @@ pub fn from_interleaved_samples<I, F>(samples: I) -> FromInterleavedSamples<I, F
 /// ```rust
 /// extern crate sample;
 ///
-/// use sample::signal;
+/// use sample::{signal, Signal};
 ///
 /// fn main() {
 ///     let step = signal::rate(4.0).const_hz(1.0);
 ///     // Note that this is the same as `step.phase()`, a composable alternative.
 ///     let mut phase = signal::phase(step);
-///     assert_eq!(phase.next(), Some([0.0]));
-///     assert_eq!(phase.next(), Some([0.25]));
-///     assert_eq!(phase.next(), Some([0.5]));
-///     assert_eq!(phase.next(), Some([0.75]));
-///     assert_eq!(phase.next(), Some([0.0]));
-///     assert_eq!(phase.next(), Some([0.25]));
+///     assert_eq!(phase.next(), [0.0]);
+///     assert_eq!(phase.next(), [0.25]);
+///     assert_eq!(phase.next(), [0.5]);
+///     assert_eq!(phase.next(), [0.75]);
+///     assert_eq!(phase.next(), [0.0]);
+///     assert_eq!(phase.next(), [0.25]);
 /// }
 /// ```
 pub fn phase<S>(step: S) -> Phase<S>
@@ -805,7 +950,6 @@ pub fn phase<S>(step: S) -> Phase<S>
 ///
 /// This is necessary for composing `Hz` or `ConstHz`, both of which may be used to step forward
 /// the `Phase` for some kind of oscillator (i.e. `Sine`, `Saw`, `Square` or `NoiseSimplex`).
-/// ```
 pub fn rate(hz: f64) -> Rate {
     Rate { hz: hz }
 }
@@ -818,15 +962,15 @@ pub fn rate(hz: f64) -> Rate {
 /// ```rust
 /// extern crate sample;
 ///
-/// use sample::signal;
+/// use sample::{signal, Signal};
 ///
 /// fn main() {
 ///     // Generates a sine wave signal at 1hz to be sampled 4 times per second.
 ///     let mut signal = signal::rate(4.0).const_hz(1.0).sine();
-///     assert_eq!(signal.next(), Some([0.0]));
-///     assert_eq!(signal.next(), Some([1.0]));
+///     assert_eq!(signal.next(), [0.0]);
+///     assert_eq!(signal.next(), [1.0]);
 ///     signal.next();
-///     assert_eq!(signal.next(), Some([-1.0]));
+///     assert_eq!(signal.next(), [-1.0]);
 /// }
 /// ```
 pub fn sine<S>(phase: Phase<S>) -> Sine<S> {
@@ -840,15 +984,15 @@ pub fn sine<S>(phase: Phase<S>) -> Sine<S> {
 /// ```rust
 /// extern crate sample;
 ///
-/// use sample::signal;
+/// use sample::{signal, Signal};
 ///
 /// fn main() {
 ///     // Generates a saw wave signal at 1hz to be sampled 4 times per second.
 ///     let mut signal = signal::rate(4.0).const_hz(1.0).saw();
-///     assert_eq!(signal.next(), Some([1.0]));
-///     assert_eq!(signal.next(), Some([0.5]));
-///     assert_eq!(signal.next(), Some([0.0]));
-///     assert_eq!(signal.next(), Some([-0.5]));
+///     assert_eq!(signal.next(), [1.0]);
+///     assert_eq!(signal.next(), [0.5]);
+///     assert_eq!(signal.next(), [0.0]);
+///     assert_eq!(signal.next(), [-0.5]);
 /// }
 /// ```
 pub fn saw<S>(phase: Phase<S>) -> Saw<S> {
@@ -862,15 +1006,15 @@ pub fn saw<S>(phase: Phase<S>) -> Saw<S> {
 /// ```rust
 /// extern crate sample;
 ///
-/// use sample::signal;
+/// use sample::{signal, Signal};
 ///
 /// fn main() {
 ///     // Generates a square wave signal at 1hz to be sampled 4 times per second.
 ///     let mut signal = signal::rate(4.0).const_hz(1.0).square();
-///     assert_eq!(signal.next(), Some([1.0]));
-///     assert_eq!(signal.next(), Some([1.0]));
-///     assert_eq!(signal.next(), Some([-1.0]));
-///     assert_eq!(signal.next(), Some([-1.0]));
+///     assert_eq!(signal.next(), [1.0]);
+///     assert_eq!(signal.next(), [1.0]);
+///     assert_eq!(signal.next(), [-1.0]);
+///     assert_eq!(signal.next(), [-1.0]);
 /// }
 /// ```
 pub fn square<S>(phase: Phase<S>) -> Square<S> {
@@ -883,6 +1027,8 @@ pub fn square<S>(phase: Phase<S>) -> Square<S> {
 ///
 /// ```rust
 /// extern crate sample;
+///
+/// use sample::{signal, Signal};
 ///
 /// fn main() {
 ///     let mut noise = sample::signal::noise(0);
@@ -904,7 +1050,7 @@ pub fn noise(seed: u64) -> Noise {
 /// ```rust
 /// extern crate sample;
 ///
-/// use sample::signal;
+/// use sample::{signal, Signal};
 ///
 /// fn main() {
 ///     // Creates a simplex noise signal oscillating at 440hz sampled 44_100 times per second.
@@ -922,63 +1068,138 @@ pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
 //// Trait Implementations for Signal Types.
 
 
-impl<F> Iterator for Equilibrium<F>
-    where F: Frame,
+impl<I> Signal for FromIterator<I>
+    where I: Iterator,
+          I::Item: Frame,
 {
-    type Item = F;
+    type Frame = I::Item;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(F::equilibrium())
-    }
-}
-
-impl<F> DoubleEndedIterator for Equilibrium<F>
-    where F: Frame,
-{
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        Some(F::equilibrium())
+    fn next(&mut self) -> Self::Frame {
+        match self.iter.next() {
+            Some(frame) => frame,
+            None => Self::Frame::equilibrium(),
+        }
     }
 }
 
 
-impl<G, F> Iterator for Gen<G, F>
-    where G: Fn() -> F,
-{
-    type Item = F;
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some((self.gen)())
-    }
-}
-
-
-impl<G, F> Iterator for GenMut<G, F>
-    where G: FnMut() -> F,
-{
-    type Item = F;
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some((self.gen_mut)())
-    }
-}
-
-
-impl<I, F> Iterator for FromInterleavedSamples<I, F>
+impl<I, F> Signal for FromInterleavedSamplesIterator<I, F>
     where I: Iterator,
           I::Item: Sample,
           F: Frame<Sample=I::Item>,
 {
-    type Item = F;
+    type Frame = F;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        F::from_samples(&mut self.samples)
+    fn next(&mut self) -> Self::Frame {
+        F::from_samples(&mut self.samples).unwrap_or(F::equilibrium())
+    }
+}
+
+
+impl<F> Signal for Equilibrium<F>
+    where F: Frame,
+{
+    type Frame = F;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        F::equilibrium()
+    }
+}
+
+
+impl<G, F> Signal for Gen<G, F>
+    where G: Fn() -> F,
+          F: Frame,
+{
+    type Frame = F;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        (self.gen)()
+    }
+}
+
+
+impl<G, F> Signal for GenMut<G, F>
+    where G: FnMut() -> F,
+          F: Frame,
+{
+    type Frame = F;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        (self.gen_mut)()
+    }
+}
+
+
+impl<S> Signal for Hz<S>
+    where S: Signal<Frame=[f64; 1]>,
+{
+    type Frame = [f64; 1];
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        [self.step()]
+    }
+}
+
+
+impl Signal for ConstHz {
+    type Frame = [f64; 1];
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        [self.step()]
+    }
+}
+
+
+impl<S> Signal for Phase<S>
+    where S: Step,
+{
+    type Frame = [f64; 1];
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        [self.next_phase()]
+    }
+}
+
+
+impl<S> Signal for Sine<S>
+    where S: Step,
+{
+    type Frame = [f64; 1];
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        const PI_2: f64 = core::f64::consts::PI * 2.0;
+        let phase = self.phase.next_phase();
+        [super::ops::f64::sin(PI_2 * phase)]
+    }
+}
+
+
+impl<S> Signal for Saw<S>
+    where S: Step,
+{
+    type Frame = [f64; 1];
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        let phase = self.phase.next_phase();
+        [phase * -2.0 + 1.0]
+    }
+}
+
+
+impl<S> Signal for Square<S>
+    where S: Step,
+{
+    type Frame = [f64; 1];
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        let phase = self.phase.next_phase();
+        [if phase < 0.5 { 1.0 } else { -1.0 }]
     }
 }
 
 
 impl Rate {
-
     /// Create a `ConstHz` iterator which consistently yields "hz / rate".
     pub fn const_hz(self, hz: f64) -> ConstHz {
         ConstHz { step: hz / self.hz }
@@ -996,13 +1217,11 @@ impl Rate {
             rate: self,
         }
     }
-
 }
 
-impl<I> Hz<I>
-    where I: Iterator<Item=f64>,
+impl<S> Hz<S>
+    where S: Signal<Frame=[f64; 1]>,
 {
-
     /// Construct a `Phase` iterator that, for every `hz` yielded by `self`, yields a phase that is
     /// stepped by `hz / self.rate.hz`.
     #[inline]
@@ -1033,11 +1252,9 @@ impl<I> Hz<I>
     pub fn noise_simplex(self) -> NoiseSimplex<Self> {
         self.phase().noise_simplex()
     }
-
 }
 
 impl ConstHz {
-
     /// Construct a `Phase` iterator that is incremented via the constant step size, `self.step`.
     #[inline]
     pub fn phase(self) -> Phase<Self> {
@@ -1067,7 +1284,6 @@ impl ConstHz {
     pub fn noise_simplex(self) -> NoiseSimplex<Self> {
         self.phase().noise_simplex()
     }
-
 }
 
 /// Types that may be used to give a phase step size based on some `hz / sample rate`.
@@ -1090,18 +1306,14 @@ impl Step for ConstHz {
     }
 }
 
-impl<I> Step for Hz<I>
-    where I: Iterator<Item=f64>,
+impl<S> Step for Hz<S>
+    where S: Signal<Frame=[f64; 1]>,
 {
     #[inline]
     fn step(&mut self) -> f64 {
-        match self.hz.next() {
-            Some(hz) => {
-                self.last_step_size = hz / self.rate.hz;
-                hz
-            },
-            None => self.last_step_size,
-        }
+        let hz = self.hz.next()[0];
+        self.last_step_size = hz / self.rate.hz;
+        hz
     }
 }
 
@@ -1109,7 +1321,6 @@ impl<I> Step for Hz<I>
 impl<S> Phase<S>
     where S: Step,
 {
-
     /// Before yielding the current phase, the internal phase is stepped forward and wrapped via
     /// the given value.
     #[inline]
@@ -1148,75 +1359,6 @@ impl<S> Phase<S>
     pub fn noise_simplex(self) -> NoiseSimplex<S> {
         noise_simplex(self)
     }
-
-}
-
-
-impl<I> Iterator for Hz<I>
-    where I: Iterator<Item=f64>,
-{
-    type Item = f64;
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.step())
-    }
-}
-
-
-impl Iterator for ConstHz {
-    type Item = f64;
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.step())
-    }
-}
-
-
-impl<S> Iterator for Phase<S>
-    where S: Step,
-{
-    type Item = [f64; 1];
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some([self.next_phase()])
-    }
-}
-
-
-impl<S> Iterator for Sine<S>
-    where S: Step,
-{
-    type Item = [f64; 1];
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        const PI_2: f64 = core::f64::consts::PI * 2.0;
-        let phase = self.phase.next_phase();
-        Some([super::ops::f64::sin(PI_2 * phase)])
-    }
-}
-
-
-impl<S> Iterator for Saw<S>
-    where S: Step,
-{
-    type Item = [f64; 1];
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let phase = self.phase.next_phase();
-        Some([phase * -2.0 + 1.0])
-    }
-}
-
-
-impl<S> Iterator for Square<S>
-    where S: Step,
-{
-    type Item = [f64; 1];
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        let phase = self.phase.next_phase();
-        Some([if phase < 0.5 { 1.0 } else { -1.0 }])
-    }
 }
 
 
@@ -1245,11 +1387,11 @@ impl Noise {
     }
 }
 
-impl Iterator for Noise {
-    type Item = [f64; 1];
+impl Signal for Noise {
+    type Frame = [f64; 1];
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some([self.next_sample()])
+    fn next(&mut self) -> Self::Frame {
+        [self.next_sample()]
     }
 }
 
@@ -1340,355 +1482,202 @@ impl<S> NoiseSimplex<S>
     }
 }
 
-impl<S> Iterator for NoiseSimplex<S>
+impl<S> Signal for NoiseSimplex<S>
     where S: Step,
 {
-    type Item = [f64; 1];
+    type Frame = [f64; 1];
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some([self.next_sample()])
+    fn next(&mut self) -> Self::Frame {
+        [self.next_sample()]
     }
 }
 
 
-#[inline]
-fn zipped_size_hint<A, B>(a: &A, b: &B) -> (usize, Option<usize>)
-    where A: Iterator,
-          B: Iterator,
-{
-    let (a_lower, a_upper) = a.size_hint();
-    let (b_lower, b_upper) = b.size_hint();
-    let lower = core::cmp::min(a_lower, b_lower);
-    let upper = match (a_upper, b_upper) {
-        (Some(a), Some(b)) => Some(core::cmp::min(a, b)),
-        (Some(a), None) => Some(a),
-        (None, Some(b)) => Some(b),
-        (None, None) => None,
-    };
-    (lower, upper)
-}
-
-
-impl<A, B> Iterator for AddAmp<A, B>
+impl<A, B> Signal for AddAmp<A, B>
     where A: Signal,
           B: Signal,
-          A::Item: Frame,
-          B::Item: Frame<Sample=<<A::Item as Frame>::Sample as Sample>::Signed,
-                         NumChannels=<A::Item as Frame>::NumChannels>,
+          B::Frame: Frame<Sample=<<A::Frame as Frame>::Sample as Sample>::Signed,
+                          NumChannels=<A::Frame as Frame>::NumChannels>,
 {
-    type Item = A::Item;
+    type Frame = A::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.a.next().and_then(|a_f| self.b.next().map(|b_f| a_f.add_amp(b_f)))
-    }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        zipped_size_hint(&self.a, &self.b)
-    }
-}
-
-impl<A, B> ExactSizeIterator for AddAmp<A, B>
-    where AddAmp<A, B>: Iterator,
-          A: ExactSizeIterator,
-          B: ExactSizeIterator,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        core::cmp::min(self.a.len(), self.b.len())
+    fn next(&mut self) -> Self::Frame {
+        self.a.next().add_amp(self.b.next())
     }
 }
 
 
-impl<A, B> Iterator for MulAmp<A, B>
+impl<A, B> Signal for MulAmp<A, B>
     where A: Signal,
           B: Signal,
-          A::Item: Frame,
-          B::Item: Frame<Sample=<<A::Item as Frame>::Sample as Sample>::Float,
-                         NumChannels=<A::Item as Frame>::NumChannels>,
+          B::Frame: Frame<Sample=<<A::Frame as Frame>::Sample as Sample>::Float,
+                          NumChannels=<A::Frame as Frame>::NumChannels>,
 {
-    type Item = A::Item;
+    type Frame = A::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.a.next().and_then(|a_f| self.b.next().map(|b_f| a_f.mul_amp(b_f)))
-    }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        zipped_size_hint(&self.a, &self.b)
-    }
-}
-
-impl<A, B> ExactSizeIterator for MulAmp<A, B>
-    where MulAmp<A, B>: Iterator,
-          A: ExactSizeIterator,
-          B: ExactSizeIterator,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        core::cmp::min(self.a.len(), self.b.len())
+    fn next(&mut self) -> Self::Frame {
+        self.a.next().mul_amp(self.b.next())
     }
 }
 
 
-impl<S> Iterator for ScaleAmp<S>
+impl<S> Signal for ScaleAmp<S>
     where S: Signal,
-          S::Item: Frame,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.signal.next().map(|f| f.scale_amp(self.amp))
-    }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.signal.size_hint()
-    }
-}
-
-impl<S> ExactSizeIterator for ScaleAmp<S>
-    where S: Signal + ExactSizeIterator,
-          S::Item: Frame,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        self.signal.len()
+    fn next(&mut self) -> Self::Frame {
+        self.signal.next().scale_amp(self.amp)
     }
 }
 
 
-impl<S, F> Iterator for ScaleAmpPerChannel<S, F>
+impl<S, F> Signal for ScaleAmpPerChannel<S, F>
     where S: Signal,
-          S::Item: Frame,
-          F: Frame<Sample=<<S::Item as Frame>::Sample as Sample>::Float,
-                   NumChannels=<S::Item as Frame>::NumChannels>,
+          F: Frame<Sample=<<S::Frame as Frame>::Sample as Sample>::Float,
+                   NumChannels=<S::Frame as Frame>::NumChannels>,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.signal.next().map(|f| f.mul_amp(self.amp_frame))
-    }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.signal.size_hint()
-    }
-}
-
-impl<S, F> ExactSizeIterator for ScaleAmpPerChannel<S, F>
-    where ScaleAmpPerChannel<S, F>: Iterator,
-          S: ExactSizeIterator,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        self.signal.len()
+    fn next(&mut self) -> Self::Frame {
+        self.signal.next().mul_amp(self.amp_frame)
     }
 }
 
 
-impl<S> Iterator for OffsetAmp<S>
+impl<S> Signal for OffsetAmp<S>
     where S: Signal,
-          S::Item: Frame,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.signal.next().map(|f| f.offset_amp(self.offset))
-    }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.signal.size_hint()
-    }
-}
-
-impl<S> ExactSizeIterator for OffsetAmp<S>
-    where S: Signal + ExactSizeIterator,
-          S::Item: Frame,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        self.signal.len()
+    fn next(&mut self) -> Self::Frame {
+        self.signal.next().offset_amp(self.offset)
     }
 }
 
 
-impl<S, F> Iterator for OffsetAmpPerChannel<S, F>
+impl<S, F> Signal for OffsetAmpPerChannel<S, F>
     where S: Signal,
-          S::Item: Frame,
-          F: Frame<Sample=<<S::Item as Frame>::Sample as Sample>::Signed,
-                   NumChannels=<S::Item as Frame>::NumChannels>,
+          F: Frame<Sample=<<S::Frame as Frame>::Sample as Sample>::Signed,
+                   NumChannels=<S::Frame as Frame>::NumChannels>,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.signal.next().map(|f| f.add_amp(self.amp_frame))
-    }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.signal.size_hint()
-    }
-}
-
-impl<S, F> ExactSizeIterator for OffsetAmpPerChannel<S, F>
-    where OffsetAmpPerChannel<S, F>: Iterator,
-          S: ExactSizeIterator,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        self.signal.len()
+    fn next(&mut self) -> Self::Frame {
+        self.signal.next().add_amp(self.amp_frame)
     }
 }
 
 
-impl<S, M, I> Iterator for MulHz<S, M, I>
+impl<S, M, I> Signal for MulHz<S, M, I>
     where S: Signal,
-          S::Item: Frame,
-          <S::Item as Frame>::Sample: Duplex<f64>,
-          M: Iterator<Item=f64>,
-          I: Interpolator<Frame=<S as Iterator>::Item>,
+          <S::Frame as Frame>::Sample: Duplex<f64>,
+          M: Signal<Frame=[f64; 1]>,
+          I: Interpolator<Frame=S::Frame>,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.mul_per_frame.next().and_then(|mul| {
-            self.signal.set_playback_hz_scale(mul);
-            self.signal.next()
-        })
-    }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        // We can't make any guarantees about size here as the rate may change dramatically at any
-        // point.
-        (1, None)
+    fn next(&mut self) -> Self::Frame {
+        let mul = self.mul_per_frame.next()[0];
+        self.signal.set_playback_hz_scale(mul);
+        self.signal.next()
     }
 }
 
 
-impl<S> Iterator for Delay<S>
+impl<S> Signal for Delay<S>
     where S: Signal,
-          S::Item: Frame,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Self::Frame {
         if self.n_frames > 0 {
             self.n_frames -= 1;
-            Some(Frame::equilibrium())
+            Self::Frame::equilibrium()
         } else {
             self.signal.next()
         }
     }
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let (lower, upper) = self.signal.size_hint();
-        (lower + self.n_frames, upper.map(|n| n + self.n_frames))
-    }
-}
-
-impl<S> ExactSizeIterator for Delay<S>
-    where Delay<S>: Iterator,
-          S: ExactSizeIterator,
-{
-    #[inline]
-    fn len(&self) -> usize {
-        self.signal.len() + self.n_frames
-    }
 }
 
 
-impl<S> Iterator for ToSamples<S>
+impl<S> IntoInterleavedSamples<S>
     where S: Signal,
-          S::Item: Frame,
 {
-    type Item = <S::Item as Frame>::Sample;
+    /// Yield the next interleaved sample from the inner `Signal`.
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn next_sample(&mut self) -> <S::Frame as Frame>::Sample {
         loop {
-            if let Some(ref mut frame) = self.current_frame {
-                if let Some(channel) = frame.next() {
-                    return Some(channel);
-                }
+            match self.current_frame.next() {
+                Some(channel) => return channel,
+                None => self.current_frame = self.signal.next().channels(),
             }
-            self.current_frame = match self.signal.next() {
-                Some(frame) => Some(frame.channels()),
-                None => return None,
-            };
         }
     }
+
+    /// Convert the `ToInterleavedSamples` into an `Iterator`.
     #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let (lower, upper) = self.signal.size_hint();
-        let current_frame = self.current_frame.as_ref().map(|chans| chans.size_hint());
-        let n_channels = <S::Item as Frame>::n_channels();
-        let lower = lower * n_channels + current_frame.map(|sh| sh.0).unwrap_or(0);
-        let upper = upper.and_then(|upper| {
-            let current_upper = match current_frame.map(|sh| sh.1) {
-                None => 0,
-                Some(None) => return None,
-                Some(Some(n)) => n,
-            };
-            Some(upper * n_channels + current_upper)
-        });
-        (lower, upper)
+    pub fn into_iter(self) -> IntoInterleavedSamplesIterator<S> {
+        IntoInterleavedSamplesIterator {
+            samples: self,
+        }
     }
 }
 
-impl<S> Clone for ToSamples<S>
+impl<S> Iterator for IntoInterleavedSamplesIterator<S>
+    where S: Signal,
+{
+    type Item = <S::Frame as Frame>::Sample;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.samples.next_sample())
+    }
+}
+
+impl<S> Clone for IntoInterleavedSamples<S>
     where S: Signal + Clone,
-          S::Item: Frame,
-          <S::Item as Frame>::Channels: Clone,
+          <S::Frame as Frame>::Channels: Clone,
 {
     #[inline]
     fn clone(&self) -> Self {
-        ToSamples {
+        IntoInterleavedSamples {
             signal: self.signal.clone(),
             current_frame: self.current_frame.clone(),
         }
     }
 }
 
-impl<S> ExactSizeIterator for ToSamples<S>
-    where ToSamples<S>: Iterator,
-          S: ExactSizeIterator,
-          S::Item: Frame,
-          <S::Item as Frame>::Channels: ExactSizeIterator,
+impl<S> Clone for IntoInterleavedSamplesIterator<S>
+    where S: Signal,
+          IntoInterleavedSamples<S>: Clone,
 {
     #[inline]
-    fn len(&self) -> usize {
-        self.signal.len() * <S::Item as Frame>::n_channels()
-            + self.current_frame.as_ref().map(|f| f.len()).unwrap_or(0)
+    fn clone(&self) -> Self {
+        IntoInterleavedSamplesIterator {
+            samples: self.samples.clone(),
+        }
     }
 }
 
 
-impl<S> Iterator for ClipAmp<S>
+impl<S> Signal for ClipAmp<S>
     where S: Signal,
-          S::Item: Frame,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.signal.next().map(|f| f.map(|s| {
-            let s: <<S::Item as Frame>::Sample as Sample>::Signed = s.to_sample();
+    fn next(&mut self) -> Self::Frame {
+        let f = self.signal.next();
+        f.map(|s| {
+            let s: <<S::Frame as Frame>::Sample as Sample>::Signed = s.to_sample();
             if s > self.thresh { self.thresh } else if s < -self.thresh { -self.thresh } else { s }
                 .to_sample()
-        }))
-    }
-}
-
-
-impl<S> Iterator for PadWith<S>
-    where S: Signal,
-          S::Item: Frame,
-{
-    type Item = S::Item;
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.signal.next().unwrap_or(self.frame))
+        })
     }
 }
 
 
 impl<S> Bus<S>
     where S: Signal,
-          S::Item: Frame,
 {
     /// Produce a new Output node to which the signal `S` will output its frames.
     #[inline]
@@ -1704,25 +1693,21 @@ impl<S> Bus<S>
 
 impl<S> SharedNode<S>
     where S: Signal,
-          S::Item: Frame,
 {
-
     /// Requests the next frame for the `Output` whose ring buffer lies at the given index.
     ///
     /// If there are no frames waiting in the front of the ring buffer, a new frame will be
     /// requested from the `signal` and appended to the back of each ring buffer.
     #[inline]
-    fn next_frame(&mut self, idx: usize) -> Option<S::Item> {
+    fn next_frame(&mut self, idx: usize) -> S::Frame {
         loop {
             match self.buffers[idx].pop_front() {
-                Some(frame) => return Some(frame),
-                None => match self.signal.next() {
-                    Some(frame) => {
-                        for buffer in self.buffers.iter_mut() {
-                            buffer.push_back(frame);
-                        }
-                    },
-                    None => return None,
+                Some(frame) => return frame,
+                None => {
+                    let frame = self.signal.next();
+                    for buffer in self.buffers.iter_mut() {
+                        buffer.push_back(frame);
+                    }
                 }
             }
         }
@@ -1732,12 +1717,10 @@ impl<S> SharedNode<S>
     fn pending_frames(&self, idx: usize) -> usize {
         self.buffers[idx].len()
     }
-
 }
 
 impl<S> Output<S>
     where S: Signal,
-          S::Item: Frame,
 {
     /// The number of frames that have been requested from the `Signal` `S` by some other `Output`
     /// that have not yet been requested by this `Output`.
@@ -1750,16 +1733,16 @@ impl<S> Output<S>
     /// ```rust
     /// extern crate sample;
     ///
-    /// use sample::Signal;
+    /// use sample::{signal, Signal};
     ///
     /// fn main() {
     ///     let frames = [[0.1], [0.2], [0.3]];
-    ///     let bus = frames.iter().cloned().bus();
+    ///     let bus = signal::from_slice(&frames).bus();
     ///     let mut signal = bus.send();
     ///     let mut monitor = bus.send();
-    ///     assert_eq!(signal.collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
+    ///     assert_eq!(signal.take(3).collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
     ///     assert_eq!(monitor.pending_frames(), 3);
-    ///     assert_eq!(monitor.next(), Some([0.1]));
+    ///     assert_eq!(monitor.next(), [0.1]);
     ///     assert_eq!(monitor.pending_frames(), 2);
     /// }
     /// ```
@@ -1769,20 +1752,39 @@ impl<S> Output<S>
     }
 }
 
-impl<S> Iterator for Output<S>
+impl<S> Signal for Output<S>
     where S: Signal,
-          S::Item: Frame,
 {
-    type Item = S::Item;
+    type Frame = S::Frame;
     #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Self::Frame {
         self.node.borrow_mut().next_frame(self.idx)
     }
+}
+
+
+impl<S> Iterator for Take<S>
+    where S: Signal,
+{
+    type Item = S::Frame;
     #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.n == 0 {
+            return None;
+        }
+        self.n -= 1;
+        Some(self.signal.next())
+    }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let node = self.node.borrow();
-        let (lower, upper) = node.signal.size_hint();
-        let n = node.buffers[self.idx].len();
-        (lower + n, upper.map(|upper| upper + n))
+        (self.n, Some(self.n))
+    }
+}
+
+impl<S> ExactSizeIterator for Take<S>
+    where S: Signal,
+{
+    #[inline]
+    fn len(&self) -> usize {
+        self.n
     }
 }

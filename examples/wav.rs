@@ -63,9 +63,12 @@ fn frames(file_name: &'static str) -> Vec<wav::Frame> {
     let sample_file = assets.join(file_name);
     let mut reader = hound::WavReader::open(&sample_file).unwrap();
     let spec = reader.spec();
+    let duration = reader.duration();
+    let new_duration = (duration as f64 * (SAMPLE_RATE as f64 / spec.sample_rate as f64)) as usize;
     let samples = reader.samples().map(|s| s.unwrap());
-    let mut signal = signal::from_interleaved_samples::<_, wav::Frame>(samples);
-    let interp = Linear::from_source(&mut signal).unwrap();
+    let mut signal = signal::from_interleaved_samples_iter::<_, wav::Frame>(samples);
+    let interp = Linear::from_source(&mut signal);
     signal.from_hz_to_hz(interp, spec.sample_rate as f64, SAMPLE_RATE as f64)
+        .take(new_duration)
         .collect()
 }
