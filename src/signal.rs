@@ -460,6 +460,41 @@ pub trait Signal {
             n: n,
         }
     }
+
+    /// Borrows a Signal rather than consuming it.
+    ///
+    /// This is useful to allow applying signal adaptors while still retaining ownership of the
+    /// original signal.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{signal, Signal};
+    ///
+    /// fn main() {
+    ///     let frames = [[0], [1], [2], [3], [4]];
+    ///     let mut signal = signal::from_slice(&frames);
+    ///     assert_eq!(signal.next(), [0]);
+    ///     assert_eq!(signal.by_ref().take(2).collect::<Vec<_>>(), vec![[1], [2]]);
+    ///     assert_eq!(signal.next(), [3]);
+    ///     assert_eq!(signal.next(), [4]);
+    /// }
+    /// ```
+    fn by_ref(&mut self) -> &mut Self {
+        self
+    }
+}
+
+
+impl<'a, S> Signal for &'a mut S
+    where S: Signal,
+{
+    type Frame = S::Frame;
+    fn next(&mut self) -> Self::Frame {
+        (**self).next()
+    }
 }
 
 
