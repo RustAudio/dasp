@@ -23,9 +23,9 @@ extern crate alloc;
 extern crate collections;
 
 #[cfg(not(feature = "std"))]
-type Vec<T> = collections::vec::Vec<T>;
+type BTreeMap<K, V> = collections::btree_map::BTreeMap<K, V>;
 #[cfg(feature = "std")]
-type Vec<T> = std::vec::Vec<T>;
+type BTreeMap<K, V> = std::collections::BTreeMap<K, V>;
 
 #[cfg(not(feature = "std"))]
 type VecDeque<T> = collections::vec_deque::VecDeque<T>;
