@@ -14,7 +14,6 @@
 //! - [gen](./fn.gen.html) for generating frames of type F from some `Fn() -> F`.
 //! - [gen_mut](./fn.gen_mut.html) for generating frames of type F from some `FnMut() -> F`.
 //! - [from_iter](./fn.from_iter.html) for converting an iterator yielding frames to a signal.
-//! - [from_slice](./fn.from_slice.html) for converting a slice of frames into a signal.
 //! - [from_interleaved_samples_iter](./fn.from_interleaved_samples_iter.html) for converting an
 //! iterator yielding interleaved samples to a signal.
 //!
@@ -45,7 +44,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.2], [-0.6], [0.4]];
-    ///     let mut signal = signal::from_slice(&frames);
+    ///     let mut signal = signal::from_iter(frames.iter().cloned());
     ///     assert_eq!(signal.next(), [0.2]);
     ///     assert_eq!(signal.next(), [-0.6]);
     ///     assert_eq!(signal.next(), [0.4]);
@@ -66,8 +65,8 @@ pub trait Signal {
     /// fn main() {
     ///     let a = [[0.2], [-0.6], [0.4]];
     ///     let b = [[0.2], [0.1], [-0.8]];
-    ///     let a_signal = signal::from_slice(&a);
-    ///     let b_signal = signal::from_slice(&b);
+    ///     let a_signal = signal::from_iter(a.iter().cloned());
+    ///     let b_signal = signal::from_iter(b.iter().cloned());
     ///     let added: Vec<_> = a_signal.add_amp(b_signal).take(3).collect();
     ///     assert_eq!(added, vec![[0.4], [-0.5], [-0.4]]);
     /// }
@@ -98,8 +97,8 @@ pub trait Signal {
     /// fn main() {
     ///     let a = [[0.25], [-0.8], [-0.5]];
     ///     let b = [[0.2], [0.5], [0.8]];
-    ///     let a_signal = signal::from_slice(&a);
-    ///     let b_signal = signal::from_slice(&b);
+    ///     let a_signal = signal::from_iter(a.iter().cloned());
+    ///     let b_signal = signal::from_iter(b.iter().cloned());
     ///     let added: Vec<_> = a_signal.mul_amp(b_signal).take(3).collect();
     ///     assert_eq!(added, vec![[0.05], [-0.4], [-0.4]]);
     /// }
@@ -129,7 +128,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.25, 0.4], [-0.2, -0.5]];
-    ///     let signal = signal::from_slice(&frames);
+    ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let offset: Vec<_> = signal.offset_amp(0.5).take(2).collect();
     ///     assert_eq!(offset, vec![[0.75, 0.9], [0.3, 0.0]]);
     /// }
@@ -157,7 +156,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.2], [-0.5], [-0.4], [0.3]];
-    ///     let signal = signal::from_slice(&frames);
+    ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let scaled: Vec<_> = signal.scale_amp(2.0).take(4).collect();
     ///     assert_eq!(scaled, vec![[0.4], [-1.0], [-0.8], [0.6]]);
     /// }
@@ -184,7 +183,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.5, 0.3], [-0.25, 0.9]];
-    ///     let signal = signal::from_slice(&frames);
+    ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let offset: Vec<_> = signal.offset_amp_per_channel([0.25, -0.5]).take(2).collect();
     ///     assert_eq!(offset, vec![[0.75, -0.2], [0.0, 0.4]]);
     /// }
@@ -213,7 +212,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.2, -0.5], [-0.4, 0.3]];
-    ///     let signal = signal::from_slice(&frames);
+    ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let scaled: Vec<_> = signal.scale_amp_per_channel([0.5, 2.0]).take(2).collect();
     ///     assert_eq!(scaled, vec![[0.1, -1.0], [-0.2, 0.6]]);
     /// }
@@ -246,9 +245,10 @@ pub trait Signal {
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
     ///     let mul = [[1.0], [1.0], [0.5], [0.5], [0.5], [0.5]];
-    ///     let mut source = signal::from_slice(&foo);
+    ///     let mut source = signal::from_iter(foo.iter().cloned());
     ///     let interp = Linear::from_source(&mut source);
-    ///     let frames: Vec<_> = source.mul_hz(interp, signal::from_slice(&mul)).take(6).collect();
+    ///     let hz_signal = signal::from_iter(mul.iter().cloned());
+    ///     let frames: Vec<_> = source.mul_hz(interp, hz_signal).take(6).collect();
     ///     assert_eq!(&frames[..], &[[0.0], [1.0], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
@@ -275,7 +275,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let mut source = signal::from_slice(&foo);
+    ///     let mut source = signal::from_iter(foo.iter().cloned());
     ///     let interp = Linear::from_source(&mut source);
     ///     let frames: Vec<_> = source.from_hz_to_hz(interp, 1.0, 2.0).take(8).collect();
     ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
@@ -300,7 +300,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let mut source = signal::from_slice(&foo);
+    ///     let mut source = signal::from_iter(foo.iter().cloned());
     ///     let interp = Linear::from_source(&mut source);
     ///     let frames: Vec<_> = source.scale_hz(interp, 0.5).take(8).collect();
     ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
@@ -327,7 +327,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.2], [0.4]];
-    ///     let signal = signal::from_slice(&frames);
+    ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let delayed: Vec<_> = signal.delay(2).take(4).collect();
     ///     assert_eq!(delayed, vec![[0.0], [0.0], [0.2], [0.4]]);
     /// }
@@ -380,7 +380,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[1.2, 0.8], [-0.7, -1.4]];
-    ///     let signal = signal::from_slice(&frames);
+    ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let clipped: Vec<_> = signal.clip_amp(0.9).take(2).collect();
     ///     assert_eq!(clipped, vec![[0.9, 0.8], [-0.7, -0.9]]);
     /// }
@@ -415,7 +415,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.1], [0.2], [0.3], [0.4], [0.5], [0.6]];
-    ///     let signal = signal::from_slice(&frames);
+    ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let bus = signal.bus();
     ///     let mut a = bus.send();
     ///     let mut b = bus.send();
@@ -446,7 +446,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
-    ///     let mut signal = signal::from_slice(&frames).take(2);
+    ///     let mut signal = signal::from_iter(frames.iter().cloned()).take(2);
     ///     assert_eq!(signal.next(), Some([0.1]));
     ///     assert_eq!(signal.next(), Some([0.2]));
     ///     assert_eq!(signal.next(), None);
@@ -475,7 +475,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let frames = [[0], [1], [2], [3], [4]];
-    ///     let mut signal = signal::from_slice(&frames);
+    ///     let mut signal = signal::from_iter(frames.iter().cloned());
     ///     assert_eq!(signal.next(), [0]);
     ///     assert_eq!(signal.by_ref().take(2).collect::<Vec<_>>(), vec![[1], [2]]);
     ///     assert_eq!(signal.next(), [3]);
@@ -849,36 +849,6 @@ pub fn from_iter<I>(frames: I) -> FromIterator<I::IntoIter>
 {
     FromIterator {
         iter: frames.into_iter(),
-    }
-}
-
-
-/// Create a new `Signal` from the given slice of `Frame`s.
-///
-/// When the given slice is exhausted, the new `Signal` will yield `F::equilibrium`.
-///
-/// # Example
-///
-/// ```rust
-/// extern crate sample;
-///
-/// use sample::{signal, Signal};
-///
-/// fn main() {
-///     let frames = [[1], [-3], [5], [6]];
-///     let mut signal = signal::from_slice(&frames);
-///     assert_eq!(signal.next(), [1]);
-///     assert_eq!(signal.next(), [-3]);
-///     assert_eq!(signal.next(), [5]);
-///     assert_eq!(signal.next(), [6]);
-///     assert_eq!(signal.next(), [0]);
-/// }
-/// ```
-pub fn from_slice<F>(frames: &[F]) -> FromIterator<core::iter::Cloned<core::slice::Iter<F>>>
-    where F: Frame,
-{
-    FromIterator {
-        iter: frames.iter().cloned(),
     }
 }
 
@@ -1802,7 +1772,7 @@ impl<S> Output<S>
     ///
     /// fn main() {
     ///     let frames = [[0.1], [0.2], [0.3]];
-    ///     let bus = signal::from_slice(&frames).bus();
+    ///     let bus = signal::from_iter(frames.iter().cloned()).bus();
     ///     let signal = bus.send();
     ///     let mut monitor = bus.send();
     ///     assert_eq!(signal.take(3).collect::<Vec<_>>(), vec![[0.1], [0.2], [0.3]]);
