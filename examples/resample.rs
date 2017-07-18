@@ -13,7 +13,7 @@ fn main() {
         .map(|s| [s.unwrap().to_sample()])
         .collect();
     let len = samples.len();
-    let signal = signal::from_slice(&samples[..]);
+    let signal = signal::from_iter(samples.iter().cloned());
 
     let sample_rate = reader.spec().sample_rate as f64;
     let new_sample_rate = 10_000.0;

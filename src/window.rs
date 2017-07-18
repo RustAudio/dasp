@@ -158,7 +158,7 @@ impl<'a, F, W> Iterator for Windower<'a, F, W>
             let window = Window::new(self.bin);
             self.frames = if self.hop < num_frames { &self.frames[self.hop..] } else { &[] };
             Some(Windowed {
-                signal: signal::from_slice(frames),
+                signal: signal::from_iter(frames.iter().cloned()),
                 window: window,
             })
         } else {
