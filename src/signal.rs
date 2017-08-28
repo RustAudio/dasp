@@ -482,7 +482,9 @@ pub trait Signal {
     ///     assert_eq!(signal.next(), [4]);
     /// }
     /// ```
-    fn by_ref(&mut self) -> &mut Self {
+    fn by_ref(&mut self) -> &mut Self
+        where Self: Sized
+    {
         self
     }
 }
