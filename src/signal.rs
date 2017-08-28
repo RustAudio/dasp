@@ -1778,7 +1778,7 @@ impl<S> Signal for ClipAmp<S>
 impl<S> Bus<S>
     where S: Signal,
 {
-    fn new(signal: S, frames_read: BTreeMap<usize, usize>) -> Self {
+    pub fn new(signal: S, frames_read: BTreeMap<usize, usize>) -> Self {
         Bus {
             node: Rc::new(core::cell::RefCell::new(SharedNode {
                 signal: signal,
