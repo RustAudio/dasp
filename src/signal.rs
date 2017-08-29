@@ -521,18 +521,19 @@ pub struct GenMut<G, F> {
     frame: core::marker::PhantomData<F>,
 }
 
-/// A signal that calls its enclosing function and returns the original value.
+/// A signal that calls its enclosing function and returns the original value. The signal may
+/// mutate state.
 #[derive(Clone)]
-pub struct Tap<S, Func, F> {
+pub struct Inspect<S, Func, F> {
     signal: S,
     func: Func,
     frame: core::marker::PhantomData<F>,
 }
 
-/// A signal that calls its enclosing function and returns the original value which may 
-/// mutate some state.
+/// A signal that calls its enclosing function and returns the original value. The signal may
+/// mutate state.
 #[derive(Clone)]
-pub struct TapMut<S, Func, F> {
+pub struct InspectMut<S, Func, F> {
     signal: S,
     func: Func,
     frame: core::marker::PhantomData<F>,
@@ -856,17 +857,17 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 ///     let func = |x: &[f64; 1]| {
 ///         assert_eq!(*x, [0.1]);
 ///     };
-///     let mut tapped = signal::tap(signal, func);
-///     let out = tapped.next();
+///     let mut inspected = signal::inspect(signal, func);
+///     let out = inspected.next();
 ///     assert_eq!(out, [0.1]);
 /// }
 /// ```
-pub fn tap<S, Func, F>(signal: S, func: Func) -> Tap<S, Func, F>
+pub fn inspect<S, Func, F>(signal: S, func: Func) -> Inspect<S, Func, F>
     where S: Signal<Frame=F>,
           Func: Fn(&F) -> (),
           F: Frame,
 {
-    Tap {
+    Inspect {
         signal: signal,
         func: func,
         frame: core::marker::PhantomData,
@@ -897,20 +898,20 @@ pub fn tap<S, Func, F>(signal: S, func: Func) -> Tap<S, Func, F>
 ///             let borrowed_out = &mut out;
 ///             *borrowed_out = *x;
 ///         };
-///         let mut tapped = signal::tap_mut(signal, func);
-///         let sig_out = tapped.next();
+///         let mut inspected = signal::inspect_mut(signal, func);
+///         let sig_out = inspected.next();
 ///         assert_eq!(sig_out, [0.1]);
 ///     }
 ///
 ///     assert_eq!(out, [0.1])
 /// }
 /// ```
-pub fn tap_mut<S, Func, F>(signal: S, func: Func) -> TapMut<S, Func, F>
+pub fn inspect_mut<S, Func, F>(signal: S, func: Func) -> InspectMut<S, Func, F>
     where S: Signal<Frame=F>,
           Func: FnMut(&F) -> (),
           F: Frame,
 {
-    TapMut {
+    InspectMut {
         signal: signal,
         func: func,
         frame: core::marker::PhantomData,
@@ -1200,7 +1201,7 @@ impl<G, F> Signal for GenMut<G, F>
     }
 }
 
-impl<S, Func, F> Signal for Tap<S, Func, F>
+impl<S, Func, F> Signal for Inspect<S, Func, F>
     where S: Signal<Frame=F>,
           Func: Fn(&F) -> (),
           F: Frame
@@ -1214,7 +1215,7 @@ impl<S, Func, F> Signal for Tap<S, Func, F>
     }
 }
 
-impl<S, Func, F> Signal for TapMut<S, Func, F>
+impl<S, Func, F> Signal for InspectMut<S, Func, F>
     where S: Signal<Frame=F>,
           Func: FnMut(&F) -> (),
           F: Frame
