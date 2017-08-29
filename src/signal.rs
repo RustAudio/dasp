@@ -482,7 +482,9 @@ pub trait Signal {
     ///     assert_eq!(signal.next(), [4]);
     /// }
     /// ```
-    fn by_ref(&mut self) -> &mut Self {
+    fn by_ref(&mut self) -> &mut Self
+        where Self: Sized
+    {
         self
     }
 }
@@ -518,6 +520,23 @@ pub struct Gen<G, F> {
 #[derive(Clone)]
 pub struct GenMut<G, F> {
     gen_mut: G,
+    frame: core::marker::PhantomData<F>,
+}
+
+/// A signal that calls its enclosing function and returns the original value.
+#[derive(Clone)]
+pub struct Tap<S, Func, F> {
+    signal: S,
+    func: Func,
+    frame: core::marker::PhantomData<F>,
+}
+
+/// A signal that calls its enclosing function and returns the original value which may 
+/// mutate some state.
+#[derive(Clone)]
+pub struct TapMut<S, Func, F> {
+    signal: S,
+    func: Func,
     frame: core::marker::PhantomData<F>,
 }
 
@@ -821,6 +840,84 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
     }
 }
 
+/// Create a new `Signal` that calls the enclosing function on each iteration.
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let mut f = [0.0];
+///     let mut signal = signal::gen_mut(move || {
+///         f[0] += 0.1;
+///         f
+///     });
+///     let func = |x: &[f64; 1]| {
+///         assert_eq!(*x, [0.1]);
+///     };
+///     let mut tapped = signal::tap(signal, func);
+///     let out = tapped.next();
+///     assert_eq!(out, [0.1]);
+/// }
+/// ```
+pub fn tap<S, Func, F>(signal: S, func: Func) -> Tap<S, Func, F>
+    where S: Signal<Frame=F>,
+          Func: Fn(&F) -> (),
+          F: Frame,
+{
+    Tap {
+        signal: signal,
+        func: func,
+        frame: core::marker::PhantomData,
+    }
+}
+
+/// Create a new `Signal` that calls the enclosing function on each iteration. 
+/// Function may mutate its environment.
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let mut f = [0.0];
+///     let mut signal = signal::gen_mut(move || {
+///         f[0] += 0.1;
+///         f
+///     });
+///
+///     let mut out = [0.0];
+///     // Need to enclose this segment to ensure that the borrow of out is limited
+///     {
+///         let func = |x: &[f64; 1]| {
+///             let borrowed_out = &mut out;
+///             *borrowed_out = *x;
+///         };
+///         let mut tapped = signal::tap_mut(signal, func);
+///         let sig_out = tapped.next();
+///         assert_eq!(sig_out, [0.1]);
+///     }
+///
+///     assert_eq!(out, [0.1])
+/// }
+/// ```
+pub fn tap_mut<S, Func, F>(signal: S, func: Func) -> TapMut<S, Func, F>
+    where S: Signal<Frame=F>,
+          Func: FnMut(&F) -> (),
+          F: Frame,
+{
+    TapMut {
+        signal: signal,
+        func: func,
+        frame: core::marker::PhantomData,
+    }
+}
 
 /// Create a new `Signal` from the given `Frame`-yielding `Iterator`.
 ///
@@ -1042,6 +1139,16 @@ pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
 
 //// Trait Implementations for Signal Types.
 
+impl<F> Signal for Box<Signal<Frame=F>> 
+    where F: Frame
+{
+    type Frame = F;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        use core::ops::DerefMut;
+        self.deref_mut().next()
+    }
+}
 
 impl<I> Signal for FromIterator<I>
     where I: Iterator,
@@ -1105,6 +1212,33 @@ impl<G, F> Signal for GenMut<G, F>
     }
 }
 
+impl<S, Func, F> Signal for Tap<S, Func, F>
+    where S: Signal<Frame=F>,
+          Func: Fn(&F) -> (),
+          F: Frame
+{
+    type Frame = F;
+
+    fn next(&mut self) -> Self::Frame {
+        let out = self.signal.next();
+        (self.func)(&out);
+        out
+    }
+}
+
+impl<S, Func, F> Signal for TapMut<S, Func, F>
+    where S: Signal<Frame=F>,
+          Func: FnMut(&F) -> (),
+          F: Frame
+{
+    type Frame = F;
+
+    fn next(&mut self) -> Self::Frame {
+        let out = self.signal.next();
+        (self.func)(&out);
+        out
+    }
+}
 
 impl<S> Signal for Hz<S>
     where S: Signal<Frame=[f64; 1]>,
@@ -1654,7 +1788,7 @@ impl<S> Signal for ClipAmp<S>
 impl<S> Bus<S>
     where S: Signal,
 {
-    fn new(signal: S, frames_read: BTreeMap<usize, usize>) -> Self {
+    pub fn new(signal: S, frames_read: BTreeMap<usize, usize>) -> Self {
         Bus {
             node: Rc::new(core::cell::RefCell::new(SharedNode {
                 signal: signal,
