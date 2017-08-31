@@ -530,15 +530,6 @@ pub struct Inspect<S, Func, F> {
     frame: core::marker::PhantomData<F>,
 }
 
-/// A signal that calls its enclosing function and returns the original value. The signal may
-/// mutate state.
-#[derive(Clone)]
-pub struct InspectMut<S, Func, F> {
-    signal: S,
-    func: Func,
-    frame: core::marker::PhantomData<F>,
-}
-
 /// A type that wraps an Iterator and provides a `Signal` implementation for it.
 #[derive(Clone)]
 pub struct FromIterator<I> {
@@ -839,6 +830,7 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
     }
 }
 
+
 /// Create a new `Signal` that calls the enclosing function on each iteration.
 ///
 /// # Example
@@ -864,7 +856,7 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 /// ```
 pub fn inspect<S, Func, F>(signal: S, func: Func) -> Inspect<S, Func, F>
     where S: Signal<Frame=F>,
-          Func: Fn(&F) -> (),
+          Func: FnMut(&F) -> (),
           F: Frame,
 {
     Inspect {
@@ -874,49 +866,6 @@ pub fn inspect<S, Func, F>(signal: S, func: Func) -> Inspect<S, Func, F>
     }
 }
 
-/// Create a new `Signal` that calls the enclosing function on each iteration. 
-/// Function may mutate its environment.
-///
-/// # Example
-///
-/// ```rust
-/// extern crate sample;
-///
-/// use sample::{signal, Signal};
-///
-/// fn main() {
-///     let mut f = [0.0];
-///     let mut signal = signal::gen_mut(move || {
-///         f[0] += 0.1;
-///         f
-///     });
-///
-///     let mut out = [0.0];
-///     // Need to enclose this segment to ensure that the borrow of out is limited
-///     {
-///         let func = |x: &[f64; 1]| {
-///             let borrowed_out = &mut out;
-///             *borrowed_out = *x;
-///         };
-///         let mut inspected = signal::inspect_mut(signal, func);
-///         let sig_out = inspected.next();
-///         assert_eq!(sig_out, [0.1]);
-///     }
-///
-///     assert_eq!(out, [0.1])
-/// }
-/// ```
-pub fn inspect_mut<S, Func, F>(signal: S, func: Func) -> InspectMut<S, Func, F>
-    where S: Signal<Frame=F>,
-          Func: FnMut(&F) -> (),
-          F: Frame,
-{
-    InspectMut {
-        signal: signal,
-        func: func,
-        frame: core::marker::PhantomData,
-    }
-}
 
 /// Create a new `Signal` from the given `Frame`-yielding `Iterator`.
 ///
@@ -1201,6 +1150,7 @@ impl<G, F> Signal for GenMut<G, F>
     }
 }
 
+
 impl<S, Func, F> Signal for Inspect<S, Func, F>
     where S: Signal<Frame=F>,
           Func: Fn(&F) -> (),
@@ -1215,19 +1165,6 @@ impl<S, Func, F> Signal for Inspect<S, Func, F>
     }
 }
 
-impl<S, Func, F> Signal for InspectMut<S, Func, F>
-    where S: Signal<Frame=F>,
-          Func: FnMut(&F) -> (),
-          F: Frame
-{
-    type Frame = F;
-
-    fn next(&mut self) -> Self::Frame {
-        let out = self.signal.next();
-        (self.func)(&out);
-        out
-    }
-}
 
 impl<S> Signal for Hz<S>
     where S: Signal<Frame=[f64; 1]>,
