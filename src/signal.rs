@@ -855,7 +855,7 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 /// ```
 pub fn inspect<S, Func>(signal: S, func: Func) -> Inspect<S, Func>
     where S: Signal,
-          Func: FnMut(&<S as Signal>::Frame) -> (),
+          Func: FnMut(&S::Frame) -> (),
 {
     Inspect {
         signal: signal,
