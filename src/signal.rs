@@ -1044,6 +1044,16 @@ pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
 
 //// Trait Implementations for Signal Types.
 
+impl<F> Signal for Box<Signal<Frame=F>> 
+    where F: Frame
+{
+    type Frame = F;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        use core::ops::DerefMut;
+        self.deref_mut().next()
+    }
+}
 
 impl<I> Signal for FromIterator<I>
     where I: Iterator,
