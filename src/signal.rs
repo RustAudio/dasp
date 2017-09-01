@@ -523,19 +523,19 @@ pub struct GenMut<G, F> {
 
 /// A signal that maps from one signal to another
 #[derive(Clone)]
-pub struct Map<M, S, Fout> {
+pub struct Map<M, S, F> {
     map: M,
     signal: S,
-    frames: core::marker::PhantomData<Fout>,
+    frames: core::marker::PhantomData<F>,
 }
 
 /// A signal that iterates two signals in parallel and combines them with a function
 #[derive(Clone)]
-pub struct ZipMap<M, S, O, Fout> {
+pub struct ZipMap<M, S, O, F> {
     map: M,
     this: S,
     other: O,
-    frame: core::marker::PhantomData<Fout>
+    frame: core::marker::PhantomData<F>
 }
 
 /// A type that wraps an Iterator and provides a `Signal` implementation for it.
@@ -856,10 +856,10 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 ///     assert_eq!(mapper.next(), [0.5, 0.25]);
 /// }
 /// ```
-pub fn map<M, S, Fout>(signal: S, map: M) -> Map<M, S, Fout>
-    where M: FnMut(<S as Signal>::Frame) -> Fout,
+pub fn map<M, S, F>(signal: S, map: M) -> Map<M, S, F>
+    where M: FnMut(S::Frame) -> F,
           S: Signal,
-          Fout: Frame,
+          F: Frame,
 {
     Map {
         map: map,
@@ -881,17 +881,17 @@ pub fn map<M, S, Fout>(signal: S, map: M) -> Map<M, S, Fout>
 /// fn main() {
 ///     let frames = signal::gen(|| [0.5]);
 ///     let more_frames = signal::gen(|| [0.25]);
-///     let mut mapper = signal::zip_map(frames, more_frames, |(f, o)| [f[0], o[0]]);
+///     let mut mapper = signal::zip_map(frames, more_frames, |f, o| [f[0], o[0]]);
 ///     assert_eq!(mapper.next(), [0.5, 0.25]);
 ///     assert_eq!(mapper.next(), [0.5, 0.25]);
 ///     assert_eq!(mapper.next(), [0.5, 0.25]);
 /// }
 /// ```
-pub fn zip_map<M, S, O, Fout>(this: S, other: O, map: M) -> ZipMap<M, S, O, Fout>
-    where M: FnMut((<S as Signal>::Frame, <O as Signal>::Frame)) -> Fout,
+pub fn zip_map<M, S, O, F>(this: S, other: O, map: M) -> ZipMap<M, S, O, F>
+    where M: FnMut(S::Frame, O::Frame) -> F,
           S: Signal,
           O: Signal,
-          Fout: Frame,
+          F: Frame,
 {
     ZipMap {
         map: map,
@@ -1186,12 +1186,12 @@ impl<G, F> Signal for GenMut<G, F>
 }
 
 
-impl<M, S, Fout> Signal for Map<M, S, Fout>
-    where M: FnMut(<S as Signal>::Frame) -> Fout,
+impl<M, S, F> Signal for Map<M, S, F>
+    where M: FnMut(S::Frame) -> F,
           S: Signal,
-          Fout: Frame,
+          F: Frame,
 {
-    type Frame = Fout;
+    type Frame = F;
     #[inline]
     fn next(&mut self) -> Self::Frame {
         (self.map)(self.signal.next())
@@ -1199,16 +1199,16 @@ impl<M, S, Fout> Signal for Map<M, S, Fout>
 }
 
 
-impl<M, S, O, Fout> Signal for ZipMap<M, S, O, Fout>
-    where M: FnMut((<S as Signal>::Frame, <O as Signal>::Frame)) -> Fout,
+impl<M, S, O, F> Signal for ZipMap<M, S, O, F>
+    where M: FnMut(S::Frame, O::Frame) -> F,
           S: Signal,
           O: Signal,
-          Fout: Frame,
+          F: Frame,
 {
-    type Frame = Fout;
+    type Frame = F;
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        (self.map)((self.this.next(), self.other.next()))
+        (self.map)(self.this.next(), self.other.next())
     }
 }
 
