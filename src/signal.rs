@@ -20,7 +20,7 @@
 //! Working with **Signal**s allows for easy, readable creation of rich and complex DSP graphs with
 //! a simple and familiar API.
 
-use {BTreeMap, Duplex, Frame, Sample, Rc, VecDeque};
+use {BTreeMap, Duplex, Frame, Sample, Rc, VecDeque, Box};
 use interpolate::{Converter, Interpolator};
 use core;
 
