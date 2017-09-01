@@ -521,6 +521,23 @@ pub struct GenMut<G, F> {
     frame: core::marker::PhantomData<F>,
 }
 
+/// A signal that maps from one signal to another
+#[derive(Clone)]
+pub struct Map<M, S, Fout> {
+    map: M,
+    signal: S,
+    frames: core::marker::PhantomData<Fout>,
+}
+
+/// A signal that iterates two signals in parallel and combines them with a function
+#[derive(Clone)]
+pub struct ZipMap<M, S, O, Fout> {
+    map: M,
+    this: S,
+    other: O,
+    frame: core::marker::PhantomData<Fout>
+}
+
 /// A type that wraps an Iterator and provides a `Signal` implementation for it.
 #[derive(Clone)]
 pub struct FromIterator<I> {
@@ -822,6 +839,69 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 }
 
 
+/// A signal that maps one set of frames to another
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let frames = signal::gen(|| [0.5]);
+///     let mut mapper = signal::map(frames, |f| [f[0], 0.25]);
+///     assert_eq!(mapper.next(), [0.5, 0.25]);
+///     assert_eq!(mapper.next(), [0.5, 0.25]);
+///     assert_eq!(mapper.next(), [0.5, 0.25]);
+/// }
+/// ```
+pub fn map<M, S, Fout>(signal: S, map: M) -> Map<M, S, Fout>
+    where M: FnMut(<S as Signal>::Frame) -> Fout,
+          S: Signal,
+          Fout: Frame,
+{
+    Map {
+        map: map,
+        signal: signal,
+        frames: core::marker::PhantomData,
+    }
+}
+
+
+/// A signal that maps one set of frames to another
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let frames = signal::gen(|| [0.5]);
+///     let more_frames = signal::gen(|| [0.25]);
+///     let mut mapper = signal::zip_map(frames, more_frames, |(f, o)| [f[0], o[0]]);
+///     assert_eq!(mapper.next(), [0.5, 0.25]);
+///     assert_eq!(mapper.next(), [0.5, 0.25]);
+///     assert_eq!(mapper.next(), [0.5, 0.25]);
+/// }
+/// ```
+pub fn zip_map<M, S, O, Fout>(this: S, other: O, map: M) -> ZipMap<M, S, O, Fout>
+    where M: FnMut((<S as Signal>::Frame, <O as Signal>::Frame)) -> Fout,
+          S: Signal,
+          O: Signal,
+          Fout: Frame,
+{
+    ZipMap {
+        map: map,
+        this: this,
+        other: other,
+        frame: core::marker::PhantomData,
+    }
+}
+
+
 /// Create a new `Signal` from the given `Frame`-yielding `Iterator`.
 ///
 /// When the `Iterator` is exhausted, the new `Signal` will yield `F::equilibrium`.
@@ -1102,6 +1182,33 @@ impl<G, F> Signal for GenMut<G, F>
     #[inline]
     fn next(&mut self) -> Self::Frame {
         (self.gen_mut)()
+    }
+}
+
+
+impl<M, S, Fout> Signal for Map<M, S, Fout>
+    where M: FnMut(<S as Signal>::Frame) -> Fout,
+          S: Signal,
+          Fout: Frame,
+{
+    type Frame = Fout;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        (self.map)(self.signal.next())
+    }
+}
+
+
+impl<M, S, O, Fout> Signal for ZipMap<M, S, O, Fout>
+    where M: FnMut((<S as Signal>::Frame, <O as Signal>::Frame)) -> Fout,
+          S: Signal,
+          O: Signal,
+          Fout: Frame,
+{
+    type Frame = Fout;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        (self.map)((self.this.next(), self.other.next()))
     }
 }
 
