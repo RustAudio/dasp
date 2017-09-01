@@ -524,10 +524,9 @@ pub struct GenMut<G, F> {
 /// A signal that calls its enclosing function and returns the original value. The signal may
 /// mutate state.
 #[derive(Clone)]
-pub struct Inspect<S, Func, F> {
+pub struct Inspect<S, Func> {
     signal: S,
     func: Func,
-    frame: core::marker::PhantomData<F>,
 }
 
 /// A type that wraps an Iterator and provides a `Signal` implementation for it.
@@ -854,15 +853,13 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 ///     assert_eq!(out, [0.1]);
 /// }
 /// ```
-pub fn inspect<S, Func, F>(signal: S, func: Func) -> Inspect<S, Func, F>
-    where S: Signal<Frame=F>,
-          Func: FnMut(&F) -> (),
-          F: Frame,
+pub fn inspect<S, Func>(signal: S, func: Func) -> Inspect<S, Func>
+    where S: Signal,
+          Func: FnMut(&<S as Signal>::Frame) -> (),
 {
     Inspect {
         signal: signal,
         func: func,
-        frame: core::marker::PhantomData,
     }
 }
 
@@ -1151,12 +1148,11 @@ impl<G, F> Signal for GenMut<G, F>
 }
 
 
-impl<S, Func, F> Signal for Inspect<S, Func, F>
-    where S: Signal<Frame=F>,
-          Func: Fn(&F) -> (),
-          F: Frame
+impl<S, Func> Signal for Inspect<S, Func>
+    where S: Signal,
+          Func: Fn(&<S as Signal>::Frame) -> (),
 {
-    type Frame = F;
+    type Frame = <S as Signal>::Frame;
 
     fn next(&mut self) -> Self::Frame {
         let out = self.signal.next();
