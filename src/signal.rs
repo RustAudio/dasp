@@ -523,6 +523,14 @@ pub struct GenMut<G, F> {
     frame: core::marker::PhantomData<F>,
 }
 
+/// A signal that calls its enclosing function and returns the original value. The signal may
+/// mutate state.
+#[derive(Clone)]
+pub struct Inspect<S, Func> {
+    signal: S,
+    func: Func,
+}
+
 /// A type that wraps an Iterator and provides a `Signal` implementation for it.
 #[derive(Clone)]
 pub struct FromIterator<I> {
@@ -824,6 +832,40 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 }
 
 
+/// Create a new `Signal` that calls the enclosing function on each iteration.
+///
+/// # Example
+///
+/// ```rust
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let mut f = [0.0];
+///     let mut signal = signal::gen_mut(move || {
+///         f[0] += 0.1;
+///         f
+///     });
+///     let func = |x: &[f64; 1]| {
+///         assert_eq!(*x, [0.1]);
+///     };
+///     let mut inspected = signal::inspect(signal, func);
+///     let out = inspected.next();
+///     assert_eq!(out, [0.1]);
+/// }
+/// ```
+pub fn inspect<S, Func>(signal: S, func: Func) -> Inspect<S, Func>
+    where S: Signal,
+          Func: FnMut(&S::Frame) -> (),
+{
+    Inspect {
+        signal: signal,
+        func: func,
+    }
+}
+
+
 /// Create a new `Signal` from the given `Frame`-yielding `Iterator`.
 ///
 /// When the `Iterator` is exhausted, the new `Signal` will yield `F::equilibrium`.
@@ -1114,6 +1156,20 @@ impl<G, F> Signal for GenMut<G, F>
     #[inline]
     fn next(&mut self) -> Self::Frame {
         (self.gen_mut)()
+    }
+}
+
+
+impl<S, Func> Signal for Inspect<S, Func>
+    where S: Signal,
+          Func: Fn(&<S as Signal>::Frame) -> (),
+{
+    type Frame = <S as Signal>::Frame;
+
+    fn next(&mut self) -> Self::Frame {
+        let out = self.signal.next();
+        (self.func)(&out);
+        out
     }
 }
 
