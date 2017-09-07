@@ -20,7 +20,7 @@
 //! Working with **Signal**s allows for easy, readable creation of rich and complex DSP graphs with
 //! a simple and familiar API.
 
-use {BTreeMap, Duplex, Frame, Sample, Rc, VecDeque};
+use {BTreeMap, Duplex, Frame, Sample, Rc, VecDeque, Box};
 use interpolate::{Converter, Interpolator};
 use core;
 
@@ -482,7 +482,9 @@ pub trait Signal {
     ///     assert_eq!(signal.next(), [4]);
     /// }
     /// ```
-    fn by_ref(&mut self) -> &mut Self {
+    fn by_ref(&mut self) -> &mut Self
+        where Self: Sized
+    {
         self
     }
 }
@@ -1042,6 +1044,16 @@ pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
 
 //// Trait Implementations for Signal Types.
 
+impl<F> Signal for Box<Signal<Frame=F>> 
+    where F: Frame
+{
+    type Frame = F;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        use core::ops::DerefMut;
+        self.deref_mut().next()
+    }
+}
 
 impl<I> Signal for FromIterator<I>
     where I: Iterator,
