@@ -394,6 +394,39 @@ pub trait Signal {
         }
     }
 
+    /// Create a new `Signal` that calls the enclosing function on each iteration.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{signal, Signal};
+    ///
+    /// fn main() {
+    ///     let mut f = [0.0];
+    ///     let mut signal = signal::gen_mut(move || {
+    ///         f[0] += 0.1;
+    ///         f
+    ///     });
+    ///     let func = |x: &[f64; 1]| {
+    ///         assert_eq!(*x, [0.1]);
+    ///     };
+    ///     let mut inspected = signal.inspect(func);
+    ///     let out = inspected.next();
+    ///     assert_eq!(out, [0.1]);
+    /// }
+    /// ```
+    fn inspect<F>(self, inspect: F) -> Inspect<Self, F>
+        where Self: Sized,
+              F: FnMut(&Self::Frame),
+    {
+        Inspect {
+            signal: self,
+            inspect: inspect,
+        }
+    }
+
     /// Moves the `Signal` into a `Bus` from which its output may be divided into multiple other
     /// `Signal`s in the form of `Output`s.
     ///
@@ -687,6 +720,14 @@ pub struct MulHz<S, M, I>
 pub struct Delay<S> {
     signal: S,
     n_frames: usize,
+}
+
+/// A signal that calls its enclosing function and returns the original value. The signal may
+/// mutate state.
+#[derive(Clone)]
+pub struct Inspect<S, F> {
+    signal: S,
+    inspect: F,
 }
 
 /// Converts a `Signal` to a type that yields the individual interleaved samples.
@@ -1691,6 +1732,20 @@ impl<S> Signal for Delay<S>
         } else {
             self.signal.next()
         }
+    }
+}
+
+
+impl<S, F> Signal for Inspect<S, F>
+    where S: Signal,
+          F: FnMut(&S::Frame),
+{
+    type Frame = S::Frame;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        let out = self.signal.next();
+        (self.inspect)(&out);
+        out
     }
 }
 
