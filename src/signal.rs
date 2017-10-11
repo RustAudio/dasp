@@ -585,7 +585,7 @@ pub trait Signal {
 
 
 impl<'a, S> Signal for &'a mut S
-    where S: Signal,
+    where S: Signal + ?Sized,
 {
     type Frame = S::Frame;
     fn next(&mut self) -> Self::Frame {
@@ -1164,14 +1164,13 @@ pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
 
 //// Trait Implementations for Signal Types.
 
-impl<F> Signal for Box<Signal<Frame=F>> 
-    where F: Frame
+impl<S> Signal for Box<S>
+    where S: Signal + ?Sized,
 {
-    type Frame = F;
+    type Frame = S::Frame;
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        use core::ops::DerefMut;
-        self.deref_mut().next()
+        (**self).next()
     }
 }
 
