@@ -1,3 +1,12 @@
+//! Items related to the implementation of ring buffers.
+//!
+//! The primary items of interest in this module include:
+//!
+//! - The [Slice](./trait.Slice.html) and [SliceMut](./trait.SliceMut.html) traits - implemented
+//! for types that may be used as the underlying buffer in `Fixed` and `Bounded` ring buffers.
+//! - The [Fixed](./struct.Fixed.html) ring buffer type.
+//! - The [Bounded](./struct.Bounded.html) ring buffer type.
+
 use Box;
 use core::mem;
 use core::iter::{Chain, Cycle, FromIterator, Skip, Take};

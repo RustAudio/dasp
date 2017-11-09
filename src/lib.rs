@@ -7,6 +7,7 @@
 //! - See the [**conv** module](./conv/index.html) for fast conversions between slices, frames and samples.
 //! - See the [**types** module](./types/index.html) for provided custom sample types.
 //! - See the [**interpolate** module](./interpolate/index.html) for sample rate conversion and scaling.
+//! - See the [**ring_buffer** module](./ring_buffer/index.html) for fast FIFO queue options.
 
 #![recursion_limit="512"]
 #![cfg_attr(not(feature = "std"), no_std)]

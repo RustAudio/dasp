@@ -130,6 +130,11 @@ interpolation methods, with Floor, Linear, and Sinc interpolation provided in
 the library. (NB: Sinc interpolation currently requires heap allocation, as it
 uses VecDeque.)
 
+The **ring_buffer** module provides generic **Fixed** and **Bounded** ring
+buffer types, both of which may be used with owned, borrowed, stack and
+allocated buffers.
+
+
 Using in a `no_std` environment
 -------------------------------
 
@@ -139,6 +144,7 @@ Currently, only nightly is supported, because it explicitly depends on the
 `alloc` and `collections` for datastructures and `core_intrinsics` for some of
 the math. If this restriction is onerous for you, it can be lifted with minor
 loss of functionality (the `Signal::bus` method), so open an issue!
+
 
 Contributions
 -------------
@@ -157,7 +163,6 @@ Licensed under either of
  * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
-
 
 **Contributions**
 
