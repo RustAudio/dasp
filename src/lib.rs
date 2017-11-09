@@ -28,6 +28,12 @@ type BTreeMap<K, V> = collections::btree_map::BTreeMap<K, V>;
 type BTreeMap<K, V> = std::collections::BTreeMap<K, V>;
 
 #[cfg(not(feature = "std"))]
+type Vec<T> = collections::vec::Vec<T>;
+#[cfg(feature = "std")]
+#[allow(dead_code)]
+type Vec<T> = std::vec::Vec<T>;
+
+#[cfg(not(feature = "std"))]
 type VecDeque<T> = collections::vec_deque::VecDeque<T>;
 #[cfg(feature = "std")]
 type VecDeque<T> = std::collections::vec_deque::VecDeque<T>;
@@ -59,14 +65,13 @@ pub use types::{I24, U24, I48, U48};
 pub mod slice;
 pub mod conv;
 pub mod frame;
+pub mod ring_buffer;
 pub mod signal;
 pub mod types;
 pub mod window;
 pub mod interpolate;
 
-
 mod ops {
-
     pub mod f32 {
         #[allow(unused_imports)]
         use core;
@@ -131,9 +136,7 @@ mod ops {
         pub fn sqrt(x: f64) -> f64 {
             x.sqrt()
         }
-
     }
-
 }
 
 
