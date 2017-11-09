@@ -591,6 +591,28 @@ where
         self.len
     }
 
+    /// Whether or not the ring buffer's length is equal to the maximum length.
+    ///
+    /// Equivalent to `self.len() == self.max_len()`.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    ///
+    /// fn main() {
+    ///     let mut rb = ring_buffer::Bounded::<[i32; 2]>::array();
+    ///     assert!(!rb.is_full());
+    ///     rb.push(0);
+    ///     rb.push(1);
+    ///     assert!(rb.is_full());
+    /// }
+    /// ```
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        self.len == self.max_len()
+    }
+
     /// The start and end slices that make up the ring buffer.
     ///
     /// These two slices chained together represent all elements within the buffer in order.
