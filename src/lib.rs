@@ -10,7 +10,7 @@
 
 #![recursion_limit="512"]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(not(feature = "std"), feature(alloc, collections, core_intrinsics))]
+#![cfg_attr(not(feature = "std"), feature(alloc, core_intrinsics))]
 
 #[cfg(feature = "std")]
 extern crate core;
@@ -19,22 +19,18 @@ extern crate core;
 extern crate alloc;
 
 #[cfg(not(feature = "std"))]
-#[macro_use]
-extern crate collections;
-
-#[cfg(not(feature = "std"))]
-type BTreeMap<K, V> = collections::btree_map::BTreeMap<K, V>;
+type BTreeMap<K, V> = alloc::btree_map::BTreeMap<K, V>;
 #[cfg(feature = "std")]
 type BTreeMap<K, V> = std::collections::BTreeMap<K, V>;
 
 #[cfg(not(feature = "std"))]
-type Vec<T> = collections::vec::Vec<T>;
+type Vec<T> = alloc::vec::Vec<T>;
 #[cfg(feature = "std")]
 #[allow(dead_code)]
 type Vec<T> = std::vec::Vec<T>;
 
 #[cfg(not(feature = "std"))]
-type VecDeque<T> = collections::vec_deque::VecDeque<T>;
+type VecDeque<T> = alloc::vec_deque::VecDeque<T>;
 #[cfg(feature = "std")]
 type VecDeque<T> = std::collections::vec_deque::VecDeque<T>;
 

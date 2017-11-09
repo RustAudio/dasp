@@ -1,3 +1,4 @@
+use Box;
 use core::mem;
 use core::iter::{Chain, Cycle, FromIterator, Skip, Take};
 use core::ptr;
