@@ -927,6 +927,13 @@ pub struct Buffered<S, D> {
     ring_buffer: ring_buffer::Bounded<D>,
 }
 
+/// An iterator that pops elements from the inner bounded ring buffer and yields them.
+///
+/// Returns `None` once the inner ring buffer is exhausted.
+pub struct BufferedFrames<'a, D: 'a> {
+    ring_buffer: &'a mut ring_buffer::Bounded<D>,
+}
+
 
 ///// Signal Constructors
 
@@ -2075,6 +2082,52 @@ impl<S> ExactSizeIterator for Take<S>
     }
 }
 
+impl<S, D> Buffered<S, D>
+    where S: Signal,
+          D: ring_buffer::Slice<Element=S::Frame> + ring_buffer::SliceMut,
+{
+    /// Produces an iterator yielding the next batch of buffered frames.
+    ///
+    /// The returned iterator returns `None` once the inner ring buffer becomes exhausted.
+    ///
+    /// If the inner ring buffer is empty when this method is called, the ring buffer will first be
+    /// filled using `Buffered`'s inner `signal` before `BufferedFrames` is returned.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::signal::{self, Signal};
+    /// use sample::ring_buffer;
+    ///
+    /// fn main() {
+    ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
+    ///     let signal = signal::from_iter(frames.iter().cloned());
+    ///     let ring_buffer = ring_buffer::Bounded::<[[f32; 1]; 2]>::array();
+    ///     let mut buffered_signal = signal.buffered(ring_buffer);
+    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.1], [0.2]]);
+    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.3], [0.4]]);
+    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.0], [0.0]]);
+    /// }
+    /// ```
+    pub fn next_frames(&mut self) -> BufferedFrames<D> {
+        let Buffered { ref mut signal, ref mut ring_buffer } = *self;
+        if ring_buffer.len() == 0 {
+            for _ in 0..ring_buffer.max_len() {
+                ring_buffer.push(signal.next());
+            }
+        }
+        BufferedFrames {
+            ring_buffer: ring_buffer,
+        }
+    }
+
+    /// Consumes the `Buffered` signal and returns its inner signal `S` and bounded ring buffer.
+    pub fn into_parts(self) -> (S, ring_buffer::Bounded<D>) {
+        let Buffered { signal, ring_buffer } = self;
+        (signal, ring_buffer)
+    }
+}
+
 impl<S, D> Signal for Buffered<S, D>
     where S: Signal,
           D: ring_buffer::Slice<Element=S::Frame> + ring_buffer::SliceMut,
@@ -2090,5 +2143,15 @@ impl<S, D> Signal for Buffered<S, D>
                 },
             }
         }
+    }
+}
+
+impl<'a, D> Iterator for BufferedFrames<'a, D>
+    where D: ring_buffer::SliceMut,
+          D::Element: Copy,
+{
+    type Item = D::Element;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.ring_buffer.pop()
     }
 }
