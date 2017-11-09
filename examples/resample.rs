@@ -5,6 +5,7 @@ extern crate sample;
 use hound::{WavReader, WavSpec, WavWriter};
 use sample::interpolate::{Sinc, Converter};
 use sample::{signal, Sample, Signal};
+use sample::ring_buffer;
 
 fn main() {
     let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
@@ -17,7 +18,8 @@ fn main() {
 
     let sample_rate = reader.spec().sample_rate as f64;
     let new_sample_rate = 10_000.0;
-    let sinc = Sinc::zero_padded(50);
+    let ring_buffer = ring_buffer::Fixed::from([[0.0]; 100]);
+    let sinc = Sinc::new(ring_buffer);
     let conv = Converter::from_hz_to_hz(signal, sinc, sample_rate, new_sample_rate);
 
     let spec = WavSpec {

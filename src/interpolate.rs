@@ -1,7 +1,8 @@
 //! The Interpolate module allows for conversion between various sample rates.
 
-use {Duplex, Frame, Sample, Signal, VecDeque};
+use {Duplex, Frame, Sample, Signal};
 use core::f64::consts::PI;
+use ring_buffer;
 use ops::f64::{sin, cos};
 
 /// An iterator that converts the rate at which frames are yielded from some given frame
@@ -38,13 +39,14 @@ pub struct Linear<F>
     right: F,
 }
 
-/// Interpolator for sinc interpolation. Generally accepted as one of the better sample rate
-/// converters, although it uses significantly more computation.
-pub struct Sinc<F>
+/// Interpolator for sinc interpolation.
+///
+/// Generally accepted as one of the better sample rate converters, although it uses significantly
+/// more computation.
+pub struct Sinc<S>
 {
-    frames: VecDeque<F>,
+    frames: ring_buffer::Fixed<S>,
     idx: usize,
-    depth: usize,
 }
 
 /// Types that can interpolate between two values.
@@ -216,43 +218,30 @@ impl<F> Linear<F>
     }
 }
 
-impl<F> Sinc<F>
-{
-    /// Create a new Sinc interpolater whose inner queue will be padded with the given signal.
-    pub fn new<S>(depth: usize, padding: S) -> Self
-        where F: Frame,
-              S: Signal<Frame=F>,
+impl<S> Sinc<S> {
+    /// Create a new **Sinc** interpolator with the given ring buffer.
+    ///
+    /// The given ring buffer should have a length twice that of the desired sinc interpolation
+    /// `depth`.
+    ///
+    /// The initial contents of the ring_buffer will act as padding for the interpolated signal.
+    ///
+    /// **panic!**s if the given ring buffer's length is not a multiple of `2`.
+    pub fn new(frames: ring_buffer::Fixed<S>) -> Self
+        where S: ring_buffer::SliceMut,
+              S::Element: Frame,
     {
-        let mut queue = VecDeque::with_capacity(depth * 2 + 1);
-        for v in padding.take(depth) {
-            queue.push_back(v);
-        }
-
+        assert!(frames.len() % 2 == 0);
         Sinc {
-            frames: queue,
-            depth: depth,
+            frames: frames,
             idx: 0,
         }
     }
 
-    /// Create a new Sinc interpolator whose inner queue will be padded with equilibrium frames.
-    pub fn zero_padded(depth: usize) -> Self
-        where F: Frame,
+    fn depth(&self) -> usize
+        where S: ring_buffer::Slice,
     {
-        let mut queue = VecDeque::with_capacity(depth * 2 + 1);
-        for _ in 0..depth {
-            queue.push_back(F::equilibrium());
-        }
-
-        Sinc {
-            frames: queue,
-            depth: depth,
-            idx: 0,
-        }
-    }
-
-    fn max_n(&self) -> usize {
-        self.depth * 2 + 1
+        self.frames.len() / 2
     }
 }
 
@@ -295,37 +284,39 @@ impl<F> Interpolator for Linear<F>
     }
 }
 
-impl<F> Interpolator for Sinc<F>
-    where F: Frame,
-          <F as Frame>::Sample: Duplex<f64>
+impl<S> Interpolator for Sinc<S>
+    where S: ring_buffer::SliceMut,
+          S::Element: Frame,
+          <S::Element as Frame>::Sample: Duplex<f64>,
 {
-    type Frame = F;
+    type Frame = S::Element;
 
     /// Sinc interpolation
-    fn interpolate(&self, x: f64) -> F {
+    fn interpolate(&self, x: f64) -> Self::Frame {
         let phil = x;
         let phir = 1.0 - x;
         let nl = self.idx;
         let nr = self.idx + 1;
+        let depth = self.depth();
 
-        let rightmost = nl + self.depth;
-        let leftmost = nr as isize - self.depth as isize;
+        let rightmost = nl + depth;
+        let leftmost = nr as isize - depth as isize;
         let max_depth = if rightmost >= self.frames.len() {
-            self.frames.len() - self.depth
+            self.frames.len() - depth
         } else if leftmost < 0 {
-            (self.depth as isize + leftmost) as usize
+            (depth as isize + leftmost) as usize
         } else {
-            self.depth
+            depth
         };
 
-        (0..max_depth).fold(F::equilibrium(), |mut v, n| {
+        (0..max_depth).fold(Self::Frame::equilibrium(), |mut v, n| {
             v = {
                 let a = PI * (phil + n as f64);
                 let first = sin(a) / a;
                 let second = 0.5 + 0.5 * cos(a / (phil + max_depth as f64));
                 v.zip_map(self.frames[nr - n], |vs, r_lag| {
                     vs.add_amp((first * second * r_lag.to_sample::<f64>())
-                              .to_sample::<<F as Frame>::Sample>()
+                              .to_sample::<<Self::Frame as Frame>::Sample>()
                               .to_signed_sample())
                 })
             };
@@ -335,20 +326,15 @@ impl<F> Interpolator for Sinc<F>
             let second = 0.5 + 0.5 * cos(a / (phir + max_depth as f64));
             v.zip_map(self.frames[nl + n], |vs, r_lag| {
                 vs.add_amp((first * second * r_lag.to_sample::<f64>())
-                           .to_sample::<<F as Frame>::Sample>()
+                           .to_sample::<<Self::Frame as Frame>::Sample>()
                            .to_signed_sample())
             })
         })
     }
 
-    fn next_source_frame(&mut self, source_frame: F) {
-        if self.frames.len() == self.max_n() {
-            // make room if necessary
-            self.frames.pop_front();
-        }
-
-        self.frames.push_back(source_frame);
-        if self.idx < self.depth {
+    fn next_source_frame(&mut self, source_frame: Self::Frame) {
+        let _old_frame = self.frames.push(source_frame);
+        if self.idx < self.depth() {
             self.idx += 1;
         }
     }
