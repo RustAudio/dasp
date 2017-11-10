@@ -16,7 +16,9 @@ fn run() -> Result<(), pa::Error> {
     // Create a signal chain to play back 1 second of each oscillator at A4.
     let hz = signal::rate(SAMPLE_RATE).const_hz(440.0);
     let one_sec = SAMPLE_RATE as usize;
-    let mut waves = hz.clone().sine().take(one_sec)
+    let mut waves = hz.clone()
+        .sine()
+        .take(one_sec)
         .chain(hz.clone().saw().take(one_sec))
         .chain(hz.clone().square().take(one_sec))
         .chain(hz.clone().noise_simplex().take(one_sec))
@@ -25,9 +27,11 @@ fn run() -> Result<(), pa::Error> {
 
     // Initialise PortAudio.
     let pa = try!(pa::PortAudio::new());
-    let settings = try!(pa.default_output_stream_settings::<f32>(NUM_CHANNELS,
-                                                                 SAMPLE_RATE,
-                                                                 FRAMES_PER_BUFFER));
+    let settings = try!(pa.default_output_stream_settings::<f32>(
+        NUM_CHANNELS,
+        SAMPLE_RATE,
+        FRAMES_PER_BUFFER,
+    ));
 
     // Define the callback which provides PortAudio the audio.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {

@@ -28,9 +28,11 @@ fn run() -> Result<(), pa::Error> {
 
     // Initialise PortAudio.
     let pa = try!(pa::PortAudio::new());
-    let settings = try!(pa.default_output_stream_settings::<i16>(wav::NUM_CHANNELS as i32,
-                                                                 SAMPLE_RATE,
-                                                                 FRAMES_PER_BUFFER));
+    let settings = try!(pa.default_output_stream_settings::<i16>(
+        wav::NUM_CHANNELS as i32,
+        SAMPLE_RATE,
+        FRAMES_PER_BUFFER,
+    ));
 
     // Define the callback which provides PortAudio the audio.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
@@ -59,7 +61,9 @@ fn run() -> Result<(), pa::Error> {
 
 // Given the file name, produces a Vec of `Frame`s which may be played back.
 fn frames(file_name: &'static str) -> Vec<wav::Frame> {
-    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
+    let assets = find_folder::Search::ParentsThenKids(5, 5)
+        .for_folder("assets")
+        .unwrap();
     let sample_file = assets.join(file_name);
     let mut reader = hound::WavReader::open(&sample_file).unwrap();
     let spec = reader.spec();
@@ -68,7 +72,8 @@ fn frames(file_name: &'static str) -> Vec<wav::Frame> {
     let samples = reader.samples().map(|s| s.unwrap());
     let mut signal = signal::from_interleaved_samples_iter::<_, wav::Frame>(samples);
     let interp = Linear::from_source(&mut signal);
-    signal.from_hz_to_hz(interp, spec.sample_rate as f64, SAMPLE_RATE as f64)
+    signal
+        .from_hz_to_hz(interp, spec.sample_rate as f64, SAMPLE_RATE as f64)
         .take(new_duration)
         .collect()
 }

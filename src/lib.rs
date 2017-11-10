@@ -45,16 +45,12 @@ type Rc<T> = alloc::rc::Rc<T>;
 #[cfg(feature = "std")]
 type Rc<T> = std::rc::Rc<T>;
 
-pub use conv::{
-    FromSample, ToSample, Duplex,
-    FromSampleSlice, ToSampleSlice, DuplexSampleSlice,
-    FromSampleSliceMut, ToSampleSliceMut, DuplexSampleSliceMut,
-    FromBoxedSampleSlice, ToBoxedSampleSlice, DuplexBoxedSampleSlice,
-    FromFrameSlice, ToFrameSlice, DuplexFrameSlice,
-    FromFrameSliceMut, ToFrameSliceMut, DuplexFrameSliceMut,
-    FromBoxedFrameSlice, ToBoxedFrameSlice, DuplexBoxedFrameSlice,
-    DuplexSlice, DuplexSliceMut, DuplexBoxedSlice,
-};
+pub use conv::{FromSample, ToSample, Duplex, FromSampleSlice, ToSampleSlice, DuplexSampleSlice,
+               FromSampleSliceMut, ToSampleSliceMut, DuplexSampleSliceMut, FromBoxedSampleSlice,
+               ToBoxedSampleSlice, DuplexBoxedSampleSlice, FromFrameSlice, ToFrameSlice,
+               DuplexFrameSlice, FromFrameSliceMut, ToFrameSliceMut, DuplexFrameSliceMut,
+               FromBoxedFrameSlice, ToBoxedFrameSlice, DuplexBoxedFrameSlice, DuplexSlice,
+               DuplexSliceMut, DuplexBoxedSlice};
 pub use frame::Frame;
 pub use signal::Signal;
 pub use types::{I24, U24, I48, U48};
@@ -159,7 +155,6 @@ mod ops {
 /// }
 /// ```
 pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
-
     /// When summing two samples of a signal together, it is necessary for both samples to be
     /// represented in some signed format. This associated `Addition` type represents the format to
     /// which `Self` should be converted for optimal `Addition` performance.
@@ -255,7 +250,8 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// ```
     #[inline]
     fn to_sample<S>(self) -> S
-        where Self: ToSample<S>,
+    where
+        Self: ToSample<S>,
     {
         self.to_sample_()
     }
@@ -279,7 +275,8 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// ```
     #[inline]
     fn from_sample<S>(s: S) -> Self
-        where Self: FromSample<S>,
+    where
+        Self: FromSample<S>,
     {
         FromSample::from_sample_(s)
     }
@@ -377,7 +374,6 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
         let self_f = self.to_float_sample();
         (self_f * amp).to_sample()
     }
-
 }
 
 /// A macro used to simplify the implementation of `Sample`.
@@ -423,10 +419,12 @@ impl_sample!{
 ///
 /// **Sample**s often need to be converted to some mutual **SignedSample** type for signal
 /// addition.
-pub trait SignedSample: Sample<Signed=Self>
-    + core::ops::Add<Output=Self>
-    + core::ops::Sub<Output=Self>
-    + core::ops::Neg<Output=Self> {}
+pub trait SignedSample
+    : Sample<Signed = Self>
+    + core::ops::Add<Output = Self>
+    + core::ops::Sub<Output = Self>
+    + core::ops::Neg<Output = Self> {
+}
 macro_rules! impl_signed_sample { ($($T:ty)*) => { $( impl SignedSample for $T {} )* } }
 impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 
@@ -434,13 +432,13 @@ impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
 ///
 /// **Sample**s often need to be converted to some mutual **FloatSample** type for signal scaling
 /// and modulation.
-pub trait FloatSample: Sample<Signed=Self, Float=Self>
+pub trait FloatSample
+    : Sample<Signed = Self, Float = Self>
     + SignedSample
-    + core::ops::Mul<Output=Self>
-    + core::ops::Div<Output=Self>
+    + core::ops::Mul<Output = Self>
+    + core::ops::Div<Output = Self>
     + Duplex<f32>
-    + Duplex<f64>
-{
+    + Duplex<f64> {
     /// Represents the multiplicative identity of the floating point signal.
     fn identity() -> Self;
     /// Calculate the square root of `Self`.
@@ -449,14 +447,22 @@ pub trait FloatSample: Sample<Signed=Self, Float=Self>
 
 impl FloatSample for f32 {
     #[inline]
-    fn identity() -> Self { 1.0 }
+    fn identity() -> Self {
+        1.0
+    }
     #[inline]
-    fn sample_sqrt(self) -> Self { ops::f32::sqrt(self) }
+    fn sample_sqrt(self) -> Self {
+        ops::f32::sqrt(self)
+    }
 }
 
 impl FloatSample for f64 {
     #[inline]
-    fn identity() -> Self { 1.0 }
+    fn identity() -> Self {
+        1.0
+    }
     #[inline]
-    fn sample_sqrt(self) -> Self { ops::f64::sqrt(self) }
+    fn sample_sqrt(self) -> Self {
+        ops::f64::sqrt(self)
+    }
 }

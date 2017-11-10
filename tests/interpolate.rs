@@ -19,7 +19,7 @@ fn test_floor_converter() {
     // It may seem odd that we are emitting two values, but consider this: no matter what the next
     // value would be, Floor would always yield the same frame until we hit an interpolation_value
     // of 1.0 and had to advance the frame. We don't know what the future holds, so we should
-    // continue yielding frames. 
+    // continue yielding frames.
     assert_eq!(conv.next(), [2.0]);
     assert_eq!(conv.next(), [2.0]);
 }
@@ -48,5 +48,8 @@ fn test_scale_playback_rate() {
     let mut source = signal::from_iter(foo.iter().cloned());
     let interp = Linear::from_source(&mut source);
     let frames: Vec<_> = source.scale_hz(interp, 0.5).take(8).collect();
-    assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
+    assert_eq!(
+        &frames[..],
+        &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]
+    );
 }

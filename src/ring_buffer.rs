@@ -212,9 +212,8 @@ where
             next_index = 0;
         }
         // We know there is a fixed length so we can safely avoid bounds checking.
-        let old_item = unsafe {
-            mem::replace(self.data.slice_mut().get_unchecked_mut(self.first), item)
-        };
+        let old_item =
+            unsafe { mem::replace(self.data.slice_mut().get_unchecked_mut(self.first), item) };
         self.first = next_index;
         old_item
     }
@@ -364,7 +363,7 @@ where
     /// - `S` is the buffer data.
     #[inline]
     pub fn into_raw_parts(self) -> (usize, S) {
-        let Fixed { first, data }  = self;
+        let Fixed { first, data } = self;
         (first, data)
     }
 }
@@ -384,12 +383,12 @@ where
 
 impl<S, T> FromIterator<T> for Fixed<S>
 where
-    S: Slice<Element=T> + FromIterator<T>,
+    S: Slice<Element = T> + FromIterator<T>,
 {
     #[inline]
     fn from_iter<I>(iter: I) -> Self
     where
-        I: IntoIterator<Item=T>,
+        I: IntoIterator<Item = T>,
     {
         let data = S::from_iter(iter);
         Self::from(data)
@@ -729,9 +728,7 @@ where
             return None;
         }
         let wrapped_index = index % self.max_len();
-        unsafe {
-            Some(self.data.slice().get_unchecked(wrapped_index) as &_)
-        }
+        unsafe { Some(self.data.slice().get_unchecked(wrapped_index) as &_) }
     }
 
     /// Mutably borrows the item at the given index.
@@ -747,7 +744,8 @@ where
         }
         let wrapped_index = index % self.max_len();
         unsafe {
-            Some(self.data.slice_mut().get_unchecked_mut(wrapped_index) as &mut _)
+            Some(self.data.slice_mut().get_unchecked_mut(wrapped_index) as
+                &mut _)
         }
     }
 
@@ -787,9 +785,8 @@ where
             }
 
             // Replace the element currently at the end.
-            let old_elem = unsafe {
-                mem::replace(self.data.slice_mut().get_unchecked_mut(self.start), elem)
-            };
+            let old_elem =
+                unsafe { mem::replace(self.data.slice_mut().get_unchecked_mut(self.start), elem) };
 
             self.start = next_start;
             return Some(old_elem);
@@ -839,9 +836,7 @@ where
             next_start = 0;
         }
 
-        let old_elem = unsafe {
-            ptr::read(self.data.slice_mut().get_unchecked_mut(self.start))
-        };
+        let old_elem = unsafe { ptr::read(self.data.slice_mut().get_unchecked_mut(self.start)) };
 
         self.start = next_start;
         self.len -= 1;
@@ -892,7 +887,7 @@ where
     /// that the ring buffer is not full.
     #[inline]
     pub unsafe fn into_raw_parts(self) -> (usize, usize, S) {
-        let Bounded { start, len, data }  = self;
+        let Bounded { start, len, data } = self;
         (start, len, data)
     }
 }
@@ -913,13 +908,13 @@ where
 
 impl<S, T> FromIterator<T> for Bounded<S>
 where
-    S: Slice<Element=T> + FromIterator<T>,
+    S: Slice<Element = T> + FromIterator<T>,
     T: Copy,
 {
     #[inline]
     fn from_iter<I>(iter: I) -> Self
     where
-        I: IntoIterator<Item=T>,
+        I: IntoIterator<Item = T>,
     {
         let data = S::from_iter(iter);
         Self::from(data)
