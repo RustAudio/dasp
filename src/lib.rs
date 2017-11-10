@@ -237,8 +237,8 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     }
 
     /// Convert `self` to any type that implements `FromSample<Self>`.
-	///
-	/// (See the caveats in the `conv` module.)
+    ///
+    /// Find more details on type-specific conversion ranges and caveats in the `conv` module.
     ///
     /// # Example
     ///
@@ -261,8 +261,8 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     }
 
     /// Create a `Self` from any type that implements `ToSample<Self>`.
-	///
-	/// (See the caveats in the `conv` module.)
+    ///
+    /// Find more details on type-specific conversion ranges and caveats in the `conv` module.
     ///
     /// # Example
     ///

@@ -534,7 +534,8 @@ conversions!(u64, u64 {
     s to_f64 { super::i64::to_f64(to_i64(s)) }
 });
 
-// The following conversions assume `-1.0 <= s < 1.0` (note that +1.0 is excluded) and will overflow otherwise.
+// The following conversions assume `-1.0 <= s < 1.0` (note that +1.0 is excluded) and will
+// overflow otherwise.
 conversions!(f32, f32 {
     s to_i8 { (s * 128.0) as i8 }
     s to_i16 { (s * 32_768.0) as i16 }
@@ -551,7 +552,8 @@ conversions!(f32, f32 {
     s to_f64 { s as f64 }
 });
 
-// The following conversions assume `-1.0 <= s < 1.0` (note that +1.0 is excluded) and will overflow otherwise.
+// The following conversions assume `-1.0 <= s < 1.0` (note that +1.0 is excluded) and will
+// overflow otherwise.
 conversions!(f64, f64 {
     s to_i8 { (s * 128.0) as i8 }
     s to_i16 { (s * 32_768.0) as i16 }
