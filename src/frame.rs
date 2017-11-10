@@ -20,11 +20,11 @@ pub trait Frame: Copy + Clone + PartialEq {
     type NumChannels: NumChannels;
     /// An iterator yielding the sample in each channel, starting from left (channel 0) and ending
     /// at the right (channel NumChannels-1).
-    type Channels: Iterator<Item=Self::Sample>;
+    type Channels: Iterator<Item = Self::Sample>;
     /// A frame type with equilavent number of channels using the associated `Sample::Signed` format.
-    type Signed: Frame<Sample=<Self::Sample as Sample>::Signed, NumChannels=Self::NumChannels>;
+    type Signed: Frame<Sample = <Self::Sample as Sample>::Signed, NumChannels = Self::NumChannels>;
     /// A frame type with equilavent number of channels using the associated `Sample::Float` format.
-    type Float: Frame<Sample=<Self::Sample as Sample>::Float, NumChannels=Self::NumChannels>;
+    type Float: Frame<Sample = <Self::Sample as Sample>::Float, NumChannels = Self::NumChannels>;
 
     /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
     /// value that is equal distance from both the min and max ranges of the sample.
@@ -52,7 +52,8 @@ pub trait Frame: Copy + Clone + PartialEq {
     ///
     /// The given function should map each channel index to its respective sample.
     fn from_fn<F>(from: F) -> Self
-        where F: FnMut(usize) -> Self::Sample;
+    where
+        F: FnMut(usize) -> Self::Sample;
 
     /// Create a new `Frame` from a borrowed `Iterator` yielding samples for each channel.
     ///
@@ -61,7 +62,8 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// This is necessary for the `signal::FromSamples` `Iterator`, that converts some `Iterator`
     /// yielding `Sample`s to an `Iterator` yielding `Frame`s.
     fn from_samples<I>(samples: &mut I) -> Option<Self>
-        where I: Iterator<Item=Self::Sample>;
+    where
+        I: Iterator<Item = Self::Sample>;
 
     /// The total number of channels (and in turn samples) stored within the frame.
     fn n_channels() -> usize;
@@ -97,8 +99,9 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// }
     /// ```
     fn map<F, M>(self, map: M) -> F
-        where F: Frame<NumChannels=Self::NumChannels>,
-              M: FnMut(Self::Sample) -> F::Sample;
+    where
+        F: Frame<NumChannels = Self::NumChannels>,
+        M: FnMut(Self::Sample) -> F::Sample;
 
     /// Calls the given function with the pair of elements at every index and returns the
     /// resulting Frame.
@@ -106,9 +109,10 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// On a `Vec` this would be akin to `.into_iter().zip(other).map(|(a, b)| ...).collect()`, though
     /// much quicker and tailored to fixed-size arrays of samples.
     fn zip_map<O, F, M>(self, other: O, zip_map: M) -> F
-        where O: Frame<NumChannels=Self::NumChannels>,
-              F: Frame<NumChannels=Self::NumChannels>,
-              M: FnMut(Self::Sample, O::Sample) -> F::Sample;
+    where
+        O: Frame<NumChannels = Self::NumChannels>,
+        F: Frame<NumChannels = Self::NumChannels>,
+        M: FnMut(Self::Sample, O::Sample) -> F::Sample;
 
     /// Converts the frame type to the equivalent signal in its associated `Float`ing point format.
     ///
@@ -205,7 +209,8 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// ```
     #[inline]
     fn add_amp<F>(self, other: F) -> Self
-        where F: Frame<Sample=<Self::Sample as Sample>::Signed, NumChannels=Self::NumChannels>,
+    where
+        F: Frame<Sample = <Self::Sample as Sample>::Signed, NumChannels = Self::NumChannels>,
     {
         self.zip_map(other, Sample::add_amp)
     }
@@ -229,11 +234,11 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// ```
     #[inline]
     fn mul_amp<F>(self, other: F) -> Self
-        where F: Frame<Sample=<Self::Sample as Sample>::Float, NumChannels=Self::NumChannels>,
+    where
+        F: Frame<Sample = <Self::Sample as Sample>::Float, NumChannels = Self::NumChannels>,
     {
         self.zip_map(other, Sample::mul_amp)
     }
-
 }
 
 /// An iterator that yields the sample for each channel in the frame by value.
@@ -261,7 +266,8 @@ macro_rules! impl_frame {
             impl NumChannels for $NChan {}
 
             impl<S> Frame for [S; $N]
-                where S: Sample,
+            where
+                S: Sample,
             {
                 type Sample = S;
                 type NumChannels = $NChan;
@@ -294,14 +300,16 @@ macro_rules! impl_frame {
 
                 #[inline]
                 fn from_fn<F>(mut from: F) -> Self
-                    where F: FnMut(usize) -> S,
+                where
+                    F: FnMut(usize) -> S,
                 {
                     [$(from($idx), )*]
                 }
 
                 #[inline]
                 fn from_samples<I>(samples: &mut I) -> Option<Self>
-                    where I: Iterator<Item=Self::Sample>
+                where
+                    I: Iterator<Item=Self::Sample>
                 {
                     Some([$( {
                         $idx;
@@ -329,8 +337,9 @@ macro_rules! impl_frame {
 
                 #[inline]
                 fn map<F, M>(self, mut map: M) -> F
-                    where F: Frame<NumChannels=Self::NumChannels>,
-                          M: FnMut(Self::Sample) -> F::Sample,
+                where
+                    F: Frame<NumChannels=Self::NumChannels>,
+                    M: FnMut(Self::Sample) -> F::Sample,
                 {
                     F::from_fn(|channel_idx| {
 
@@ -345,9 +354,10 @@ macro_rules! impl_frame {
 
                 #[inline]
                 fn zip_map<O, F, M>(self, other: O, mut zip_map: M) -> F
-                    where O: Frame<NumChannels=Self::NumChannels>,
-                          F: Frame<NumChannels=Self::NumChannels>,
-                          M: FnMut(Self::Sample, O::Sample) -> F::Sample
+                where
+                    O: Frame<NumChannels=Self::NumChannels>,
+                    F: Frame<NumChannels=Self::NumChannels>,
+                    M: FnMut(Self::Sample, O::Sample) -> F::Sample
                 {
                     F::from_fn(|channel_idx| {
 
@@ -372,7 +382,8 @@ macro_rules! impl_frame {
 
                 #[inline]
                 fn add_amp<F>(self, other: F) -> Self
-                    where F: Frame<Sample=S::Signed, NumChannels=$NChan>,
+                where
+                    F: Frame<Sample=S::Signed, NumChannels=$NChan>,
                 {
                     // Here we do not require run-time bounds checking as we have asserted that the two
                     // arrays have the same number of channels at compile time with our where clause, i.e.
@@ -423,7 +434,8 @@ impl_frame!{
 
 
 impl<F> Iterator for Channels<F>
-    where F: Frame,
+where
+    F: Frame,
 {
     type Item = F::Sample;
     #[inline]
@@ -436,7 +448,8 @@ impl<F> Iterator for Channels<F>
 }
 
 impl<F> ExactSizeIterator for Channels<F>
-    where F: Frame,
+where
+    F: Frame,
 {
     #[inline]
     fn len(&self) -> usize {

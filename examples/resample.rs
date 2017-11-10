@@ -8,9 +8,12 @@ use sample::{signal, Sample, Signal};
 use sample::ring_buffer;
 
 fn main() {
-    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
+    let assets = find_folder::Search::ParentsThenKids(5, 5)
+        .for_folder("assets")
+        .unwrap();
     let mut reader = WavReader::open(assets.join("two_vowels.wav")).unwrap();
-    let samples: Vec<[f64; 1]> = reader.samples::<i16>()
+    let samples: Vec<[f64; 1]> = reader
+        .samples::<i16>()
         .map(|s| [s.unwrap().to_sample()])
         .collect();
     let len = samples.len();

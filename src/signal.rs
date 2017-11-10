@@ -71,9 +71,10 @@ pub trait Signal {
     /// }
     /// ```
     fn map<M, F>(self, map: M) -> Map<Self, M, F>
-        where Self: Sized,
-              M: FnMut(Self::Frame) -> F,
-              F: Frame,
+    where
+        Self: Sized,
+        M: FnMut(Self::Frame) -> F,
+        F: Frame,
     {
         Map {
             signal: self,
@@ -101,10 +102,11 @@ pub trait Signal {
     /// }
     /// ```
     fn zip_map<O, M, F>(self, other: O, map: M) -> ZipMap<Self, O, M, F>
-        where Self: Sized,
-              M: FnMut(Self::Frame, O::Frame) -> F,
-              O: Signal,
-              F: Frame,
+    where
+        Self: Sized,
+        M: FnMut(Self::Frame, O::Frame) -> F,
+        O: Signal,
+        F: Frame,
     {
         ZipMap {
             this: self,
@@ -135,15 +137,15 @@ pub trait Signal {
     /// ```
     #[inline]
     fn add_amp<S>(self, other: S) -> AddAmp<Self, S>
-        where Self: Sized,
-              S: Signal,
-              S::Frame: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Signed,
-                              NumChannels=<Self::Frame as Frame>::NumChannels>,
+    where
+        Self: Sized,
+        S: Signal,
+        S::Frame: Frame<
+            Sample = <<Self::Frame as Frame>::Sample as Sample>::Signed,
+            NumChannels = <Self::Frame as Frame>::NumChannels,
+        >,
     {
-        AddAmp {
-            a: self,
-            b: other,
-        }
+        AddAmp { a: self, b: other }
     }
 
     /// Provides an iterator that yields the product of the frames yielded by both `other` and
@@ -167,15 +169,15 @@ pub trait Signal {
     /// ```
     #[inline]
     fn mul_amp<S>(self, other: S) -> MulAmp<Self, S>
-        where Self: Sized,
-              S: Signal,
-              S::Frame: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Float,
-                              NumChannels=<Self::Frame as Frame>::NumChannels>,
+    where
+        Self: Sized,
+        S: Signal,
+        S::Frame: Frame<
+            Sample = <<Self::Frame as Frame>::Sample as Sample>::Float,
+            NumChannels = <Self::Frame as Frame>::NumChannels,
+        >,
     {
-        MulAmp {
-            a: self,
-            b: other,
-        }
+        MulAmp { a: self, b: other }
     }
 
     /// Provides an iterator that offsets the amplitude of every channel in each frame of the
@@ -196,9 +198,12 @@ pub trait Signal {
     /// }
     /// ```
     #[inline]
-    fn offset_amp(self, offset: <<Self::Frame as Frame>::Sample as Sample>::Signed)
-        -> OffsetAmp<Self>
-        where Self: Sized,
+    fn offset_amp(
+        self,
+        offset: <<Self::Frame as Frame>::Sample as Sample>::Signed,
+    ) -> OffsetAmp<Self>
+    where
+        Self: Sized,
     {
         OffsetAmp {
             signal: self,
@@ -225,7 +230,8 @@ pub trait Signal {
     /// ```
     #[inline]
     fn scale_amp(self, amp: <<Self::Frame as Frame>::Sample as Sample>::Float) -> ScaleAmp<Self>
-        where Self: Sized,
+    where
+        Self: Sized,
     {
         ScaleAmp {
             signal: self,
@@ -252,9 +258,12 @@ pub trait Signal {
     /// ```
     #[inline]
     fn offset_amp_per_channel<F>(self, amp_frame: F) -> OffsetAmpPerChannel<Self, F>
-        where Self: Sized,
-              F: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Signed,
-                       NumChannels=<Self::Frame as Frame>::NumChannels>,
+    where
+        Self: Sized,
+        F: Frame<
+            Sample = <<Self::Frame as Frame>::Sample as Sample>::Signed,
+            NumChannels = <Self::Frame as Frame>::NumChannels,
+        >,
     {
         OffsetAmpPerChannel {
             signal: self,
@@ -281,9 +290,12 @@ pub trait Signal {
     /// ```
     #[inline]
     fn scale_amp_per_channel<F>(self, amp_frame: F) -> ScaleAmpPerChannel<Self, F>
-        where Self: Sized,
-              F: Frame<Sample=<<Self::Frame as Frame>::Sample as Sample>::Float,
-                       NumChannels=<Self::Frame as Frame>::NumChannels>,
+    where
+        Self: Sized,
+        F: Frame<
+            Sample = <<Self::Frame as Frame>::Sample as Sample>::Float,
+            NumChannels = <Self::Frame as Frame>::NumChannels,
+        >,
     {
         ScaleAmpPerChannel {
             signal: self,
@@ -315,9 +327,10 @@ pub trait Signal {
     /// }
     /// ```
     fn mul_hz<M, I>(self, interpolator: I, mul_per_frame: M) -> MulHz<Self, M, I>
-        where Self: Sized,
-              M: Signal<Frame=[f64; 1]>,
-              I: Interpolator,
+    where
+        Self: Sized,
+        M: Signal<Frame = [f64; 1]>,
+        I: Interpolator,
     {
         MulHz {
             signal: Converter::scale_playback_hz(self, interpolator, 1.0),
@@ -343,9 +356,10 @@ pub trait Signal {
     ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
-    fn from_hz_to_hz<I>(self, interpolator: I, source_hz: f64, target_hz: f64) -> Converter<Self, I> 
-        where Self: Sized,
-              I: Interpolator,
+    fn from_hz_to_hz<I>(self, interpolator: I, source_hz: f64, target_hz: f64) -> Converter<Self, I>
+    where
+        Self: Sized,
+        I: Interpolator,
     {
         Converter::from_hz_to_hz(self, interpolator, source_hz, target_hz)
     }
@@ -368,9 +382,10 @@ pub trait Signal {
     ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
     /// }
     /// ```
-    fn scale_hz<I>(self, interpolator: I, multi: f64) -> Converter<Self, I> 
-        where Self: Sized,
-              I: Interpolator,
+    fn scale_hz<I>(self, interpolator: I, multi: f64) -> Converter<Self, I>
+    where
+        Self: Sized,
+        I: Interpolator,
     {
         Converter::scale_playback_hz(self, interpolator, multi)
     }
@@ -395,7 +410,8 @@ pub trait Signal {
     /// }
     /// ```
     fn delay(self, n_frames: usize) -> Delay<Self>
-        where Self: Sized,
+    where
+        Self: Sized,
     {
         Delay {
             signal: self,
@@ -421,7 +437,8 @@ pub trait Signal {
     /// }
     /// ```
     fn into_interleaved_samples(mut self) -> IntoInterleavedSamples<Self>
-        where Self: Sized,
+    where
+        Self: Sized,
     {
         let first = self.next().channels();
         IntoInterleavedSamples {
@@ -448,7 +465,8 @@ pub trait Signal {
     /// }
     /// ```
     fn clip_amp(self, thresh: <<Self::Frame as Frame>::Sample as Sample>::Signed) -> ClipAmp<Self>
-        where Self: Sized,
+    where
+        Self: Sized,
     {
         ClipAmp {
             signal: self,
@@ -480,8 +498,9 @@ pub trait Signal {
     /// }
     /// ```
     fn inspect<F>(self, inspect: F) -> Inspect<Self, F>
-        where Self: Sized,
-              F: FnMut(&Self::Frame),
+    where
+        Self: Sized,
+        F: FnMut(&Self::Frame),
     {
         Inspect {
             signal: self,
@@ -524,7 +543,8 @@ pub trait Signal {
     /// }
     /// ```
     fn bus(self) -> Bus<Self>
-        where Self: Sized,
+    where
+        Self: Sized,
     {
         Bus::new(self, BTreeMap::new())
     }
@@ -548,12 +568,10 @@ pub trait Signal {
     /// }
     /// ```
     fn take(self, n: usize) -> Take<Self>
-        where Self: Sized,
+    where
+        Self: Sized,
     {
-        Take {
-            signal: self,
-            n: n,
-        }
+        Take { signal: self, n: n }
     }
 
     /// Buffers the signal using the given ring buffer.
@@ -604,8 +622,9 @@ pub trait Signal {
     /// }
     /// ```
     fn buffered<S>(self, ring_buffer: ring_buffer::Bounded<S>) -> Buffered<Self, S>
-        where Self: Sized,
-              S: ring_buffer::Slice<Element=Self::Frame> + ring_buffer::SliceMut,
+    where
+        Self: Sized,
+        S: ring_buffer::Slice<Element = Self::Frame> + ring_buffer::SliceMut,
     {
         Buffered {
             signal: self,
@@ -635,7 +654,8 @@ pub trait Signal {
     /// }
     /// ```
     fn by_ref(&mut self) -> &mut Self
-        where Self: Sized
+    where
+        Self: Sized,
     {
         self
     }
@@ -643,7 +663,8 @@ pub trait Signal {
 
 
 impl<'a, S> Signal for &'a mut S
-    where S: Signal + ?Sized,
+where
+    S: Signal + ?Sized,
 {
     type Frame = S::Frame;
     fn next(&mut self) -> Self::Frame {
@@ -689,7 +710,7 @@ pub struct ZipMap<S, O, M, F> {
     this: S,
     other: O,
     map: M,
-    frame: core::marker::PhantomData<F>
+    frame: core::marker::PhantomData<F>,
 }
 
 /// A type that wraps an Iterator and provides a `Signal` implementation for it.
@@ -701,9 +722,10 @@ pub struct FromIterator<I> {
 /// An iterator that converts an iterator of `Sample`s to an iterator of `Frame`s.
 #[derive(Clone)]
 pub struct FromInterleavedSamplesIterator<I, F>
-    where I: Iterator,
-          I::Item: Sample,
-          F: Frame<Sample=I::Item>,
+where
+    I: Iterator,
+    I::Item: Sample,
+    F: Frame<Sample = I::Item>,
 {
     samples: I,
     frame: core::marker::PhantomData<F>,
@@ -786,7 +808,8 @@ pub struct MulAmp<A, B> {
 /// signal by some sample value and yields the resulting frames.
 #[derive(Clone)]
 pub struct OffsetAmp<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     signal: S,
     offset: <<S::Frame as Frame>::Sample as Sample>::Signed,
@@ -796,7 +819,8 @@ pub struct OffsetAmp<S>
 /// by `self` by the given amplitude.
 #[derive(Clone)]
 pub struct ScaleAmp<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     signal: S,
     amp: <<S::Frame as Frame>::Sample as Sample>::Float,
@@ -824,8 +848,9 @@ pub struct ScaleAmpPerChannel<S, F> {
 /// with the value yielded by `signal`
 #[derive(Clone)]
 pub struct MulHz<S, M, I>
-    where S: Signal,
-          I: Interpolator,
+where
+    S: Signal,
+    I: Interpolator,
 {
     signal: Converter<S, I>,
     mul_per_frame: M,
@@ -851,7 +876,8 @@ pub struct Inspect<S, F> {
 
 /// Converts a `Signal` to a type that yields the individual interleaved samples.
 pub struct IntoInterleavedSamples<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     signal: S,
     current_frame: <S::Frame as Frame>::Channels,
@@ -859,7 +885,8 @@ pub struct IntoInterleavedSamples<S>
 
 /// Converts the `IntoInterleavedSamples` into an `Iterator` that always returns `Some`.
 pub struct IntoInterleavedSamplesIterator<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     samples: IntoInterleavedSamples<S>,
 }
@@ -867,7 +894,8 @@ pub struct IntoInterleavedSamplesIterator<S>
 /// Clips samples in each frame yielded by `signal` to the given threshhold amplitude.
 #[derive(Clone)]
 pub struct ClipAmp<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     signal: S,
     thresh: <<S::Frame as Frame>::Sample as Sample>::Signed,
@@ -877,14 +905,16 @@ pub struct ClipAmp<S>
 ///
 /// This type manages
 pub struct Bus<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     node: Rc<core::cell::RefCell<SharedNode<S>>>,
 }
 
 /// The data shared between each `Output`.
 struct SharedNode<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     signal: S,
     // The buffer of frames that have not yet been consumed by all outputs.
@@ -899,7 +929,8 @@ struct SharedNode<S>
 ///
 /// It may be more accurate to say that the `Output` "pull"s frames from the signal.
 pub struct Output<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     key: usize,
     node: Rc<core::cell::RefCell<SharedNode<S>>>,
@@ -908,7 +939,8 @@ pub struct Output<S>
 /// An iterator that yields `n` number of `Frame`s from the inner `signal`.
 #[derive(Clone)]
 pub struct Take<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     signal: S,
     n: usize,
@@ -956,7 +988,8 @@ pub struct BufferedFrames<'a, D: 'a> {
 /// }
 /// ```
 pub fn equilibrium<F>() -> Equilibrium<F>
-    where F: Frame,
+where
+    F: Frame,
 {
     Equilibrium { frame: core::marker::PhantomData }
 }
@@ -979,8 +1012,9 @@ pub fn equilibrium<F>() -> Equilibrium<F>
 /// }
 /// ```
 pub fn gen<G, F>(gen: G) -> Gen<G, F>
-    where G: Fn() -> F,
-          F: Frame,
+where
+    G: Fn() -> F,
+    F: Frame,
 {
     Gen {
         gen: gen,
@@ -1011,8 +1045,9 @@ pub fn gen<G, F>(gen: G) -> Gen<G, F>
 /// }
 /// ```
 pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
-    where G: FnMut() -> F,
-          F: Frame,
+where
+    G: FnMut() -> F,
+    F: Frame,
 {
     GenMut {
         gen_mut: gen_mut,
@@ -1044,12 +1079,11 @@ pub fn gen_mut<G, F>(gen_mut: G) -> GenMut<G, F>
 /// }
 /// ```
 pub fn from_iter<I>(frames: I) -> FromIterator<I::IntoIter>
-    where I: IntoIterator,
-          I::Item: Frame,
+where
+    I: IntoIterator,
+    I::Item: Frame,
 {
-    FromIterator {
-        iter: frames.into_iter(),
-    }
+    FromIterator { iter: frames.into_iter() }
 }
 
 
@@ -1077,10 +1111,13 @@ pub fn from_iter<I>(frames: I) -> FromIterator<I::IntoIter>
 ///     assert_eq!(signal.next(), [0, 0]);
 /// }
 /// ```
-pub fn from_interleaved_samples_iter<I, F>(samples: I) -> FromInterleavedSamplesIterator<I::IntoIter, F>
-    where I: IntoIterator,
-          I::Item: Sample,
-          F: Frame<Sample=I::Item>,
+pub fn from_interleaved_samples_iter<I, F>(
+    samples: I,
+) -> FromInterleavedSamplesIterator<I::IntoIter, F>
+where
+    I: IntoIterator,
+    I::Item: Sample,
+    F: Frame<Sample = I::Item>,
 {
     FromInterleavedSamplesIterator {
         samples: samples.into_iter(),
@@ -1111,7 +1148,8 @@ pub fn from_interleaved_samples_iter<I, F>(samples: I) -> FromInterleavedSamples
 /// }
 /// ```
 pub fn phase<S>(step: S) -> Phase<S>
-    where S: Step,
+where
+    S: Step,
 {
     Phase {
         step: step,
@@ -1243,7 +1281,8 @@ pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
 //// Trait Implementations for Signal Types.
 
 impl<S> Signal for Box<S>
-    where S: Signal + ?Sized,
+where
+    S: Signal + ?Sized,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1253,8 +1292,9 @@ impl<S> Signal for Box<S>
 }
 
 impl<I> Signal for FromIterator<I>
-    where I: Iterator,
-          I::Item: Frame,
+where
+    I: Iterator,
+    I::Item: Frame,
 {
     type Frame = I::Item;
     #[inline]
@@ -1268,9 +1308,10 @@ impl<I> Signal for FromIterator<I>
 
 
 impl<I, F> Signal for FromInterleavedSamplesIterator<I, F>
-    where I: Iterator,
-          I::Item: Sample,
-          F: Frame<Sample=I::Item>,
+where
+    I: Iterator,
+    I::Item: Sample,
+    F: Frame<Sample = I::Item>,
 {
     type Frame = F;
     #[inline]
@@ -1281,7 +1322,8 @@ impl<I, F> Signal for FromInterleavedSamplesIterator<I, F>
 
 
 impl<F> Signal for Equilibrium<F>
-    where F: Frame,
+where
+    F: Frame,
 {
     type Frame = F;
     #[inline]
@@ -1292,8 +1334,9 @@ impl<F> Signal for Equilibrium<F>
 
 
 impl<G, F> Signal for Gen<G, F>
-    where G: Fn() -> F,
-          F: Frame,
+where
+    G: Fn() -> F,
+    F: Frame,
 {
     type Frame = F;
     #[inline]
@@ -1304,8 +1347,9 @@ impl<G, F> Signal for Gen<G, F>
 
 
 impl<G, F> Signal for GenMut<G, F>
-    where G: FnMut() -> F,
-          F: Frame,
+where
+    G: FnMut() -> F,
+    F: Frame,
 {
     type Frame = F;
     #[inline]
@@ -1316,9 +1360,10 @@ impl<G, F> Signal for GenMut<G, F>
 
 
 impl<S, M, F> Signal for Map<S, M, F>
-    where S: Signal,
-          M: FnMut(S::Frame) -> F,
-          F: Frame,
+where
+    S: Signal,
+    M: FnMut(S::Frame) -> F,
+    F: Frame,
 {
     type Frame = F;
     #[inline]
@@ -1329,10 +1374,11 @@ impl<S, M, F> Signal for Map<S, M, F>
 
 
 impl<S, O, M, F> Signal for ZipMap<S, O, M, F>
-    where S: Signal,
-          O: Signal,
-          M: FnMut(S::Frame, O::Frame) -> F,
-          F: Frame,
+where
+    S: Signal,
+    O: Signal,
+    M: FnMut(S::Frame, O::Frame) -> F,
+    F: Frame,
 {
     type Frame = F;
     #[inline]
@@ -1343,7 +1389,8 @@ impl<S, O, M, F> Signal for ZipMap<S, O, M, F>
 
 
 impl<S> Signal for Hz<S>
-    where S: Signal<Frame=[f64; 1]>,
+where
+    S: Signal<Frame = [f64; 1]>,
 {
     type Frame = [f64; 1];
     #[inline]
@@ -1363,7 +1410,8 @@ impl Signal for ConstHz {
 
 
 impl<S> Signal for Phase<S>
-    where S: Step,
+where
+    S: Step,
 {
     type Frame = [f64; 1];
     #[inline]
@@ -1374,7 +1422,8 @@ impl<S> Signal for Phase<S>
 
 
 impl<S> Signal for Sine<S>
-    where S: Step,
+where
+    S: Step,
 {
     type Frame = [f64; 1];
     #[inline]
@@ -1387,7 +1436,8 @@ impl<S> Signal for Sine<S>
 
 
 impl<S> Signal for Saw<S>
-    where S: Step,
+where
+    S: Step,
 {
     type Frame = [f64; 1];
     #[inline]
@@ -1399,7 +1449,8 @@ impl<S> Signal for Saw<S>
 
 
 impl<S> Signal for Square<S>
-    where S: Step,
+where
+    S: Step,
 {
     type Frame = [f64; 1];
     #[inline]
@@ -1420,7 +1471,8 @@ impl Rate {
     ///
     /// The `Hz` iterator yields phase step sizes equal to "hz / rate".
     pub fn hz<I>(self, init: f64, hz: I) -> Hz<I>
-        where I: Iterator<Item=f64>,
+    where
+        I: Iterator<Item = f64>,
     {
         Hz {
             hz: hz,
@@ -1431,7 +1483,8 @@ impl Rate {
 }
 
 impl<S> Hz<S>
-    where S: Signal<Frame=[f64; 1]>,
+where
+    S: Signal<Frame = [f64; 1]>,
 {
     /// Construct a `Phase` iterator that, for every `hz` yielded by `self`, yields a phase that is
     /// stepped by `hz / self.rate.hz`.
@@ -1518,7 +1571,8 @@ impl Step for ConstHz {
 }
 
 impl<S> Step for Hz<S>
-    where S: Signal<Frame=[f64; 1]>,
+where
+    S: Signal<Frame = [f64; 1]>,
 {
     #[inline]
     fn step(&mut self) -> f64 {
@@ -1530,7 +1584,8 @@ impl<S> Step for Hz<S>
 
 
 impl<S> Phase<S>
-    where S: Step,
+where
+    S: Step,
 {
     /// Before yielding the current phase, the internal phase is stepped forward and wrapped via
     /// the given value.
@@ -1586,10 +1641,10 @@ impl Noise {
             const PRIME_2: u64 = 789_221;
             const PRIME_3: u64 = 1_376_312_589;
             let x = (seed << 13) ^ seed;
-            1.0 - (
-                x.wrapping_mul(x.wrapping_mul(x).wrapping_mul(PRIME_1).wrapping_add(PRIME_2))
-                    .wrapping_add(PRIME_3) & 0x7fffffff
-            ) as f64 / 1_073_741_824.0
+            1.0 -
+                (x.wrapping_mul(x.wrapping_mul(x).wrapping_mul(PRIME_1).wrapping_add(
+                    PRIME_2,
+                )).wrapping_add(PRIME_3) & 0x7fffffff) as f64 / 1_073_741_824.0
         }
 
         let noise = noise_1(self.seed);
@@ -1608,7 +1663,8 @@ impl Signal for Noise {
 
 
 impl<S> NoiseSimplex<S>
-    where S: Step,
+where
+    S: Step,
 {
     #[inline]
     pub fn next_sample(&mut self) -> f64 {
@@ -1633,21 +1689,262 @@ impl<S> NoiseSimplex<S>
 
             // Permutation table. This is a random jumble of all numbers 0...255.
             const PERM: [u8; 256] = [
-                151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36,
-                103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0,
-                26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87,
-                174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146,
-                158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40,
-                244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18,
-                169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64,
-                52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206,
-                59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2,
-                44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98,
-                108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242,
-                193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107,
-                49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4,
-                150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66,
-                215, 61, 156, 180
+                151,
+                160,
+                137,
+                91,
+                90,
+                15,
+                131,
+                13,
+                201,
+                95,
+                96,
+                53,
+                194,
+                233,
+                7,
+                225,
+                140,
+                36,
+                103,
+                30,
+                69,
+                142,
+                8,
+                99,
+                37,
+                240,
+                21,
+                10,
+                23,
+                190,
+                6,
+                148,
+                247,
+                120,
+                234,
+                75,
+                0,
+                26,
+                197,
+                62,
+                94,
+                252,
+                219,
+                203,
+                117,
+                35,
+                11,
+                32,
+                57,
+                177,
+                33,
+                88,
+                237,
+                149,
+                56,
+                87,
+                174,
+                20,
+                125,
+                136,
+                171,
+                168,
+                68,
+                175,
+                74,
+                165,
+                71,
+                134,
+                139,
+                48,
+                27,
+                166,
+                77,
+                146,
+                158,
+                231,
+                83,
+                111,
+                229,
+                122,
+                60,
+                211,
+                133,
+                230,
+                220,
+                105,
+                92,
+                41,
+                55,
+                46,
+                245,
+                40,
+                244,
+                102,
+                143,
+                54,
+                65,
+                25,
+                63,
+                161,
+                1,
+                216,
+                80,
+                73,
+                209,
+                76,
+                132,
+                187,
+                208,
+                89,
+                18,
+                169,
+                200,
+                196,
+                135,
+                130,
+                116,
+                188,
+                159,
+                86,
+                164,
+                100,
+                109,
+                198,
+                173,
+                186,
+                3,
+                64,
+                52,
+                217,
+                226,
+                250,
+                124,
+                123,
+                5,
+                202,
+                38,
+                147,
+                118,
+                126,
+                255,
+                82,
+                85,
+                212,
+                207,
+                206,
+                59,
+                227,
+                47,
+                16,
+                58,
+                17,
+                182,
+                189,
+                28,
+                42,
+                223,
+                183,
+                170,
+                213,
+                119,
+                248,
+                152,
+                2,
+                44,
+                154,
+                163,
+                70,
+                221,
+                153,
+                101,
+                155,
+                167,
+                43,
+                172,
+                9,
+                129,
+                22,
+                39,
+                253,
+                19,
+                98,
+                108,
+                110,
+                79,
+                113,
+                224,
+                232,
+                178,
+                185,
+                112,
+                104,
+                218,
+                246,
+                97,
+                228,
+                251,
+                34,
+                242,
+                193,
+                238,
+                210,
+                144,
+                12,
+                191,
+                179,
+                162,
+                241,
+                81,
+                51,
+                145,
+                235,
+                249,
+                14,
+                239,
+                107,
+                49,
+                192,
+                214,
+                31,
+                181,
+                199,
+                106,
+                157,
+                184,
+                84,
+                204,
+                176,
+                115,
+                121,
+                50,
+                45,
+                127,
+                4,
+                150,
+                254,
+                138,
+                236,
+                205,
+                93,
+                222,
+                114,
+                67,
+                29,
+                24,
+                72,
+                243,
+                141,
+                128,
+                195,
+                78,
+                66,
+                215,
+                61,
+                156,
+                180,
             ];
 
             // Hashes the given integer with the above permutation table.
@@ -1662,7 +1959,9 @@ impl<S> NoiseSimplex<S>
                 // Gradien value 1.0, 2.0, ..., 8.0.
                 let mut grad = 1.0 + (h & 7) as f64;
                 // Set a random sign for the gradient.
-                if (h & 8) != 0 { grad = -grad; }
+                if (h & 8) != 0 {
+                    grad = -grad;
+                }
                 // Multiply the gradient with the distance.
                 grad * x
             }
@@ -1694,7 +1993,8 @@ impl<S> NoiseSimplex<S>
 }
 
 impl<S> Signal for NoiseSimplex<S>
-    where S: Step,
+where
+    S: Step,
 {
     type Frame = [f64; 1];
     #[inline]
@@ -1705,10 +2005,11 @@ impl<S> Signal for NoiseSimplex<S>
 
 
 impl<A, B> Signal for AddAmp<A, B>
-    where A: Signal,
-          B: Signal,
-          B::Frame: Frame<Sample=<<A::Frame as Frame>::Sample as Sample>::Signed,
-                          NumChannels=<A::Frame as Frame>::NumChannels>,
+where
+    A: Signal,
+    B: Signal,
+    B::Frame: Frame<Sample=<<A::Frame as Frame>::Sample as Sample>::Signed,
+                    NumChannels=<A::Frame as Frame>::NumChannels>,
 {
     type Frame = A::Frame;
     #[inline]
@@ -1719,10 +2020,11 @@ impl<A, B> Signal for AddAmp<A, B>
 
 
 impl<A, B> Signal for MulAmp<A, B>
-    where A: Signal,
-          B: Signal,
-          B::Frame: Frame<Sample=<<A::Frame as Frame>::Sample as Sample>::Float,
-                          NumChannels=<A::Frame as Frame>::NumChannels>,
+where
+    A: Signal,
+    B: Signal,
+    B::Frame: Frame<Sample=<<A::Frame as Frame>::Sample as Sample>::Float,
+                    NumChannels=<A::Frame as Frame>::NumChannels>,
 {
     type Frame = A::Frame;
     #[inline]
@@ -1733,7 +2035,8 @@ impl<A, B> Signal for MulAmp<A, B>
 
 
 impl<S> Signal for ScaleAmp<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1744,9 +2047,10 @@ impl<S> Signal for ScaleAmp<S>
 
 
 impl<S, F> Signal for ScaleAmpPerChannel<S, F>
-    where S: Signal,
-          F: Frame<Sample=<<S::Frame as Frame>::Sample as Sample>::Float,
-                   NumChannels=<S::Frame as Frame>::NumChannels>,
+where
+    S: Signal,
+    F: Frame<Sample=<<S::Frame as Frame>::Sample as Sample>::Float,
+             NumChannels=<S::Frame as Frame>::NumChannels>,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1757,7 +2061,8 @@ impl<S, F> Signal for ScaleAmpPerChannel<S, F>
 
 
 impl<S> Signal for OffsetAmp<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1768,9 +2073,10 @@ impl<S> Signal for OffsetAmp<S>
 
 
 impl<S, F> Signal for OffsetAmpPerChannel<S, F>
-    where S: Signal,
-          F: Frame<Sample=<<S::Frame as Frame>::Sample as Sample>::Signed,
-                   NumChannels=<S::Frame as Frame>::NumChannels>,
+where
+    S: Signal,
+    F: Frame<Sample=<<S::Frame as Frame>::Sample as Sample>::Signed,
+             NumChannels=<S::Frame as Frame>::NumChannels>,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1781,10 +2087,11 @@ impl<S, F> Signal for OffsetAmpPerChannel<S, F>
 
 
 impl<S, M, I> Signal for MulHz<S, M, I>
-    where S: Signal,
-          <S::Frame as Frame>::Sample: Duplex<f64>,
-          M: Signal<Frame=[f64; 1]>,
-          I: Interpolator<Frame=S::Frame>,
+where
+    S: Signal,
+    <S::Frame as Frame>::Sample: Duplex<f64>,
+    M: Signal<Frame = [f64; 1]>,
+    I: Interpolator<Frame = S::Frame>,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1797,7 +2104,8 @@ impl<S, M, I> Signal for MulHz<S, M, I>
 
 
 impl<S> Signal for Delay<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1813,8 +2121,9 @@ impl<S> Signal for Delay<S>
 
 
 impl<S, F> Signal for Inspect<S, F>
-    where S: Signal,
-          F: FnMut(&S::Frame),
+where
+    S: Signal,
+    F: FnMut(&S::Frame),
 {
     type Frame = S::Frame;
     #[inline]
@@ -1827,7 +2136,8 @@ impl<S, F> Signal for Inspect<S, F>
 
 
 impl<S> IntoInterleavedSamples<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     /// Yield the next interleaved sample from the inner `Signal`.
     #[inline]
@@ -1843,14 +2153,13 @@ impl<S> IntoInterleavedSamples<S>
     /// Convert the `ToInterleavedSamples` into an `Iterator`.
     #[inline]
     pub fn into_iter(self) -> IntoInterleavedSamplesIterator<S> {
-        IntoInterleavedSamplesIterator {
-            samples: self,
-        }
+        IntoInterleavedSamplesIterator { samples: self }
     }
 }
 
 impl<S> Iterator for IntoInterleavedSamplesIterator<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     type Item = <S::Frame as Frame>::Sample;
     #[inline]
@@ -1860,8 +2169,9 @@ impl<S> Iterator for IntoInterleavedSamplesIterator<S>
 }
 
 impl<S> Clone for IntoInterleavedSamples<S>
-    where S: Signal + Clone,
-          <S::Frame as Frame>::Channels: Clone,
+where
+    S: Signal + Clone,
+    <S::Frame as Frame>::Channels: Clone,
 {
     #[inline]
     fn clone(&self) -> Self {
@@ -1873,20 +2183,20 @@ impl<S> Clone for IntoInterleavedSamples<S>
 }
 
 impl<S> Clone for IntoInterleavedSamplesIterator<S>
-    where S: Signal,
-          IntoInterleavedSamples<S>: Clone,
+where
+    S: Signal,
+    IntoInterleavedSamples<S>: Clone,
 {
     #[inline]
     fn clone(&self) -> Self {
-        IntoInterleavedSamplesIterator {
-            samples: self.samples.clone(),
-        }
+        IntoInterleavedSamplesIterator { samples: self.samples.clone() }
     }
 }
 
 
 impl<S> Signal for ClipAmp<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     type Frame = S::Frame;
     #[inline]
@@ -1894,15 +2204,21 @@ impl<S> Signal for ClipAmp<S>
         let f = self.signal.next();
         f.map(|s| {
             let s: <<S::Frame as Frame>::Sample as Sample>::Signed = s.to_sample();
-            if s > self.thresh { self.thresh } else if s < -self.thresh { -self.thresh } else { s }
-                .to_sample()
+            if s > self.thresh {
+                self.thresh
+            } else if s < -self.thresh {
+                -self.thresh
+            } else {
+                s
+            }.to_sample()
         })
     }
 }
 
 
 impl<S> Bus<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     fn new(signal: S, frames_read: BTreeMap<usize, usize>) -> Self {
         Bus {
@@ -1936,7 +2252,8 @@ impl<S> Bus<S>
 }
 
 impl<S> SharedNode<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     // Requests the next frame for the `Output` at the given key.
     //
@@ -1944,9 +2261,9 @@ impl<S> SharedNode<S>
     // signal and appended to the ring buffer to be received by the other outputs.
     fn next_frame(&mut self, key: usize) -> S::Frame {
         let num_frames = self.buffer.len();
-        let frames_read = self.frames_read
-            .remove(&key)
-            .expect("no frames_read for Output");
+        let frames_read = self.frames_read.remove(&key).expect(
+            "no frames_read for Output",
+        );
 
         let frame = if frames_read < num_frames {
             self.buffer[frames_read]
@@ -1958,9 +2275,9 @@ impl<S> SharedNode<S>
 
         // If the number of frames read by this output is the lowest, then we can pop the frame
         // from the front.
-        let least_frames_read = !self.frames_read
-            .values()
-            .any(|&other_frames_read| other_frames_read <= frames_read);
+        let least_frames_read = !self.frames_read.values().any(|&other_frames_read| {
+            other_frames_read <= frames_read
+        });
 
         // If this output had read the least number of frames, pop the front frame and decrement
         // the frames read counters for each of the other outputs.
@@ -1989,10 +2306,9 @@ impl<S> SharedNode<S>
     // Called by the `Output::drop` implementation.
     fn drop_output(&mut self, key: usize) {
         self.frames_read.remove(&key);
-        let least_frames_read = self
-            .frames_read
-            .values()
-            .fold(self.buffer.len(), |a, &b| core::cmp::min(a, b));
+        let least_frames_read = self.frames_read.values().fold(self.buffer.len(), |a, &b| {
+            core::cmp::min(a, b)
+        });
         if least_frames_read > 0 {
             for frames_read in self.frames_read.values_mut() {
                 *frames_read -= least_frames_read;
@@ -2005,7 +2321,8 @@ impl<S> SharedNode<S>
 }
 
 impl<S> Output<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     /// The number of frames that have been requested from the `Signal` `S` by some other `Output`
     /// that have not yet been requested by this `Output`.
@@ -2038,7 +2355,8 @@ impl<S> Output<S>
 }
 
 impl<S> Signal for Output<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     type Frame = S::Frame;
     #[inline]
@@ -2048,7 +2366,8 @@ impl<S> Signal for Output<S>
 }
 
 impl<S> Drop for Output<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     fn drop(&mut self) {
         self.node.borrow_mut().drop_output(self.key)
@@ -2057,7 +2376,8 @@ impl<S> Drop for Output<S>
 
 
 impl<S> Iterator for Take<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     type Item = S::Frame;
     #[inline]
@@ -2074,7 +2394,8 @@ impl<S> Iterator for Take<S>
 }
 
 impl<S> ExactSizeIterator for Take<S>
-    where S: Signal,
+where
+    S: Signal,
 {
     #[inline]
     fn len(&self) -> usize {
@@ -2083,8 +2404,9 @@ impl<S> ExactSizeIterator for Take<S>
 }
 
 impl<S, D> Buffered<S, D>
-    where S: Signal,
-          D: ring_buffer::Slice<Element=S::Frame> + ring_buffer::SliceMut,
+where
+    S: Signal,
+    D: ring_buffer::Slice<Element = S::Frame> + ring_buffer::SliceMut,
 {
     /// Produces an iterator yielding the next batch of buffered frames.
     ///
@@ -2110,20 +2432,24 @@ impl<S, D> Buffered<S, D>
     /// }
     /// ```
     pub fn next_frames(&mut self) -> BufferedFrames<D> {
-        let Buffered { ref mut signal, ref mut ring_buffer } = *self;
+        let Buffered {
+            ref mut signal,
+            ref mut ring_buffer,
+        } = *self;
         if ring_buffer.len() == 0 {
             for _ in 0..ring_buffer.max_len() {
                 ring_buffer.push(signal.next());
             }
         }
-        BufferedFrames {
-            ring_buffer: ring_buffer,
-        }
+        BufferedFrames { ring_buffer: ring_buffer }
     }
 
     /// Consumes the `Buffered` signal and returns its inner signal `S` and bounded ring buffer.
     pub fn into_parts(self) -> (S, ring_buffer::Bounded<D>) {
-        let Buffered { signal, ring_buffer } = self;
+        let Buffered {
+            signal,
+            ring_buffer,
+        } = self;
         (signal, ring_buffer)
     }
 }
@@ -2147,8 +2473,9 @@ impl<S, D> Signal for Buffered<S, D>
 }
 
 impl<'a, D> Iterator for BufferedFrames<'a, D>
-    where D: ring_buffer::SliceMut,
-          D::Element: Copy,
+where
+    D: ring_buffer::SliceMut,
+    D::Element: Copy,
 {
     type Item = D::Element;
     fn next(&mut self) -> Option<Self::Item> {

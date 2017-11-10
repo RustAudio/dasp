@@ -17,24 +17,23 @@ use ops::f64::{sin, cos};
 ///
 #[derive(Clone)]
 pub struct Converter<S, I>
-    where S: Signal,
-          I: Interpolator,
+where
+    S: Signal,
+    I: Interpolator,
 {
     source: S,
     interpolator: I,
     interpolation_value: f64,
-    source_to_target_ratio: f64
+    source_to_target_ratio: f64,
 }
 
 /// Interpolator that just rounds off any values to the previous value from the source
-pub struct Floor<F>
-{
+pub struct Floor<F> {
     left: F,
 }
 
 /// Interpolator that interpolates linearly between the previous value and the next value
-pub struct Linear<F>
-{
+pub struct Linear<F> {
     left: F,
     right: F,
 }
@@ -43,8 +42,7 @@ pub struct Linear<F>
 ///
 /// Generally accepted as one of the better sample rate converters, although it uses significantly
 /// more computation.
-pub struct Sinc<S>
-{
+pub struct Sinc<S> {
     frames: ring_buffer::Fixed<S>,
     idx: usize,
 }
@@ -65,8 +63,9 @@ pub trait Interpolator {
 }
 
 impl<S, I> Converter<S, I>
-    where S: Signal,
-          I: Interpolator
+where
+    S: Signal,
+    I: Interpolator,
 {
     /// Construct a new `Converter` from the source frames and the source and target sample rates
     /// (in Hz).
@@ -83,12 +82,15 @@ impl<S, I> Converter<S, I>
     /// we wanted to convert it to a frequency of 3hz, the given `scale` should be `1.5`.
     #[inline]
     pub fn scale_playback_hz(source: S, interpolator: I, scale: f64) -> Self {
-        assert!(scale > 0.0, "We can't yield any frames at 0 times a second!");
+        assert!(
+            scale > 0.0,
+            "We can't yield any frames at 0 times a second!"
+        );
         Converter {
             source: source,
             interpolator: interpolator,
             interpolation_value: 0.0,
-            source_to_target_ratio: scale
+            source_to_target_ratio: scale,
         }
     }
 
@@ -149,8 +151,9 @@ impl<S, I> Converter<S, I>
 }
 
 impl<S, I> Signal for Converter<S, I>
-    where S: Signal,
-          I: Interpolator<Frame=S::Frame>
+where
+    S: Signal,
+    I: Interpolator<Frame = S::Frame>,
 {
     type Frame = S::Frame;
 
@@ -159,7 +162,7 @@ impl<S, I> Signal for Converter<S, I>
             ref mut source,
             ref mut interpolator,
             ref mut interpolation_value,
-            source_to_target_ratio
+            source_to_target_ratio,
         } = *self;
 
         // Advance frames
@@ -174,8 +177,7 @@ impl<S, I> Signal for Converter<S, I>
     }
 }
 
-impl<F> Floor<F>
-{
+impl<F> Floor<F> {
     /// Create a new Floor Interpolator.
     pub fn new(left: F) -> Floor<F> {
         Floor { left: left }
@@ -184,36 +186,36 @@ impl<F> Floor<F>
     /// Consumes the first value from a given source in order to initialize itself. If the source
     /// has no values at all, this will return None.
     pub fn from_source<S>(source: &mut S) -> Floor<F>
-        where F: Frame,
-              S: Signal<Frame=F>
+    where
+        F: Frame,
+        S: Signal<Frame = F>,
     {
         let left = source.next();
         Floor { left: left }
     }
 }
 
-impl<F> Linear<F>
-{
+impl<F> Linear<F> {
     /// Create a new Linear Interpolator.
-    pub fn new(left: F, right: F) -> Linear<F>
-    {
+    pub fn new(left: F, right: F) -> Linear<F> {
         Linear {
             left: left,
-            right: right
+            right: right,
         }
     }
 
     /// Consumes the first value from a given source to initialize itself. If the source has no
     /// values, this will return None.
     pub fn from_source<S>(source: &mut S) -> Linear<F>
-        where F: Frame,
-              S: Signal<Frame=F>,
+    where
+        F: Frame,
+        S: Signal<Frame = F>,
     {
         let left = source.next();
         let right = source.next();
         Linear {
             left: left,
-            right: right
+            right: right,
         }
     }
 }
@@ -228,8 +230,9 @@ impl<S> Sinc<S> {
     ///
     /// **panic!**s if the given ring buffer's length is not a multiple of `2`.
     pub fn new(frames: ring_buffer::Fixed<S>) -> Self
-        where S: ring_buffer::SliceMut,
-              S::Element: Frame,
+    where
+        S: ring_buffer::SliceMut,
+        S::Element: Frame,
     {
         assert!(frames.len() % 2 == 0);
         Sinc {
@@ -239,15 +242,17 @@ impl<S> Sinc<S> {
     }
 
     fn depth(&self) -> usize
-        where S: ring_buffer::Slice,
+    where
+        S: ring_buffer::Slice,
     {
         self.frames.len() / 2
     }
 }
 
 impl<F> Interpolator for Floor<F>
-    where F: Frame,
-          <F as Frame>::Sample: Duplex<f64>
+where
+    F: Frame,
+    F::Sample: Duplex<f64>,
 {
     type Frame = F;
 
@@ -261,8 +266,9 @@ impl<F> Interpolator for Floor<F>
 }
 
 impl<F> Interpolator for Linear<F>
-    where F: Frame,
-          <F as Frame>::Sample: Duplex<f64>
+where
+    F: Frame,
+    F::Sample: Duplex<f64>,
 {
     type Frame = F;
 
@@ -285,9 +291,10 @@ impl<F> Interpolator for Linear<F>
 }
 
 impl<S> Interpolator for Sinc<S>
-    where S: ring_buffer::SliceMut,
-          S::Element: Frame,
-          <S::Element as Frame>::Sample: Duplex<f64>,
+where
+    S: ring_buffer::SliceMut,
+    S::Element: Frame,
+    <S::Element as Frame>::Sample: Duplex<f64>,
 {
     type Frame = S::Element;
 
@@ -315,9 +322,11 @@ impl<S> Interpolator for Sinc<S>
                 let first = sin(a) / a;
                 let second = 0.5 + 0.5 * cos(a / (phil + max_depth as f64));
                 v.zip_map(self.frames[nr - n], |vs, r_lag| {
-                    vs.add_amp((first * second * r_lag.to_sample::<f64>())
-                              .to_sample::<<Self::Frame as Frame>::Sample>()
-                              .to_signed_sample())
+                    vs.add_amp(
+                        (first * second * r_lag.to_sample::<f64>())
+                            .to_sample::<<Self::Frame as Frame>::Sample>()
+                            .to_signed_sample(),
+                    )
                 })
             };
 
@@ -325,9 +334,11 @@ impl<S> Interpolator for Sinc<S>
             let first = sin(a) / a;
             let second = 0.5 + 0.5 * cos(a / (phir + max_depth as f64));
             v.zip_map(self.frames[nl + n], |vs, r_lag| {
-                vs.add_amp((first * second * r_lag.to_sample::<f64>())
-                           .to_sample::<<Self::Frame as Frame>::Sample>()
-                           .to_signed_sample())
+                vs.add_amp(
+                    (first * second * r_lag.to_sample::<f64>())
+                        .to_sample::<<Self::Frame as Frame>::Sample>()
+                        .to_signed_sample(),
+                )
             })
         })
     }
@@ -339,4 +350,3 @@ impl<S> Interpolator for Sinc<S>
         }
     }
 }
-

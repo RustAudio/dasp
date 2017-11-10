@@ -692,7 +692,8 @@ pub trait ToSample<S> {
 }
 
 impl<T, U> ToSample<U> for T
-    where U: FromSample<T>
+where
+    U: FromSample<T>,
 {
     #[inline]
     fn to_sample_(self) -> U {
@@ -702,7 +703,11 @@ impl<T, U> ToSample<U> for T
 
 /// Sample types which may be converted to and from some type `S`.
 pub trait Duplex<S>: FromSample<S> + ToSample<S> {}
-impl<S, T> Duplex<S> for T where T: FromSample<S> + ToSample<S> {}
+impl<S, T> Duplex<S> for T
+where
+    T: FromSample<S> + ToSample<S>,
+{
+}
 
 
 ///// DSP Slice Conversion Traits
@@ -710,84 +715,96 @@ impl<S, T> Duplex<S> for T where T: FromSample<S> + ToSample<S> {}
 
 /// For converting from a slice of `Sample`s to a slice of `Frame`s.
 pub trait FromSampleSlice<'a, S>: Sized
-    where S: Sample,
+where
+    S: Sample,
 {
     fn from_sample_slice(slice: &'a [S]) -> Option<Self>;
 }
 
 /// For converting from a mutable slice of `Sample`s to a mutable slice of `Frame`s.
 pub trait FromSampleSliceMut<'a, S>: Sized
-    where S: Sample,
+where
+    S: Sample,
 {
     fn from_sample_slice_mut(slice: &'a mut [S]) -> Option<Self>;
 }
 
 /// For converting a boxed slice of `Sample`s to a boxed slice of `Frame`s.
 pub trait FromBoxedSampleSlice<S>: Sized
-    where S: Sample,
+where
+    S: Sample,
 {
     fn from_boxed_sample_slice(slice: Box<[S]>) -> Option<Self>;
 }
 
 /// For converting from a slice of `Frame`s to a slice of `Sample`s.
 pub trait FromFrameSlice<'a, F>
-    where F: Frame,
+where
+    F: Frame,
 {
     fn from_frame_slice(slice: &'a [F]) -> Self;
 }
 
 /// For converting from a slice of `Frame`s to a slice of `Sample`s.
 pub trait FromFrameSliceMut<'a, F>
-    where F: Frame,
+where
+    F: Frame,
 {
     fn from_frame_slice_mut(slice: &'a mut [F]) -> Self;
 }
 
 /// For converting from a boxed slice of `Frame`s to a boxed slice of `Sample`s.
 pub trait FromBoxedFrameSlice<F>
-    where F: Frame,
+where
+    F: Frame,
 {
     fn from_boxed_frame_slice(slice: Box<[F]>) -> Self;
 }
 
 /// For converting from a slice of `Frame`s to a slice of `Sample`s.
 pub trait ToSampleSlice<'a, S>
-    where S: Sample,
+where
+    S: Sample,
 {
     fn to_sample_slice(self) -> &'a [S];
 }
 
 /// For converting from a mutable slice of `Frame`s to a mutable slice of `Sample`s.
 pub trait ToSampleSliceMut<'a, S>
-    where S: Sample,
+where
+    S: Sample,
 {
     fn to_sample_slice_mut(self) -> &'a mut [S];
 }
 
 /// For converting from a boxed slice of `Frame`s to a boxed slice of `Sample`s.
 pub trait ToBoxedSampleSlice<S>
-    where S: Sample,
+where
+    S: Sample,
 {
     fn to_boxed_sample_slice(self) -> Box<[S]>;
 }
 
 /// For converting from a slice of `Sample`s to a slice of `Frame`s.
 pub trait ToFrameSlice<'a, F>
-    where F: Frame,
+where
+    F: Frame,
 {
     fn to_frame_slice(self) -> Option<&'a [F]>;
 }
 
 /// For converting from a mutable slice of `Sample`s to a mutable slice of `Frame`s.
 pub trait ToFrameSliceMut<'a, F>
-    where F: Frame,
+where
+    F: Frame,
 {
     fn to_frame_slice_mut(self) -> Option<&'a mut [F]>;
 }
 
 /// For converting from a boxed slice of `Sample`s to a boxed slice of `Frame`s.
 pub trait ToBoxedFrameSlice<F>
-    where F: Frame,
+where
+    F: Frame,
 {
     fn to_boxed_frame_slice(self) -> Option<Box<[F]>>;
 }
@@ -797,7 +814,8 @@ pub trait ToBoxedFrameSlice<F>
 
 
 impl<'a, S> FromSampleSlice<'a, S> for &'a [S]
-    where S: Sample,
+where
+    S: Sample,
 {
     #[inline]
     fn from_sample_slice(slice: &'a [S]) -> Option<Self> {
@@ -806,7 +824,8 @@ impl<'a, S> FromSampleSlice<'a, S> for &'a [S]
 }
 
 impl<'a, S> FromSampleSliceMut<'a, S> for &'a mut [S]
-    where S: Sample,
+where
+    S: Sample,
 {
     #[inline]
     fn from_sample_slice_mut(slice: &'a mut [S]) -> Option<Self> {
@@ -815,7 +834,8 @@ impl<'a, S> FromSampleSliceMut<'a, S> for &'a mut [S]
 }
 
 impl<S> FromBoxedSampleSlice<S> for Box<[S]>
-    where S: Sample,
+where
+    S: Sample,
 {
     #[inline]
     fn from_boxed_sample_slice(slice: Box<[S]>) -> Option<Self> {
@@ -824,7 +844,8 @@ impl<S> FromBoxedSampleSlice<S> for Box<[S]>
 }
 
 impl<'a, F> FromFrameSlice<'a, F> for &'a [F]
-    where F: Frame,
+where
+    F: Frame,
 {
     #[inline]
     fn from_frame_slice(slice: &'a [F]) -> Self {
@@ -833,7 +854,8 @@ impl<'a, F> FromFrameSlice<'a, F> for &'a [F]
 }
 
 impl<'a, F> FromFrameSliceMut<'a, F> for &'a mut [F]
-    where F: Frame,
+where
+    F: Frame,
 {
     #[inline]
     fn from_frame_slice_mut(slice: &'a mut [F]) -> Self {
@@ -842,7 +864,8 @@ impl<'a, F> FromFrameSliceMut<'a, F> for &'a mut [F]
 }
 
 impl<F> FromBoxedFrameSlice<F> for Box<[F]>
-    where F: Frame,
+where
+    F: Frame,
 {
     #[inline]
     fn from_boxed_frame_slice(slice: Box<[F]>) -> Self {
@@ -851,7 +874,8 @@ impl<F> FromBoxedFrameSlice<F> for Box<[F]>
 }
 
 impl<'a, S> ToSampleSlice<'a, S> for &'a [S]
-    where S: Sample,
+where
+    S: Sample,
 {
     #[inline]
     fn to_sample_slice(self) -> &'a [S] {
@@ -860,7 +884,8 @@ impl<'a, S> ToSampleSlice<'a, S> for &'a [S]
 }
 
 impl<'a, S> ToSampleSliceMut<'a, S> for &'a mut [S]
-    where S: Sample,
+where
+    S: Sample,
 {
     #[inline]
     fn to_sample_slice_mut(self) -> &'a mut [S] {
@@ -869,7 +894,8 @@ impl<'a, S> ToSampleSliceMut<'a, S> for &'a mut [S]
 }
 
 impl<S> ToBoxedSampleSlice<S> for Box<[S]>
-    where S: Sample,
+where
+    S: Sample,
 {
     #[inline]
     fn to_boxed_sample_slice(self) -> Box<[S]> {
@@ -878,7 +904,8 @@ impl<S> ToBoxedSampleSlice<S> for Box<[S]>
 }
 
 impl<'a, F> ToFrameSlice<'a, F> for &'a [F]
-    where F: Frame,
+where
+    F: Frame,
 {
     #[inline]
     fn to_frame_slice(self) -> Option<&'a [F]> {
@@ -887,7 +914,8 @@ impl<'a, F> ToFrameSlice<'a, F> for &'a [F]
 }
 
 impl<'a, F> ToFrameSliceMut<'a, F> for &'a mut [F]
-    where F: Frame,
+where
+    F: Frame,
 {
     #[inline]
     fn to_frame_slice_mut(self) -> Option<&'a mut [F]> {
@@ -896,7 +924,8 @@ impl<'a, F> ToFrameSliceMut<'a, F> for &'a mut [F]
 }
 
 impl<F> ToBoxedFrameSlice<F> for Box<[F]>
-    where F: Frame,
+where
+    F: Frame,
 {
     #[inline]
     fn to_boxed_frame_slice(self) -> Option<Box<[F]>> {
@@ -1093,74 +1122,135 @@ impl_from_slice_conversions! {
 ///// Bi-Directional DSP Slice Conversion Traits
 
 
-pub trait DuplexSampleSlice<'a, S>: FromSampleSlice<'a, S> + ToSampleSlice<'a, S>
-    where S: Sample {}
+pub trait DuplexSampleSlice<'a, S>
+    : FromSampleSlice<'a, S> + ToSampleSlice<'a, S>
+where
+    S: Sample
+{
+}
 
 pub trait DuplexFrameSlice<'a, F>: FromFrameSlice<'a, F> + ToFrameSlice<'a, F>
-    where F: Frame {}
+where
+    F: Frame
+{
+}
 
-pub trait DuplexSlice<'a, S, F>: DuplexSampleSlice<'a, S> + DuplexFrameSlice<'a, F>
-    where S: Sample,
-          F: Frame<Sample=S> {}
+pub trait DuplexSlice<'a, S, F>
+    : DuplexSampleSlice<'a, S> + DuplexFrameSlice<'a, F>
+where
+    S: Sample,
+    F: Frame<Sample = S>
+{
+}
 
-pub trait DuplexSampleSliceMut<'a, S>: FromSampleSliceMut<'a, S> + ToSampleSliceMut<'a, S>
-    where S: Sample {}
+pub trait DuplexSampleSliceMut<'a, S>
+    : FromSampleSliceMut<'a, S> + ToSampleSliceMut<'a, S>
+where
+    S: Sample
+{
+}
 
-pub trait DuplexFrameSliceMut<'a, F>: FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F>
-    where F: Frame {}
+pub trait DuplexFrameSliceMut<'a, F>
+    : FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F>
+where
+    F: Frame
+{
+}
 
-pub trait DuplexSliceMut<'a, S, F>: DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F>
-    where S: Sample,
-          F: Frame<Sample=S> {}
+pub trait DuplexSliceMut<'a, S, F>
+    : DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F>
+where
+    S: Sample,
+    F: Frame<Sample = S>
+{
+}
 
-pub trait DuplexBoxedSampleSlice<S>: FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S>
-    where S: Sample {}
+pub trait DuplexBoxedSampleSlice<S>
+    : FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S>
+where
+    S: Sample
+{
+}
 
-pub trait DuplexBoxedFrameSlice<F>: FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>
-    where F: Frame {}
+pub trait DuplexBoxedFrameSlice<F>
+    : FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>
+where
+    F: Frame
+{
+}
 
-pub trait DuplexBoxedSlice<S, F>: DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>
-    where S: Sample,
-          F: Frame<Sample=S> {}
+pub trait DuplexBoxedSlice<S, F>
+    : DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>
+where
+    S: Sample,
+    F: Frame<Sample = S>
+{
+}
 
 ///// Bi-Directional DSP Slice Conversion Trait Implementations
 
 
 impl<'a, S, T> DuplexSampleSlice<'a, S> for T
-    where S: Sample,
-          T: FromSampleSlice<'a, S> + ToSampleSlice<'a, S> {}
+where
+    S: Sample,
+    T: FromSampleSlice<'a, S> + ToSampleSlice<'a, S>,
+{
+}
 
 impl<'a, F, T> DuplexFrameSlice<'a, F> for T
-    where F: Frame,
-          T: FromFrameSlice<'a, F> + ToFrameSlice<'a, F> {}
+where
+    F: Frame,
+    T: FromFrameSlice<'a, F> + ToFrameSlice<'a, F>,
+{
+}
 
 impl<'a, S, F, T> DuplexSlice<'a, S, F> for T
-    where S: Sample,
-          F: Frame<Sample=S>,
-          T: DuplexSampleSlice<'a, S> + DuplexFrameSlice<'a, F> {}
+where
+    S: Sample,
+    F: Frame<Sample = S>,
+    T: DuplexSampleSlice<'a, S> + DuplexFrameSlice<'a, F>,
+{
+}
 
 impl<'a, S, T> DuplexSampleSliceMut<'a, S> for T
-    where S: Sample,
-          T: FromSampleSliceMut<'a, S> + ToSampleSliceMut<'a, S> {}
+where
+    S: Sample,
+    T: FromSampleSliceMut<'a, S> + ToSampleSliceMut<'a, S> {}
 
 impl<'a, F, T> DuplexFrameSliceMut<'a, F> for T
-    where F: Frame,
-          T: FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F> {}
+where
+    F: Frame,
+    T: FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F>,
+{
+}
 
 impl<'a, S, F, T> DuplexSliceMut<'a, S, F> for T
-    where S: Sample,
-          F: Frame<Sample=S>,
-          T: DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F> {}
+where
+    S: Sample,
+    F: Frame<Sample = S>,
+    T: DuplexSampleSliceMut<'a, S>
+        + DuplexFrameSliceMut<'a, F>,
+{
+}
 
 impl<S, T> DuplexBoxedSampleSlice<S> for T
-    where S: Sample,
-          T: FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S> {}
+where
+    S: Sample,
+    T: FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S>,
+{
+}
 
 impl<F, T> DuplexBoxedFrameSlice<F> for T
-    where F: Frame,
-          T: FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F> {}
+where
+    F: Frame,
+    T: FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>,
+{
+}
 
 impl<S, F, T> DuplexBoxedSlice<S, F> for T
-    where S: Sample,
-          F: Frame<Sample=S>,
-          T: DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F> {}
+where
+    S: Sample,
+    F: Frame<Sample = S>,
+    T: DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>,
+{
+}
