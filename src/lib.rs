@@ -60,6 +60,7 @@ pub mod conv;
 pub mod frame;
 pub mod peak;
 pub mod ring_buffer;
+pub mod rms;
 pub mod signal;
 pub mod types;
 pub mod window;
