@@ -147,6 +147,23 @@ The **rms** module provides a flexible **Rms** type that can be used for RMS
 (root mean square) detection. Any **Fixed** ring buffer can be used as the
 window for the RMS detection.
 
+The **envelope** module provides a **Detector** type (also known as a
+*Follower*) that allows for detecting the envelope of a signal. **Detector** is
+generic over the type of **Detect**ion - **Rms** and **Peak** detection are
+provided. For example:
+
+```rust
+let signal = signal::rate(4.0).const_hz(1.0).sine();
+let attack = 1.0;
+let release = 1.0;
+let detector = envelope::Detector::peak(attack, release);
+let mut envelope = signal.detect_envelope(detector);
+assert_eq!(
+    envelope.take(4).collect::<Vec<_>>(),
+    vec![[0.0], [0.6321205496788025], [0.23254416035257117], [0.7176687675647109]]
+);
+```
+
 
 Using in a `no_std` environment
 -------------------------------
