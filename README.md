@@ -134,6 +134,9 @@ The **ring_buffer** module provides generic **Fixed** and **Bounded** ring
 buffer types, both of which may be used with owned, borrowed, stack and
 allocated buffers.
 
+The **peak** module can be used for monitoring the peak of a signal. Provided
+peak rectifiers include `full_wave`, `positive_half_wave` and
+`negative_half_wave`.
 
 Using in a `no_std` environment
 -------------------------------

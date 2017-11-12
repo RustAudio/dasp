@@ -53,7 +53,7 @@ pub trait Signal {
     /// ```
     fn next(&mut self) -> Self::Frame;
 
-    /// A signal that maps one set of frames to another
+    /// A signal that maps one set of frames to another.
     ///
     /// # Example
     ///
@@ -68,6 +68,25 @@ pub trait Signal {
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
+    /// }
+    /// ```
+    ///
+    /// This can also be useful for monitoring the peak values of a signal.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::{peak, signal, Frame, Signal};
+    ///
+    /// fn main() {
+    ///     let sine_wave = signal::rate(4.0).const_hz(1.0).sine();
+    ///     let mut peak = sine_wave
+    ///         .map(peak::full_wave)
+    ///         .map(|f| [f[0].round()]);
+    ///     assert_eq!(
+    ///         peak.take(4).collect::<Vec<_>>(),
+    ///         vec![[0.0], [1.0], [0.0], [1.0]]
+    ///     );
     /// }
     /// ```
     fn map<M, F>(self, map: M) -> Map<Self, M, F>

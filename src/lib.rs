@@ -58,6 +58,7 @@ pub use types::{I24, U24, I48, U48};
 pub mod slice;
 pub mod conv;
 pub mod frame;
+pub mod peak;
 pub mod ring_buffer;
 pub mod signal;
 pub mod types;
