@@ -80,6 +80,15 @@ mod ops {
         pub fn sqrt(x: f32) -> f32 {
             x.sqrt()
         }
+
+        #[cfg(feature = "std")]
+        pub fn powf32(a: f32, b: f32) -> f32 {
+            a.powf(b)
+        }
+        #[cfg(not(feature = "std"))]
+        pub fn powf32(a: f32, b: f32) -> f32 {
+            unsafe { core::intrinsics::powf32(a, b) }
+        }
     }
 
     pub mod f64 {

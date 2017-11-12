@@ -23,7 +23,7 @@ where
     F: Frame,
 {
     /// The result of detection.
-    type Output: Frame<NumChannels=F::NumChannels>;
+    type Output: Frame<NumChannels = F::NumChannels>;
     /// Given some frame, return the detected envelope over each channel.
     fn detect(&mut self, frame: F) -> Self::Output;
 }
@@ -31,7 +31,7 @@ where
 /// A `Peak` detector, generic over the `FullWave`, `PositiveHalfWave`, `NegativeHalfWave`
 /// rectifiers.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Peak<R=peak::FullWave> {
+pub struct Peak<R = peak::FullWave> {
     rectifier: R,
 }
 
@@ -86,7 +86,7 @@ where
 }
 
 fn calc_gain(n_frames: f32) -> f32 {
-    core::f32::consts::E.powf(-1.0 / n_frames)
+    ::ops::f32::powf32(core::f32::consts::E, -1.0 / n_frames)
 }
 
 impl<F, S> Detector<F, rms::Rms<F, S>>
@@ -94,7 +94,7 @@ where
     F: Frame,
     S: ring_buffer::Slice<Element = F::Float> + ring_buffer::SliceMut,
 {
-    /// Construct a new **Rms** **Detector**.
+/// Construct a new **Rms** **Detector**.
     pub fn rms(buffer: ring_buffer::Fixed<S>, attack_frames: f32, release_frames: f32) -> Self {
         let rms = rms::Rms::new(buffer);
         Self::new(rms, attack_frames, release_frames)

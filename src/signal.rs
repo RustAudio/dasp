@@ -2648,10 +2648,7 @@ where
 
     /// Consumes `Self` and returns the inner signal `S` and `Detector`.
     pub fn into_parts(self) -> (S, envelope::Detector<S::Frame, D>) {
-        let DetectEnvelope {
-            signal,
-            detector,
-        } = self;
+        let DetectEnvelope { signal, detector } = self;
         (signal, detector)
     }
 }

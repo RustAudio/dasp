@@ -57,7 +57,7 @@ where
     F: Frame,
 {
     /// Frames that can be detected.
-    type Output: Frame<NumChannels=F::NumChannels>;
+    type Output: Frame<NumChannels = F::NumChannels>;
     /// Rectify the given frame.
     fn rectify(&mut self, frame: F) -> Self::Output;
 }
