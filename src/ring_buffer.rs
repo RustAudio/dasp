@@ -481,6 +481,14 @@ pub struct Bounded<S> {
     data: S,
 }
 
+/// An iterator that drains the ring buffer by `pop`ping each element one at a time.
+///
+/// Note that only elements yielded by `DrainBounded::next` will be popped from the ring buffer.
+/// That is, all non-yielded elements will remain in the ring buffer.
+pub struct DrainBounded<'a, S: 'a> {
+    bounded: &'a mut Bounded<S>,
+}
+
 impl<T> Bounded<Box<[T]>>
 where
     T: Copy,
@@ -843,6 +851,30 @@ where
         Some(old_elem)
     }
 
+    /// Produce an iterator that drains the ring buffer by `pop`ping each element one at a time.
+    ///
+    /// Note that only elements yielded by `DrainBounded::next` will be popped from the ring buffer.
+    /// That is, all non-yielded elements will remain in the ring buffer.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    ///
+    /// fn main() {
+    ///     let mut rb = ring_buffer::Bounded::from_full([0, 1, 2, 3]);
+    ///     assert_eq!(rb.drain().take(2).collect::<Vec<_>>(), vec![0, 1]);
+    ///     assert_eq!(rb.pop(), Some(2));
+    ///     assert_eq!(rb.pop(), Some(3));
+    ///     assert_eq!(rb.pop(), None);
+    /// }
+    /// ```
+    pub fn drain(&mut self) -> DrainBounded<S> {
+        DrainBounded {
+            bounded: self,
+        }
+    }
+
     /// Creates a `Bounded` ring buffer from its start index, length and data slice.
     ///
     /// The maximum length of the `Bounded` ring buffer is assumed to the length of the given slice.
@@ -941,5 +973,31 @@ where
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.get_mut(index).expect("index out of range")
+    }
+}
+
+impl<'a, S> Iterator for DrainBounded<'a, S>
+where
+    S: SliceMut,
+    S::Element: Copy,
+{
+    type Item = S::Element;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.bounded.pop()
+    }
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.bounded.len(), Some(self.bounded.len()))
+    }
+}
+
+impl<'a, S> ExactSizeIterator for DrainBounded<'a, S>
+where
+    S: SliceMut,
+    S::Element: Copy,
+{
+    fn len(&self) -> usize {
+        self.bounded.len()
     }
 }
