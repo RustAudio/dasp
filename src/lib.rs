@@ -57,6 +57,7 @@ pub use types::{I24, U24, I48, U48};
 
 pub mod slice;
 pub mod conv;
+pub mod envelope;
 pub mod frame;
 pub mod peak;
 pub mod ring_buffer;
@@ -78,6 +79,15 @@ mod ops {
         #[cfg(feature = "std")]
         pub fn sqrt(x: f32) -> f32 {
             x.sqrt()
+        }
+
+        #[cfg(feature = "std")]
+        pub fn powf32(a: f32, b: f32) -> f32 {
+            a.powf(b)
+        }
+        #[cfg(not(feature = "std"))]
+        pub fn powf32(a: f32, b: f32) -> f32 {
+            unsafe { core::intrinsics::powf32(a, b) }
         }
     }
 

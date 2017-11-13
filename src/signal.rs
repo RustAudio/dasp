@@ -22,6 +22,7 @@
 
 use {BTreeMap, Duplex, Frame, Sample, Rc, VecDeque, Box};
 use core;
+use envelope;
 use interpolate::{Converter, Interpolator};
 use ring_buffer;
 use rms;
@@ -656,6 +657,8 @@ pub trait Signal {
     ///
     /// The window size of the RMS detector is equal to the given ring buffer length.
     ///
+    /// # Example
+    ///
     /// ```
     /// extern crate sample;
     ///
@@ -681,6 +684,41 @@ pub trait Signal {
         Rms {
             signal: self,
             rms: rms::Rms::new(ring_buffer),
+        }
+    }
+
+    /// An adaptor that detects and yields the envelope of the signal.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::{envelope, signal, Signal};
+    ///
+    /// fn main() {
+    ///     let signal = signal::rate(4.0).const_hz(1.0).sine();
+    ///     let attack = 1.0;
+    ///     let release = 1.0;
+    ///     let detector = envelope::Detector::peak(attack, release);
+    ///     let mut envelope = signal.detect_envelope(detector);
+    ///     assert_eq!(
+    ///         envelope.take(4).collect::<Vec<_>>(),
+    ///         vec![[0.0], [0.6321205496788025], [0.23254416035257117], [0.7176687675647109]]
+    ///     );
+    /// }
+    /// ```
+    fn detect_envelope<D>(
+        self,
+        detector: envelope::Detector<Self::Frame, D>,
+    ) -> DetectEnvelope<Self, D>
+    where
+        Self: Sized,
+        D: envelope::Detect<Self::Frame>,
+    {
+        DetectEnvelope {
+            signal: self,
+            detector: detector,
         }
     }
 
@@ -1029,6 +1067,17 @@ where
 {
     signal: S,
     rms: rms::Rms<S::Frame, D>,
+}
+
+/// An adaptor that detects and yields the envelope of the signal.
+#[derive(Clone)]
+pub struct DetectEnvelope<S, D>
+where
+    S: Signal,
+    D: envelope::Detect<S::Frame>,
+{
+    signal: S,
+    detector: envelope::Detector<S::Frame, D>,
 }
 
 
@@ -2579,5 +2628,38 @@ where
     type Frame = <S::Frame as Frame>::Float;
     fn next(&mut self) -> Self::Frame {
         self.rms.next(self.signal.next())
+    }
+}
+
+impl<S, D> DetectEnvelope<S, D>
+where
+    S: Signal,
+    D: envelope::Detect<S::Frame>,
+{
+    /// Set the **Detector**'s attack time as a number of frames.
+    pub fn set_attack_frames(&mut self, frames: f32) {
+        self.detector.set_attack_frames(frames);
+    }
+
+    /// Set the **Detector**'s release time as a number of frames.
+    pub fn set_release_frames(&mut self, frames: f32) {
+        self.detector.set_release_frames(frames);
+    }
+
+    /// Consumes `Self` and returns the inner signal `S` and `Detector`.
+    pub fn into_parts(self) -> (S, envelope::Detector<S::Frame, D>) {
+        let DetectEnvelope { signal, detector } = self;
+        (signal, detector)
+    }
+}
+
+impl<S, D> Signal for DetectEnvelope<S, D>
+where
+    S: Signal,
+    D: envelope::Detect<S::Frame>,
+{
+    type Frame = D::Output;
+    fn next(&mut self) -> Self::Frame {
+        self.detector.next(self.signal.next())
     }
 }
