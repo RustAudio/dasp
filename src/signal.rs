@@ -63,8 +63,10 @@ pub trait Signal {
     /// exhausted. `Sine` on the other hand will always return `false` as it will produce
     /// meaningful values infinitely.
     ///
-    /// The primary purpose of this method is to allow for a zero-cost solution to lifting `Signal`
-    /// methods and operations into `Iterator`s using the `lift` function.
+    /// It should be rare for users to need to call this method directly, unless they are
+    /// implementing their own custom `Signal`s. Instead, idiomatic code will tend toward the
+    /// `Signal::until_exhasted` method which produces an `Iterator` that yields `Frame`s until
+    /// `Signal::is_exhausted` returns `true`.
     ///
     /// Adaptors that source frames from more than one signal (`AddAmp`, `MulHz`, etc) will return
     /// `true` if *any* of the source signals return `true`. In this sense exhaustiveness is
@@ -153,7 +155,7 @@ pub trait Signal {
         }
     }
 
-    /// A signal that maps one set of frames to another
+    /// A signal that maps one set of frames to another.
     ///
     /// # Example
     ///
@@ -891,7 +893,9 @@ pub struct Map<S, M, F> {
     frame: core::marker::PhantomData<F>,
 }
 
-/// A signal that iterates two signals in parallel and combines them with a function
+/// A signal that iterates two signals in parallel and combines them with a function.
+///
+/// `ZipMap::is_exhausted` returns `true` if *either* of the two signals returns `true`.
 #[derive(Clone)]
 pub struct ZipMap<S, O, M, F> {
     this: S,
@@ -1652,6 +1656,10 @@ where
     fn next(&mut self) -> Self::Frame {
         (self.map)(self.signal.next())
     }
+
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
+    }
 }
 
 
@@ -1666,6 +1674,10 @@ where
     #[inline]
     fn next(&mut self) -> Self::Frame {
         (self.map)(self.this.next(), self.other.next())
+    }
+
+    fn is_exhausted(&self) -> bool {
+        self.this.is_exhausted() || self.other.is_exhausted()
     }
 }
 
