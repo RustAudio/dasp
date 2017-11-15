@@ -1,40 +1,35 @@
+// An example of using `sample` to efficiently perform decent quality sample rate conversion on a
+// WAV file entirely on the stack.
+
 extern crate find_folder;
 extern crate hound;
 extern crate sample;
 
-use hound::{WavReader, WavSpec, WavWriter};
-use sample::interpolate::{Sinc, Converter};
-use sample::{signal, Sample, Signal};
-use sample::ring_buffer;
+use hound::{WavReader, WavWriter};
+use sample::{interpolate, ring_buffer, signal, Sample, Signal};
 
 fn main() {
-    let assets = find_folder::Search::ParentsThenKids(5, 5)
-        .for_folder("assets")
-        .unwrap();
-    let mut reader = WavReader::open(assets.join("two_vowels.wav")).unwrap();
-    let samples: Vec<[f64; 1]> = reader
-        .samples::<i16>()
-        .map(|s| [s.unwrap().to_sample()])
-        .collect();
-    let len = samples.len();
-    let signal = signal::from_iter(samples.iter().cloned());
+    // Find and load the wav.
+    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
+    let reader = WavReader::open(assets.join("two_vowels.wav")).unwrap();
 
-    let sample_rate = reader.spec().sample_rate as f64;
-    let new_sample_rate = 10_000.0;
+    // Get the wav spec and create a target with the new desired sample rate.
+    let spec = reader.spec();
+    let mut target = spec;
+    target.sample_rate = 10_000;
+
+    // Read the interleaved samples and convert them to a signal.
+    let samples = reader.into_samples().filter_map(Result::ok).map(i16::to_sample::<f64>);
+    let signal = signal::from_interleaved_samples_iter(samples);
+
+    // Convert the signal's sample rate using `Sinc` interpolation.
     let ring_buffer = ring_buffer::Fixed::from([[0.0]; 100]);
-    let sinc = Sinc::new(ring_buffer);
-    let conv = Converter::from_hz_to_hz(signal, sinc, sample_rate, new_sample_rate);
+    let sinc = interpolate::Sinc::new(ring_buffer);
+    let new_signal = signal.from_hz_to_hz(sinc, spec.sample_rate as f64, target.sample_rate as f64);
 
-    let spec = WavSpec {
-        channels: 1,
-        sample_rate: new_sample_rate as u32,
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-    };
-
-    let mut writer = WavWriter::create(assets.join("two_vowels_10k.wav"), spec).unwrap();
-    let len = (len as f64 * new_sample_rate / sample_rate) as usize;
-    for f in conv.take(len) {
-        writer.write_sample((f[0].to_sample::<i16>())).unwrap();
+    // Write the result to a new file.
+    let mut writer = WavWriter::create(assets.join("two_vowels_10k.wav"), target).unwrap();
+    for frame in new_signal.until_exhausted() {
+        writer.write_sample(frame[0].to_sample::<i16>()).unwrap();
     }
 }

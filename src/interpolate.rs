@@ -177,7 +177,7 @@ where
     }
 
     fn is_exhausted(&self) -> bool {
-        self.source.is_exhausted()
+        self.source.is_exhausted() && self.interpolation_value >= 1.0
     }
 }
 
