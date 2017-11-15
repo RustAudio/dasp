@@ -175,6 +175,10 @@ where
         *interpolation_value += source_to_target_ratio;
         out
     }
+
+    fn is_exhausted(&self) -> bool {
+        self.source.is_exhausted()
+    }
 }
 
 impl<F> Floor<F> {
