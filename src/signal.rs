@@ -1291,7 +1291,7 @@ where
 /// When the `Iterator` is exhausted, the new `Signal` will yield `F::equilibrium`.
 ///
 /// Note that `Iterator::next` will be called immediately so that `FromIterator` can store the next
-/// pending track and efficiently test for exhaustiveness.
+/// pending frame and efficiently test for exhaustiveness.
 ///
 /// # Example
 ///
