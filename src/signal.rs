@@ -55,6 +55,57 @@ pub trait Signal {
     /// ```
     fn next(&mut self) -> Self::Frame;
 
+    /// Whether or not the signal is exhausted of meaningful frames.
+    ///
+    /// By default, this returns `false` and assumes that the `Signal` is infinite.
+    ///
+    /// As an example, `signal::FromIterator` becomes exhausted once the inner `Iterator` has been
+    /// exhausted. `Sine` on the other hand will always return `false` as it will produce
+    /// meaningful values infinitely.
+    ///
+    /// It should be rare for users to need to call this method directly, unless they are
+    /// implementing their own custom `Signal`s. Instead, idiomatic code will tend toward the
+    /// `Signal::until_exhasted` method which produces an `Iterator` that yields `Frame`s until
+    /// `Signal::is_exhausted` returns `true`.
+    ///
+    /// Adaptors that source frames from more than one signal (`AddAmp`, `MulHz`, etc) will return
+    /// `true` if *any* of the source signals return `true`. In this sense exhaustiveness is
+    /// contagious. This can be likened to the way that `Iterator::zip` begins returning `None`
+    /// when either `A` or `B` begins returning `None`.
+    ///
+    /// ```rust
+    /// extern crate sample;
+    ///
+    /// use sample::{signal, Signal};
+    ///
+    /// fn main() {
+    ///     // Infinite signals always return `false`.
+    ///     let sine_signal = signal::rate(44_100.0).const_hz(400.0).sine();
+    ///     assert_eq!(sine_signal.is_exhausted(), false);
+    ///
+    ///     // Signals over iterators return `true` when the inner iterator is exhausted.
+    ///     let frames = [[0.2], [-0.6], [0.4]];
+    ///     let mut iter_signal = signal::from_iter(frames.iter().cloned());
+    ///     assert_eq!(iter_signal.is_exhausted(), false);
+    ///     iter_signal.by_ref().take(3).count();
+    ///     assert_eq!(iter_signal.is_exhausted(), true);
+    ///
+    ///     // Adaptors return `true` when the first signal becomes exhausted.
+    ///     let a = [[1], [2]];
+    ///     let b = [[1], [2], [3], [4]];
+    ///     let a_signal = signal::from_iter(a.iter().cloned());
+    ///     let b_signal = signal::from_iter(b.iter().cloned());
+    ///     let mut added = a_signal.add_amp(b_signal);
+    ///     assert_eq!(added.is_exhausted(), false);
+    ///     added.by_ref().take(2).count();
+    ///     assert_eq!(added.is_exhausted(), true);
+    /// }
+    /// ```
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        false
+    }
+
     /// A signal that maps one set of frames to another.
     ///
     /// # Example
@@ -104,7 +155,7 @@ pub trait Signal {
         }
     }
 
-    /// A signal that maps one set of frames to another
+    /// A signal that maps one set of frames to another.
     ///
     /// # Example
     ///
@@ -595,6 +646,31 @@ pub trait Signal {
         Take { signal: self, n: n }
     }
 
+    /// Converts the `Signal` into an `Iterator` yielding frames until the `signal.is_exhausted()`
+    /// returns `true`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::{signal, Signal};
+    ///
+    /// fn main() {
+    ///     let frames = [[1], [2]];
+    ///     let signal = signal::from_iter(frames.iter().cloned());
+    ///     assert_eq!(signal.until_exhausted().count(), 2);
+    /// }
+    /// ```
+    fn until_exhausted(self) -> UntilExhausted<Self>
+    where
+        Self: Sized,
+    {
+        UntilExhausted {
+            signal: self,
+        }
+    }
+
     /// Buffers the signal using the given ring buffer.
     ///
     /// When `next` is called on the returned signal, it will first check if the ring buffer is
@@ -752,14 +828,37 @@ pub trait Signal {
 }
 
 
-impl<'a, S> Signal for &'a mut S
+/// Consumes the given `Iterator`, converts it to a `Signal`, applies the given function to the
+/// `Signal` and returns an `Iterator` that will become exhausted when the consumed `Iterator`
+/// does.
+///
+/// This is particularly useful when you want to apply `Signal` methods to an `Iterator` yielding
+/// `Frame`s and return an `Iterator` as a result.
+///
+/// # Example
+///
+/// ```
+/// extern crate sample;
+///
+/// use sample::{signal, Signal};
+///
+/// fn main() {
+///     let frames = vec![[0], [1], [2], [3]];
+///     let offset_frames = signal::lift(frames, |signal| signal.offset_amp(2));
+///     assert_eq!(offset_frames.collect::<Vec<_>>(), vec![[2], [3], [4], [5]]);
+/// }
+/// ```
+pub fn lift<I, F, S>(iter: I, f: F) -> UntilExhausted<S>
 where
-    S: Signal + ?Sized,
+    I: IntoIterator,
+    I::Item: Frame,
+    F: FnOnce(FromIterator<I::IntoIter>) -> S,
+    S: Signal<Frame = I::Item>,
 {
-    type Frame = S::Frame;
-    fn next(&mut self) -> Self::Frame {
-        (**self).next()
-    }
+    let iter = iter.into_iter();
+    let signal = from_iter(iter);
+    let new_signal = f(signal);
+    new_signal.until_exhausted()
 }
 
 
@@ -794,7 +893,9 @@ pub struct Map<S, M, F> {
     frame: core::marker::PhantomData<F>,
 }
 
-/// A signal that iterates two signals in parallel and combines them with a function
+/// A signal that iterates two signals in parallel and combines them with a function.
+///
+/// `ZipMap::is_exhausted` returns `true` if *either* of the two signals returns `true`.
 #[derive(Clone)]
 pub struct ZipMap<S, O, M, F> {
     this: S,
@@ -805,8 +906,12 @@ pub struct ZipMap<S, O, M, F> {
 
 /// A type that wraps an Iterator and provides a `Signal` implementation for it.
 #[derive(Clone)]
-pub struct FromIterator<I> {
+pub struct FromIterator<I>
+where
+    I: Iterator,
+{
     iter: I,
+    next: Option<I::Item>,
 }
 
 /// An iterator that converts an iterator of `Sample`s to an iterator of `Frame`s.
@@ -818,7 +923,7 @@ where
     F: Frame<Sample = I::Item>,
 {
     samples: I,
-    frame: core::marker::PhantomData<F>,
+    next: Option<F>,
 }
 
 /// The rate at which phrase a **Signal** is sampled.
@@ -835,8 +940,8 @@ pub struct ConstHz {
 
 /// An iterator that yields the step size for a phase.
 #[derive(Clone)]
-pub struct Hz<I> {
-    hz: I,
+pub struct Hz<S> {
+    hz: S,
     last_step_size: f64,
     rate: Rate,
 }
@@ -981,6 +1086,15 @@ where
     samples: IntoInterleavedSamples<S>,
 }
 
+/// Yields frames from the signal until the `signal.is_exhausted()` returns `true`.
+#[derive(Clone)]
+pub struct UntilExhausted<S>
+where
+    S: Signal,
+{
+    signal: S,
+}
+
 /// Clips samples in each frame yielded by `signal` to the given threshhold amplitude.
 #[derive(Clone)]
 pub struct ClipAmp<S>
@@ -1111,6 +1225,9 @@ where
 
 /// A signal that generates frames using the given function.
 ///
+/// The resulting signal is assumed to be infinite and `is_exhausted` will always return `false`.
+/// To create an exhaustive signal first create an `Iterator` and then use `from_iter`.
+///
 /// # Example
 ///
 /// ```rust
@@ -1138,6 +1255,9 @@ where
 
 
 /// A signal that generates frames using the given function which may mutate some state.
+///
+/// The resulting signal is assumed to be infinite and `is_exhausted` will always return `false`.
+/// To create an exhaustive signal first create an `Iterator` and then use `from_iter`.
 ///
 /// # Example
 ///
@@ -1170,10 +1290,12 @@ where
 }
 
 
-
 /// Create a new `Signal` from the given `Frame`-yielding `Iterator`.
 ///
 /// When the `Iterator` is exhausted, the new `Signal` will yield `F::equilibrium`.
+///
+/// Note that `Iterator::next` will be called immediately so that `FromIterator` can store the next
+/// pending frame and efficiently test for exhaustiveness.
 ///
 /// # Example
 ///
@@ -1197,7 +1319,12 @@ where
     I: IntoIterator,
     I::Item: Frame,
 {
-    FromIterator { iter: frames.into_iter() }
+    let mut iter = frames.into_iter();
+    let next = iter.next();
+    FromIterator {
+        iter: iter,
+        next: next,
+    }
 }
 
 
@@ -1233,9 +1360,11 @@ where
     I::Item: Sample,
     F: Frame<Sample = I::Item>,
 {
+    let mut samples = samples.into_iter();
+    let next = Frame::from_samples(&mut samples);
     FromInterleavedSamplesIterator {
-        samples: samples.into_iter(),
-        frame: core::marker::PhantomData,
+        samples: samples,
+        next: next,
     }
 }
 
@@ -1394,6 +1523,24 @@ pub fn noise_simplex<S>(phase: Phase<S>) -> NoiseSimplex<S> {
 
 //// Trait Implementations for Signal Types.
 
+
+impl<'a, S> Signal for &'a mut S
+where
+    S: Signal + ?Sized,
+{
+    type Frame = S::Frame;
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        (**self).next()
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        (**self).is_exhausted()
+    }
+}
+
+
 impl<S> Signal for Box<S>
 where
     S: Signal + ?Sized,
@@ -1403,7 +1550,13 @@ where
     fn next(&mut self) -> Self::Frame {
         (**self).next()
     }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        (**self).is_exhausted()
+    }
 }
+
 
 impl<I> Signal for FromIterator<I>
 where
@@ -1413,10 +1566,18 @@ where
     type Frame = I::Item;
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        match self.iter.next() {
-            Some(frame) => frame,
-            None => Self::Frame::equilibrium(),
+        match self.next.take() {
+            Some(frame) => {
+                self.next = self.iter.next();
+                frame
+            },
+            None => Frame::equilibrium(),
         }
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.next.is_none()
     }
 }
 
@@ -1430,7 +1591,18 @@ where
     type Frame = F;
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        F::from_samples(&mut self.samples).unwrap_or(F::equilibrium())
+        match self.next.take() {
+            Some(frame) => {
+                self.next = F::from_samples(&mut self.samples);
+                frame
+            },
+            None => F::equilibrium(),
+        }
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.next.is_none()
     }
 }
 
@@ -1484,6 +1656,10 @@ where
     fn next(&mut self) -> Self::Frame {
         (self.map)(self.signal.next())
     }
+
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
+    }
 }
 
 
@@ -1499,6 +1675,10 @@ where
     fn next(&mut self) -> Self::Frame {
         (self.map)(self.this.next(), self.other.next())
     }
+
+    fn is_exhausted(&self) -> bool {
+        self.this.is_exhausted() || self.other.is_exhausted()
+    }
 }
 
 
@@ -1510,6 +1690,11 @@ where
     #[inline]
     fn next(&mut self) -> Self::Frame {
         [self.step()]
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.hz.is_exhausted()
     }
 }
 
@@ -2130,6 +2315,11 @@ where
     fn next(&mut self) -> Self::Frame {
         self.a.next().add_amp(self.b.next())
     }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.a.is_exhausted() || self.b.is_exhausted()
+    }
 }
 
 
@@ -2145,6 +2335,11 @@ where
     fn next(&mut self) -> Self::Frame {
         self.a.next().mul_amp(self.b.next())
     }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.a.is_exhausted() || self.b.is_exhausted()
+    }
 }
 
 
@@ -2156,6 +2351,11 @@ where
     #[inline]
     fn next(&mut self) -> Self::Frame {
         self.signal.next().scale_amp(self.amp)
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
     }
 }
 
@@ -2171,6 +2371,11 @@ where
     fn next(&mut self) -> Self::Frame {
         self.signal.next().mul_amp(self.amp_frame)
     }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
+    }
 }
 
 
@@ -2182,6 +2387,11 @@ where
     #[inline]
     fn next(&mut self) -> Self::Frame {
         self.signal.next().offset_amp(self.offset)
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
     }
 }
 
@@ -2196,6 +2406,11 @@ where
     #[inline]
     fn next(&mut self) -> Self::Frame {
         self.signal.next().add_amp(self.amp_frame)
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
     }
 }
 
@@ -2214,6 +2429,11 @@ where
         self.signal.set_playback_hz_scale(mul);
         self.signal.next()
     }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted() || self.mul_per_frame.is_exhausted()
+    }
 }
 
 
@@ -2231,6 +2451,11 @@ where
             self.signal.next()
         }
     }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.n_frames == 0 && self.signal.is_exhausted()
+    }
 }
 
 
@@ -2245,6 +2470,11 @@ where
         let out = self.signal.next();
         (self.inspect)(&out);
         out
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
     }
 }
 
@@ -2279,6 +2509,20 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.samples.next_sample())
+    }
+}
+
+impl<S> Iterator for UntilExhausted<S>
+where
+    S: Signal,
+{
+    type Item = S::Frame;
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.signal.is_exhausted() {
+            return None;
+        }
+        Some(self.signal.next())
     }
 }
 
@@ -2326,6 +2570,11 @@ where
                 s
             }.to_sample()
         })
+    }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
     }
 }
 
@@ -2477,6 +2726,12 @@ where
     fn next(&mut self) -> Self::Frame {
         self.node.borrow_mut().next_frame(self.key)
     }
+
+    #[inline]
+    fn is_exhausted(&self) -> bool {
+        let node = self.node.borrow();
+        node.pending_frames(self.key) == 0 && node.signal.is_exhausted()
+    }
 }
 
 impl<S> Drop for Output<S>
@@ -2585,6 +2840,10 @@ where
             }
         }
     }
+
+    fn is_exhausted(&self) -> bool {
+        self.ring_buffer.len() == 0 && self.signal.is_exhausted()
+    }
 }
 
 impl<'a, D> Iterator for BufferedFrames<'a, D>
@@ -2629,6 +2888,10 @@ where
     fn next(&mut self) -> Self::Frame {
         self.rms.next(self.signal.next())
     }
+
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
+    }
 }
 
 impl<S, D> DetectEnvelope<S, D>
@@ -2661,5 +2924,9 @@ where
     type Frame = D::Output;
     fn next(&mut self) -> Self::Frame {
         self.detector.next(self.signal.next())
+    }
+
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
     }
 }
