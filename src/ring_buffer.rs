@@ -607,6 +607,26 @@ where
         self.len
     }
 
+    /// Whether or not the ring buffer's length is equal to `0`.
+    ///
+    /// Equivalent to `self.len() == 0`.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    ///
+    /// fn main() {
+    ///     let mut rb = ring_buffer::Bounded::<[i32; 2]>::array();
+    ///     assert!(rb.is_empty());
+    ///     rb.push(0);
+    ///     assert!(!rb.is_empty());
+    /// }
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Whether or not the ring buffer's length is equal to the maximum length.
     ///
     /// Equivalent to `self.len() == self.max_len()`.
