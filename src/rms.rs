@@ -35,6 +35,19 @@ where
     /// Construct a new **Rms** that uses the given ring buffer as its window.
     ///
     /// The window size of the **Rms** is equal to the length of the given ring buffer.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    /// use sample::rms::Rms;
+    ///
+    /// fn main() {
+    ///     let window = ring_buffer::Fixed::from([[0.0]; 4]);
+    ///     let mut rms = Rms::new(window);
+    ///     rms.next([0.5]);
+    /// }
+    /// ```
     pub fn new(ring_buffer: ring_buffer::Fixed<S>) -> Self {
         Rms {
             frame: PhantomData,
@@ -44,6 +57,22 @@ where
     }
 
     /// Zeroes the square_sum and the buffer of the `window`.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    /// use sample::rms::Rms;
+    ///
+    /// fn main() {
+    ///     let window = ring_buffer::Fixed::from([[0.0]; 4]);
+    ///     let mut rms = Rms::new(window);
+    ///     rms.next([0.6]);
+    ///     rms.next([0.9]);
+    ///     rms.reset();
+    ///     assert_eq!(rms.current(), [0.0]);
+    /// }
+    /// ```
     pub fn reset(&mut self)
     where
         S: ring_buffer::SliceMut,
@@ -55,6 +84,21 @@ where
     }
 
     /// The length of the window as a number of frames.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    /// use sample::rms::Rms;
+    ///
+    /// fn main() {
+    ///     let window = ring_buffer::Fixed::from([[0.0]; 4]);
+    ///     let mut rms = Rms::new(window);
+    ///     assert_eq!(rms.window_frames(), 4);
+    ///     rms.next([0.5]);
+    ///     assert_eq!(rms.window_frames(), 4);
+    /// }
+    /// ```
     #[inline]
     pub fn window_frames(&self) -> usize {
         self.window.len()
@@ -68,6 +112,22 @@ where
     /// added.
     ///
     /// This method uses `Rms::next_squared` internally and then calculates the square root.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    /// use sample::rms::Rms;
+    ///
+    /// fn main() {
+    ///     let window = ring_buffer::Fixed::from([[0.0]; 4]);
+    ///     let mut rms = Rms::new(window);
+    ///     assert_eq!(rms.next([1.0]), [0.5]);
+    ///     assert_eq!(rms.next([-1.0]), [0.7071067811865476]);
+    ///     assert_eq!(rms.next([1.0]), [0.8660254037844386]);
+    ///     assert_eq!(rms.next([-1.0]), [1.0]);
+    /// }
+    /// ```
     #[inline]
     pub fn next(&mut self, new_frame: F) -> F::Float
     where
@@ -108,6 +168,29 @@ where
     pub fn into_parts(self) -> (ring_buffer::Fixed<S>, S::Element) {
         let Rms { window, square_sum, .. } = self;
         (window, square_sum)
+    }
+
+    /// Calculates the RMS of all frames currently stored within the inner window.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::ring_buffer;
+    /// use sample::rms::Rms;
+    ///
+    /// fn main() {
+    ///     let window = ring_buffer::Fixed::from([[0.0]; 4]);
+    ///     let mut rms = Rms::new(window);
+    ///     assert_eq!(rms.current(), [0.0]);
+    ///     rms.next([1.0]);
+    ///     rms.next([1.0]);
+    ///     rms.next([1.0]);
+    ///     rms.next([1.0]);
+    ///     assert_eq!(rms.current(), [1.0]);
+    /// }
+    /// ```
+    pub fn current(&self) -> F::Float {
+        self.calc_rms_squared().map(|s| s.sample_sqrt())
     }
 
     fn calc_rms_squared(&self) -> F::Float {
