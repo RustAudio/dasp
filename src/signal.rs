@@ -22,6 +22,7 @@
 
 use {BTreeMap, Duplex, Frame, Sample, Rc, VecDeque, Box};
 use core;
+use core::cell::RefCell;
 use envelope;
 use interpolate::{Converter, Interpolator};
 use ring_buffer;
@@ -580,6 +581,71 @@ pub trait Signal {
         }
     }
 
+    /// Forks `Self` into two signals that produce the same frames.
+    ///
+    /// The given `ring_buffer` must be empty to ensure correct behaviour.
+    ///
+    /// Each time a frame is requested from the signal on one branch, that frame will be pushed to
+    /// the given `ring_buffer` of pending frames to be collected by the other branch and a flag
+    /// will be set to indicate that there are pending frames.
+    ///
+    /// **Fork** can be used to share the queue between the two branches by reference
+    /// `fork.by_ref()` or via a reference counted pointer `fork.by_rc()`.
+    ///
+    /// **Fork** is a slightly more efficient alternative to **Bus** when only two branches are
+    /// required.
+    ///
+    /// **Note:** It is up to the user to ensure that there are never more than
+    /// `ring_buffer.max_len()` pending frames - otherwise the oldest frames will be overridden and
+    /// glitching may occur on the lagging branch.
+    ///
+    /// **Panic!**s if the given `ring_buffer` is not empty in order to guarantee correct
+    /// behaviour.
+    ///
+    /// ```
+    /// extern crate sample;
+    ///
+    /// use sample::{ring_buffer, signal, Signal};
+    ///
+    /// fn main() {
+    ///     let signal = signal::rate(44_100.0).const_hz(440.0).sine();
+    ///     let ring_buffer = ring_buffer::Bounded::<[[f64; 1]; 64]>::array();
+    ///     let mut fork = signal.fork(ring_buffer);
+    ///
+    ///     // Forks can be split into their branches via reference.
+    ///     {
+    ///         let (mut a, mut b) = fork.by_ref();
+    ///         assert_eq!(a.next(), b.next());
+    ///         assert_eq!(a.by_ref().take(64).collect::<Vec<_>>(),
+    ///                    b.by_ref().take(64).collect::<Vec<_>>());
+    ///     }
+    ///
+    ///     // Forks can also be split via reference counted pointer.
+    ///     let (mut a, mut b) = fork.by_rc();
+    ///     assert_eq!(a.next(), b.next());
+    ///     assert_eq!(a.by_ref().take(64).collect::<Vec<_>>(),
+    ///                b.by_ref().take(64).collect::<Vec<_>>());
+    ///
+    ///     // The lagging branch will be missing frames if we exceed `ring_buffer.max_len()`
+    ///     // pending frames.
+    ///     assert!(a.by_ref().take(67).collect::<Vec<_>>() !=
+    ///             b.by_ref().take(67).collect::<Vec<_>>())
+    /// }
+    /// ```
+    fn fork<S>(self, ring_buffer: ring_buffer::Bounded<S>) -> Fork<Self, S>
+    where
+        Self: Sized,
+        S: ring_buffer::SliceMut<Element=Self::Frame>,
+    {
+        assert!(ring_buffer.is_empty());
+        let shared = ForkShared {
+            signal: self,
+            ring_buffer: ring_buffer,
+            pending: Fork::<Self, S>::B,
+        };
+        Fork { shared: RefCell::new(shared) }
+    }
+
     /// Moves the `Signal` into a `Bus` from which its output may be divided into multiple other
     /// `Signal`s in the form of `Output`s.
     ///
@@ -1104,6 +1170,146 @@ where
     signal: S,
     thresh: <<S::Frame as Frame>::Sample as Sample>::Signed,
 }
+
+/// Represents a forked `Signal` that has not yet been split into its two branches.
+///
+/// A `Fork` can be split into its two branches via either of the following methods:
+///
+/// - `fork.by_rc()`: consumes self and shares the fork via `Rc<RefCell>`.
+/// - `fork.by_ref()`: borrows self and shares the fork via `&RefCell`.
+pub struct Fork<S, D> {
+    shared: RefCell<ForkShared<S, D>>,
+}
+
+struct ForkShared<S, D> {
+    signal: S,
+    ring_buffer: ring_buffer::Bounded<D>,
+    pending: bool,
+}
+
+impl<S, D> Fork<S, D> {
+    const A: bool = true;
+    const B: bool = false;
+
+    /// Consumes the `Fork` and returns two branches that share the signal and inner ring buffer
+    /// via a reference countered pointer (`Rc`).
+    ///
+    /// Note: This requires dynamical allocation as `Rc<RefCell<Self>>` is used to share the signal
+    /// and ring buffer. A user may avoid this dynamic allocation by using the `Fork::by_ref`
+    /// method instead, however this comes with the ergonomic cost of bounding the lifetime of the
+    /// branches to the lifetime of the fork.
+    /// `Fork::by_ref`
+    pub fn by_rc(self) -> (BranchRcA<S, D>, BranchRcB<S, D>) {
+        let Fork { shared } = self;
+        let shared_fork = Rc::new(shared);
+        let a = BranchRcA { shared_fork: shared_fork.clone() };
+        let b = BranchRcB { shared_fork: shared_fork };
+        (a, b)
+    }
+
+    /// Mutably borrows the `Fork` and returns two branches that share the signal and inner ring
+    /// buffer via reference.
+    ///
+    /// This is more efficient than `Fork::by_rc` as it does not require `Rc`, however it may be
+    /// less ergonomic in some cases as the returned branches are bound to the lifetime of `Fork`.
+    pub fn by_ref(&mut self) -> (BranchRefA<S, D>, BranchRefB<S, D>) {
+        let Fork { ref shared } = *self;
+        let a = BranchRefA { shared_fork: shared };
+        let b = BranchRefB { shared_fork: shared };
+        (a, b)
+    }
+}
+
+// A macro to simplify the boilerplate shared between the two branch types returned by `Fork`.
+macro_rules! define_branch {
+    ($TRc:ident, $TRef:ident, $SELF:ident, $OTHER:ident) => {
+        /// One of the two `Branch` signals returned by `Fork::by_rc`.
+        pub struct $TRc<S, D> {
+            shared_fork: Rc<RefCell<ForkShared<S, D>>>,
+        }
+
+        /// One of the two `Branch` signals returned by `Fork::by_ref`.
+        pub struct $TRef<'a, S: 'a, D: 'a> {
+            shared_fork: &'a RefCell<ForkShared<S, D>>,
+        }
+
+        impl<S, D> Signal for $TRc<S, D>
+        where
+            S: Signal,
+            D: ring_buffer::SliceMut<Element=S::Frame>,
+        {
+            type Frame = S::Frame;
+            fn next(&mut self) -> Self::Frame {
+                let mut fork = self.shared_fork.borrow_mut();
+                if fork.pending == Fork::<S, D>::$SELF {
+                    if let Some(frame) = fork.ring_buffer.pop() {
+                        return frame;
+                    }
+                    fork.pending = Fork::<S, D>::$OTHER;
+                }
+                let frame = fork.signal.next();
+                fork.ring_buffer.push(frame);
+                frame
+            }
+        }
+
+        impl<'a, S, D> Signal for $TRef<'a, S, D>
+        where
+            S: 'a + Signal,
+            D: 'a + ring_buffer::SliceMut<Element=S::Frame>,
+        {
+            type Frame = S::Frame;
+            fn next(&mut self) -> Self::Frame {
+                let mut fork = self.shared_fork.borrow_mut();
+                if fork.pending == Fork::<S, D>::$SELF {
+                    if let Some(frame) = fork.ring_buffer.pop() {
+                        return frame;
+                    }
+                    fork.pending = Fork::<S, D>::$OTHER;
+                }
+                let frame = fork.signal.next();
+                fork.ring_buffer.push(frame);
+                frame
+            }
+        }
+
+        impl<S, D> $TRc<S, D>
+        where
+            D: ring_buffer::Slice,
+            D::Element: Copy,
+        {
+            /// The number of frames that are pending collection by this branch.
+            pub fn pending_frames(&self) -> usize {
+                let fork = self.shared_fork.borrow();
+                if fork.pending == Fork::<S, D>::$SELF {
+                    fork.ring_buffer.len()
+                } else {
+                    0
+                }
+            }
+        }
+
+        impl<'a, S, D> $TRef<'a, S, D>
+        where
+            D: ring_buffer::Slice,
+            D::Element: Copy,
+        {
+            /// The number of frames that are pending collection by this branch.
+            pub fn pending_frames(&self) -> usize {
+                let fork = self.shared_fork.borrow();
+                if fork.pending == Fork::<S, D>::$SELF {
+                    fork.ring_buffer.len()
+                } else {
+                    0
+                }
+            }
+        }
+    };
+}
+
+define_branch!(BranchRcA, BranchRefA, A, B);
+define_branch!(BranchRcB, BranchRefB, B, A);
+
 
 /// A type which allows for `send`ing a single `Signal` to multiple outputs.
 ///
