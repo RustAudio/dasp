@@ -55,6 +55,7 @@ pub use frame::Frame;
 pub use signal::Signal;
 pub use types::{I24, U24, I48, U48};
 
+pub mod acf;
 pub mod slice;
 pub mod conv;
 pub mod envelope;
