@@ -86,7 +86,11 @@ where
 }
 
 fn calc_gain(n_frames: f32) -> f32 {
-    ::ops::f32::powf32(core::f32::consts::E, -1.0 / n_frames)
+    if n_frames == 0.0 {
+        0.0
+    } else {
+        ::ops::f32::powf32(core::f32::consts::E, -1.0 / n_frames)
+    }
 }
 
 impl<F, S> Detector<F, rms::Rms<F, S>>
@@ -167,7 +171,7 @@ where
 
     /// Set the **Detector**'s release time as a number of frames.
     pub fn set_release_frames(&mut self, frames: f32) {
-        self.attack_gain = calc_gain(frames);
+        self.release_gain = calc_gain(frames);
     }
 
     /// Given the next input signal frame, detect and return the next envelope frame.
