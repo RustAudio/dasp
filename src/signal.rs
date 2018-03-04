@@ -1967,17 +1967,16 @@ where
 
 
 impl Rate {
-    /// Create a `ConstHz` iterator which consistently yields "hz / rate".
+    /// Create a `ConstHz` signal which consistently yields `hz / rate`.
     pub fn const_hz(self, hz: f64) -> ConstHz {
         ConstHz { step: hz / self.hz }
     }
 
-    /// Create a variable `hz` some iterator that yields hz and an initial hz.
-    ///
-    /// The `Hz` iterator yields phase step sizes equal to "hz / rate".
-    pub fn hz<I>(self, init: f64, hz: I) -> Hz<I>
+    /// Create a `Hz` signal which yields phase step sizes controlled by an input
+    /// signal `hz`.
+    pub fn hz<S>(self, init: f64, hz: S) -> Hz<S>
     where
-        I: Iterator<Item = f64>,
+        S: Signal<Frame = [f64; 1]>,
     {
         Hz {
             hz: hz,
