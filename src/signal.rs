@@ -1177,10 +1177,12 @@ where
 ///
 /// - `fork.by_rc()`: consumes self and shares the fork via `Rc<RefCell>`.
 /// - `fork.by_ref()`: borrows self and shares the fork via `&RefCell`.
+#[derive(Clone)]
 pub struct Fork<S, D> {
     shared: RefCell<ForkShared<S, D>>,
 }
 
+#[derive(Clone)]
 struct ForkShared<S, D> {
     signal: S,
     ring_buffer: ring_buffer::Bounded<D>,
