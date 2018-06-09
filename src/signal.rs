@@ -1008,7 +1008,6 @@ pub struct ConstHz {
 #[derive(Clone)]
 pub struct Hz<S> {
     hz: S,
-    last_step_size: f64,
     rate: Rate,
 }
 
@@ -1999,7 +1998,6 @@ impl Rate {
     {
         Hz {
             hz: hz,
-            last_step_size: init / self.hz,
             rate: self,
         }
     }
@@ -2100,8 +2098,7 @@ where
     #[inline]
     fn step(&mut self) -> f64 {
         let hz = self.hz.next()[0];
-        self.last_step_size = hz / self.rate.hz;
-        hz
+        hz / self.rate.hz
     }
 }
 
