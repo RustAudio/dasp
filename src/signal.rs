@@ -1974,6 +1974,25 @@ impl Rate {
 
     /// Create a `Hz` signal which yields phase step sizes controlled by an input
     /// signal `hz`.
+    /// 
+    /// # Example
+    /// 
+    /// ``` rust
+    /// extern crate sample;
+    /// 
+    /// use sample::{signal, Signal};
+    /// 
+    /// fn main() {
+    ///     let step = signal::rate(4.0).hz(1.0, signal::gen(|| [1.0]));
+    ///     let mut phase = signal::phase(step);
+    ///     assert_eq!(phase.next(), [0.0]);
+    ///     assert_eq!(phase.next(), [0.25]);
+    ///     assert_eq!(phase.next(), [0.5]);
+    ///     assert_eq!(phase.next(), [0.75]);
+    ///     assert_eq!(phase.next(), [0.0]);
+    ///     assert_eq!(phase.next(), [0.25]);
+    /// }
+    /// ```
     pub fn hz<S>(self, init: f64, hz: S) -> Hz<S>
     where
         S: Signal<Frame = [f64; 1]>,
