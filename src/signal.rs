@@ -1984,7 +1984,7 @@ impl Rate {
     /// use sample::{signal, Signal};
     /// 
     /// fn main() {
-    ///     let step = signal::rate(4.0).hz(1.0, signal::gen(|| [1.0]));
+    ///     let step = signal::rate(4.0).hz(signal::gen(|| [1.0]));
     ///     let mut phase = signal::phase(step);
     ///     assert_eq!(phase.next(), [0.0]);
     ///     assert_eq!(phase.next(), [0.25]);
@@ -1994,7 +1994,7 @@ impl Rate {
     ///     assert_eq!(phase.next(), [0.25]);
     /// }
     /// ```
-    pub fn hz<S>(self, init: f64, hz: S) -> Hz<S>
+    pub fn hz<S>(self, hz: S) -> Hz<S>
     where
         S: Signal<Frame = [f64; 1]>,
     {
