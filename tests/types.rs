@@ -23,7 +23,7 @@ macro_rules! test_type {
             #[should_panic]
             fn add_panic_debug() {
                 use sample::types::$mod_name::{self, $T};
-                $mod_name::MAX + $T::new(1).unwrap();
+                let _ = $mod_name::MAX + $T::new(1).unwrap();
             }
 
             #[cfg(debug_assertions)]
@@ -31,7 +31,7 @@ macro_rules! test_type {
             #[should_panic]
             fn sub_panic_debug() {
                 use sample::types::$mod_name::{self, $T};
-                $mod_name::MIN - $T::new(1).unwrap();
+                let _ = $mod_name::MIN - $T::new(1).unwrap();
             }
 
             #[cfg(debug_assertions)]
@@ -39,7 +39,7 @@ macro_rules! test_type {
             #[should_panic]
             fn mul_panic_debug() {
                 use sample::types::$mod_name::{self, $T};
-                $mod_name::MAX * $T::new(2).unwrap();
+                let _ = $mod_name::MAX * $T::new(2).unwrap();
             }
 
             #[cfg(not(debug_assertions))]
