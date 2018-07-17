@@ -62,6 +62,21 @@ pub trait Interpolator {
     fn next_source_frame(&mut self, source_frame: Self::Frame);
 }
 
+impl<'a, I> Interpolator for &'a mut I
+where
+    I: Interpolator,
+{
+    type Frame = I::Frame;
+
+    fn interpolate(&self, x: f64) -> Self::Frame {
+        (**self).interpolate(x)
+    }
+
+    fn next_source_frame(&mut self, source_frame: Self::Frame) {
+        (**self).next_source_frame(source_frame)
+    }
+}
+
 impl<S, I> Converter<S, I>
 where
     S: Signal,
