@@ -323,7 +323,7 @@ where
         (0..max_depth).fold(Self::Frame::equilibrium(), |mut v, n| {
             v = {
                 let a = PI * (phil + n as f64);
-                let first = sin(a) / a;
+                let first = if a == 0.0 { 1.0 } else { sin(a) / a };
                 let second = 0.5 + 0.5 * cos(a / (phil + max_depth as f64));
                 v.zip_map(self.frames[nr - n], |vs, r_lag| {
                     vs.add_amp(
@@ -335,7 +335,7 @@ where
             };
 
             let a = PI * (phir + n as f64);
-            let first = sin(a) / a;
+            let first = if a == 0.0 { 1.0 } else { sin(a) / a };
             let second = 0.5 + 0.5 * cos(a / (phir + max_depth as f64));
             v.zip_map(self.frames[nl + n], |vs, r_lag| {
                 vs.add_amp(

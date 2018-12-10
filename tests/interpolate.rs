@@ -2,7 +2,8 @@
 
 extern crate sample;
 
-use sample::interpolate::{Converter, Floor, Linear};
+use sample::interpolate::{Converter, Floor, Linear, Sinc};
+use sample::ring_buffer;
 use sample::{signal, Signal};
 
 #[test]
@@ -51,5 +52,20 @@ fn test_scale_playback_rate() {
     assert_eq!(
         &frames[..],
         &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]
+    );
+}
+
+#[test]
+fn test_sinc() {
+    let foo = [[0.0f64], [1.0], [0.0], [-1.0]];
+    let source = signal::from_iter(foo.iter().cloned());
+
+    let frames = ring_buffer::Fixed::from(vec![[0.0]; 50]);
+    let interp = Sinc::new(frames);
+    let resampled = source.from_hz_to_hz(interp, 44100.0, 11025.0);
+
+    assert_eq!(
+        resampled.until_exhausted().find(|sample| sample[0].is_nan()),
+        None
     );
 }
