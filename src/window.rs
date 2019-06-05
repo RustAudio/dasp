@@ -13,7 +13,7 @@ pub trait Type {
     fn at_phase<S: Sample>(phase: S) -> S;
 }
 
-/// A type of window function, also known as teh "raised cosine window".
+/// A type of window function, also known as the "raised cosine window".
 ///
 /// [Wiki entry](https://en.wikipedia.org/wiki/Window_function#Hann_.28Hanning.29_window).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
