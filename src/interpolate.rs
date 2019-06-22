@@ -28,11 +28,13 @@ where
 }
 
 /// Interpolator that just rounds off any values to the previous value from the source
+#[derive(Clone)]
 pub struct Floor<F> {
     left: F,
 }
 
 /// Interpolator that interpolates linearly between the previous value and the next value
+#[derive(Clone)]
 pub struct Linear<F> {
     left: F,
     right: F,
@@ -42,6 +44,7 @@ pub struct Linear<F> {
 ///
 /// Generally accepted as one of the better sample rate converters, although it uses significantly
 /// more computation.
+#[derive(Clone)]
 pub struct Sinc<S> {
     frames: ring_buffer::Fixed<S>,
     idx: usize,
