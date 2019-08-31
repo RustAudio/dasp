@@ -9,4 +9,8 @@ script:
 - cargo check -v
 - cargo test -v
 - cargo test --release -v
+- |
+  [ "$TRAVIS_RUST_VERSION" != "nightly" ] || cargo test --features const_generics -v
+- |
+  [ "$TRAVIS_RUST_VERSION" != "nightly" ] || cargo test --features const_generics --release -v
 - cargo doc -v
