@@ -17,3 +17,4 @@ portaudio = "0.7"
 [features]
 default = ["std"]
 std = []
+const_generics = []
