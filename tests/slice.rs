@@ -1,5 +1,6 @@
 extern crate sample;
 
+#[cfg(feature="slice")]
 #[test]
 fn test_add_slice() {
     let mut a = [[-0.5]; 32];
@@ -8,6 +9,7 @@ fn test_add_slice() {
     assert_eq!([[0.0]; 32], a);
 }
 
+#[cfg(feature="slice")]
 #[test]
 #[should_panic]
 fn test_add_slice_panic() {
@@ -16,6 +18,7 @@ fn test_add_slice_panic() {
     sample::slice::add_in_place(&mut a, &b);
 }
 
+#[cfg(feature="slice")]
 #[test]
 fn test_write_slice() {
     let mut a = [[0.0]; 32];
@@ -24,6 +27,7 @@ fn test_write_slice() {
     assert_eq!([[1.0]; 32], a);
 }
 
+#[cfg(feature="slice")]
 #[test]
 #[should_panic]
 fn test_write_slice_panic() {
@@ -32,6 +36,7 @@ fn test_write_slice_panic() {
     sample::slice::write(&mut a, &b);
 }
 
+#[cfg(feature="slice")]
 #[test]
 fn test_add_slice_with_amp_per_channel() {
     let mut a = [[0.5]; 32];
@@ -41,6 +46,7 @@ fn test_add_slice_with_amp_per_channel() {
     assert_eq!([[1.0]; 32], a);
 }
 
+#[cfg(feature="slice")]
 #[test]
 #[should_panic]
 fn test_add_slice_with_amp_per_channel_panic() {

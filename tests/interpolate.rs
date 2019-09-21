@@ -2,10 +2,14 @@
 
 extern crate sample;
 
+#[cfg(feature="interpolate")]
 use sample::interpolate::{Converter, Floor, Linear, Sinc};
+#[cfg(feature="ring_buffer")]
 use sample::ring_buffer;
+#[cfg(feature="signal")]
 use sample::{signal, Signal};
 
+#[cfg(feature="interpolate")]
 #[test]
 fn test_floor_converter() {
     let frames: [[f64; 1]; 3] = [[0.0], [1.0], [2.0]];
@@ -25,6 +29,7 @@ fn test_floor_converter() {
     assert_eq!(conv.next(), [2.0]);
 }
 
+#[cfg(all(feature="interpolate", feature = "signal"))]
 #[test]
 fn test_linear_converter() {
     let frames: [[f64; 1]; 3] = [[0.0], [1.0], [2.0]];
@@ -42,6 +47,7 @@ fn test_linear_converter() {
     assert_eq!(conv.next(), [1.0]);
 }
 
+#[cfg(all(feature="interpolate", feature = "signal"))]
 #[test]
 fn test_scale_playback_rate() {
     // Scale the playback rate by `0.5`
@@ -55,6 +61,7 @@ fn test_scale_playback_rate() {
     );
 }
 
+#[cfg(all(feature="interpolate", feature = "signal"))]
 #[test]
 fn test_sinc() {
     let foo = [[0.0f64], [1.0], [0.0], [-1.0]];

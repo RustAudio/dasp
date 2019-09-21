@@ -2,14 +2,17 @@
 
 extern crate sample;
 
+#[cfg(feature = "signal")]
 use sample::{signal, Signal};
 
+#[cfg(feature = "signal")]
 #[test]
 fn test_equilibrium() {
     let equilibrium: Vec<[i8; 1]> = sample::signal::equilibrium().take(4).collect();
     assert_eq!(equilibrium, vec![[0], [0], [0], [0]]);
 }
 
+#[cfg(feature = "signal")]
 #[test]
 fn test_scale_amp() {
     let foo = [[0.5], [0.8], [-0.4], [-0.2]];
@@ -21,6 +24,7 @@ fn test_scale_amp() {
     assert_eq!(amp_scaled, vec![[0.25], [0.4], [-0.2], [-0.1]]);
 }
 
+#[cfg(feature = "signal")]
 #[test]
 fn test_offset_amp() {
     let foo = [[0.5], [0.9], [-0.4], [-0.2]];

@@ -1,8 +1,11 @@
 extern crate sample;
 
+#[cfg(feature = "frame")]
 use sample::frame::Frame;
+#[cfg(feature = "window")]
 use sample::window::Windower;
 
+#[cfg(feature = "window")]
 #[test]
 fn test_window_at_phase() {
     let window = sample::window::hanning::<[f64; 1]>(9);
@@ -22,8 +25,9 @@ fn test_window_at_phase() {
         println!("Expected: {}\t\tFound: {}", e, r[0]);
         assert!((r[0] - e).abs() < 0.001);
     }
-}
 
+}
+#[cfg(feature = "window")]
 #[test]
 fn test_windower() {
     let data = [[0.1f64], [0.1], [0.2], [0.2], [0.3], [0.3], [0.4], [0.4]];
@@ -47,6 +51,7 @@ fn test_windower() {
     }
 }
 
+#[cfg(feature = "window")]
 #[test]
 fn test_window_size() {
     let v = [[1f32; 1]; 16];

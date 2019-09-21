@@ -15,5 +15,14 @@ hound = "2.0"
 portaudio = "0.7"
 
 [features]
-default = ["std"]
+default = ["std", "slice", "envelope", "frame", "peak", "ring_buffer", "rms", "signal", "window", "interpolate"]
 std = []
+slice = ["frame"]
+envelope = ["frame", "peak", "ring_buffer", "rms", "interpolate", "signal"]
+frame = []
+peak = ["frame"]
+ring_buffer = []
+rms = ["frame", "ring_buffer"]
+signal = ["frame", "envelope", "ring_buffer", "interpolate", "rms"]
+window = ["frame", "signal"]
+interpolate = ["ring_buffer", "frame", "signal"]

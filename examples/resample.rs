@@ -6,8 +6,10 @@ extern crate hound;
 extern crate sample;
 
 use hound::{WavReader, WavWriter};
+#[cfg(all(feature = "interpolate", feature = "ring_buffer", feature = "signal"))]
 use sample::{interpolate, ring_buffer, signal, Sample, Signal};
 
+#[cfg(all(feature = "interpolate", feature = "ring_buffer", feature = "signal"))]
 fn main() {
     // Find and load the wav.
     let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
@@ -32,4 +34,9 @@ fn main() {
     for frame in new_signal.until_exhausted() {
         writer.write_sample(frame[0].to_sample::<i16>()).unwrap();
     }
+}
+
+#[cfg(not(all(feature = "interpolate", feature = "ring_buffer", feature = "signal")))]
+fn main() {
+    panic!("This example only works when compiled with the features 'interpolate', 'ring_buffer' and 'signal'.");
 }

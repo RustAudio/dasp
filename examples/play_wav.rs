@@ -3,8 +3,10 @@ extern crate hound;
 extern crate portaudio as pa;
 extern crate sample;
 
+#[cfg(feature = "signal")]
 use sample::{signal, Signal, ToFrameSliceMut};
 
+#[cfg(feature = "signal")]
 fn main() {
     // Find and load the wav.
     let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
@@ -49,4 +51,9 @@ fn main() {
 
     stream.stop().unwrap();
     stream.close().unwrap();
+}
+
+#[cfg(not(feature = "signal"))]
+fn main() {
+    panic!("This example only works when compiled with the 'signal' feature.");
 }

@@ -13,7 +13,9 @@
 //! Note that floating point conversions use the range -1.0 <= v < 1.0:
 //! `(1.0 as f64).to_sample::<i16>()` will overflow!
 
-use {Box, Frame, Sample};
+use {Box, Sample};
+#[cfg(feature = "frame")]
+use Frame;
 use core;
 use types::{I24, U24, I48, U48};
 
@@ -737,6 +739,7 @@ where
     fn from_boxed_sample_slice(slice: Box<[S]>) -> Option<Self>;
 }
 
+#[cfg(feature = "frame")]
 /// For converting from a slice of `Frame`s to a slice of `Sample`s.
 pub trait FromFrameSlice<'a, F>
 where
@@ -745,6 +748,7 @@ where
     fn from_frame_slice(slice: &'a [F]) -> Self;
 }
 
+#[cfg(feature = "frame")]
 /// For converting from a slice of `Frame`s to a slice of `Sample`s.
 pub trait FromFrameSliceMut<'a, F>
 where
@@ -753,6 +757,7 @@ where
     fn from_frame_slice_mut(slice: &'a mut [F]) -> Self;
 }
 
+#[cfg(feature = "frame")]
 /// For converting from a boxed slice of `Frame`s to a boxed slice of `Sample`s.
 pub trait FromBoxedFrameSlice<F>
 where
@@ -785,6 +790,7 @@ where
     fn to_boxed_sample_slice(self) -> Box<[S]>;
 }
 
+#[cfg(feature = "frame")]
 /// For converting from a slice of `Sample`s to a slice of `Frame`s.
 pub trait ToFrameSlice<'a, F>
 where
@@ -793,6 +799,7 @@ where
     fn to_frame_slice(self) -> Option<&'a [F]>;
 }
 
+#[cfg(feature = "frame")]
 /// For converting from a mutable slice of `Sample`s to a mutable slice of `Frame`s.
 pub trait ToFrameSliceMut<'a, F>
 where
@@ -801,6 +808,7 @@ where
     fn to_frame_slice_mut(self) -> Option<&'a mut [F]>;
 }
 
+#[cfg(feature = "frame")]
 /// For converting from a boxed slice of `Sample`s to a boxed slice of `Frame`s.
 pub trait ToBoxedFrameSlice<F>
 where
@@ -843,6 +851,7 @@ where
     }
 }
 
+#[cfg(feature = "frame")]
 impl<'a, F> FromFrameSlice<'a, F> for &'a [F]
 where
     F: Frame,
@@ -853,6 +862,7 @@ where
     }
 }
 
+#[cfg(feature = "frame")]
 impl<'a, F> FromFrameSliceMut<'a, F> for &'a mut [F]
 where
     F: Frame,
@@ -863,6 +873,7 @@ where
     }
 }
 
+#[cfg(feature = "frame")]
 impl<F> FromBoxedFrameSlice<F> for Box<[F]>
 where
     F: Frame,
@@ -903,6 +914,7 @@ where
     }
 }
 
+#[cfg(feature = "frame")]
 impl<'a, F> ToFrameSlice<'a, F> for &'a [F]
 where
     F: Frame,
@@ -913,6 +925,7 @@ where
     }
 }
 
+#[cfg(feature = "frame")]
 impl<'a, F> ToFrameSliceMut<'a, F> for &'a mut [F]
 where
     F: Frame,
@@ -923,6 +936,7 @@ where
     }
 }
 
+#[cfg(feature = "frame")]
 impl<F> ToBoxedFrameSlice<F> for Box<[F]>
 where
     F: Frame,
@@ -933,6 +947,7 @@ where
     }
 }
 
+#[cfg(feature = "frame")]
 /// A macro for implementing all audio slice conversion traits for each fixed-size array.
 macro_rules! impl_from_slice_conversions {
     ($($N:expr)*) => {
@@ -1114,6 +1129,7 @@ macro_rules! impl_from_slice_conversions {
     };
 }
 
+#[cfg(feature = "frame")]
 impl_from_slice_conversions! {
     1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32
 }
@@ -1129,12 +1145,14 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 pub trait DuplexFrameSlice<'a, F>: FromFrameSlice<'a, F> + ToFrameSlice<'a, F>
 where
     F: Frame
 {
 }
 
+#[cfg(feature = "frame")]
 pub trait DuplexSlice<'a, S, F>
     : DuplexSampleSlice<'a, S> + DuplexFrameSlice<'a, F>
 where
@@ -1150,6 +1168,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 pub trait DuplexFrameSliceMut<'a, F>
     : FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F>
 where
@@ -1157,6 +1176,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 pub trait DuplexSliceMut<'a, S, F>
     : DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F>
 where
@@ -1172,6 +1192,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 pub trait DuplexBoxedFrameSlice<F>
     : FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>
 where
@@ -1179,6 +1200,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 pub trait DuplexBoxedSlice<S, F>
     : DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>
 where
@@ -1197,6 +1219,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 impl<'a, F, T> DuplexFrameSlice<'a, F> for T
 where
     F: Frame,
@@ -1204,6 +1227,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 impl<'a, S, F, T> DuplexSlice<'a, S, F> for T
 where
     S: Sample,
@@ -1217,6 +1241,7 @@ where
     S: Sample,
     T: FromSampleSliceMut<'a, S> + ToSampleSliceMut<'a, S> {}
 
+#[cfg(feature = "frame")]
 impl<'a, F, T> DuplexFrameSliceMut<'a, F> for T
 where
     F: Frame,
@@ -1224,6 +1249,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 impl<'a, S, F, T> DuplexSliceMut<'a, S, F> for T
 where
     S: Sample,
@@ -1240,6 +1266,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 impl<F, T> DuplexBoxedFrameSlice<F> for T
 where
     F: Frame,
@@ -1247,6 +1274,7 @@ where
 {
 }
 
+#[cfg(feature = "frame")]
 impl<S, F, T> DuplexBoxedSlice<S, F> for T
 where
     S: Sample,

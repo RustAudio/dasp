@@ -47,24 +47,51 @@ type Rc<T> = std::rc::Rc<T>;
 
 pub use conv::{FromSample, ToSample, Duplex, FromSampleSlice, ToSampleSlice, DuplexSampleSlice,
                FromSampleSliceMut, ToSampleSliceMut, DuplexSampleSliceMut, FromBoxedSampleSlice,
-               ToBoxedSampleSlice, DuplexBoxedSampleSlice, FromFrameSlice, ToFrameSlice,
+               ToBoxedSampleSlice, DuplexBoxedSampleSlice};
+
+#[cfg(feature = "frame")]
+pub use conv::{FromFrameSlice, ToFrameSlice,
                DuplexFrameSlice, FromFrameSliceMut, ToFrameSliceMut, DuplexFrameSliceMut,
                FromBoxedFrameSlice, ToBoxedFrameSlice, DuplexBoxedFrameSlice, DuplexSlice,
                DuplexSliceMut, DuplexBoxedSlice};
+
+#[cfg(feature = "frame")]
 pub use frame::Frame;
+
+#[cfg(feature = "signal")]
 pub use signal::Signal;
+
 pub use types::{I24, U24, I48, U48};
 
-pub mod slice;
 pub mod conv;
+
+#[cfg(feature = "slice")]
+pub mod slice;
+
+#[cfg(feature = "envelope")]
 pub mod envelope;
+
+#[cfg(feature = "frame")]
 pub mod frame;
+
+#[cfg(feature = "peak")]
 pub mod peak;
+
+#[cfg(feature = "ring_buffer")]
 pub mod ring_buffer;
+
+#[cfg(feature = "rms")]
 pub mod rms;
+
+#[cfg(feature = "envelope")]
 pub mod signal;
+
 pub mod types;
+
+#[cfg(feature = "window")]
 pub mod window;
+
+#[cfg(feature = "interpolate")]
 pub mod interpolate;
 
 mod ops {
@@ -285,6 +312,7 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     ///     assert_eq!(I24::from_sample(0.0), I24::new(0).unwrap());
     /// }
     /// ```
+
     #[inline]
     fn from_sample<S>(s: S) -> Self
     where

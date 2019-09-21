@@ -1,6 +1,7 @@
 extern crate portaudio as pa;
 extern crate sample;
 
+#[cfg(feature = "signal")]
 use sample::{signal, Frame, Sample, Signal, ToFrameSliceMut};
 
 const FRAMES_PER_BUFFER: u32 = 512;
@@ -11,6 +12,7 @@ fn main() {
     run().unwrap();
 }
 
+#[cfg(feature = "signal")]
 fn run() -> Result<(), pa::Error> {
 
     // Create a signal chain to play back 1 second of each oscillator at A4.
@@ -56,4 +58,9 @@ fn run() -> Result<(), pa::Error> {
     try!(stream.close());
 
     Ok(())
+}
+
+#[cfg(not(feature = "signal"))]
+fn run() -> Result<(), pa::Error> {
+    panic!("This example only works when compiled with the 'signal' feature.");
 }
