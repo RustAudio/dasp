@@ -7,6 +7,16 @@ script:
 - | 
   ([ "$TRAVIS_RUST_VERSION" = "nightly" ] && cargo check -v --no-default-features) || [ "$TRAVIS_RUST_VERSION" != "nightly" ]
 - cargo check -v
+- cargo check --tests --examples --no-default-features --features std
+- cargo check --tests --examples --no-default-features --features std,slice
+- cargo check --tests --examples --no-default-features --features std,envelope
+- cargo check --tests --examples --no-default-features --features std,frame
+- cargo check --tests --examples --no-default-features --features std,peak
+- cargo check --tests --examples --no-default-features --features std,ring_buffer
+- cargo check --tests --examples --no-default-features --features std,rms
+- cargo check --tests --examples --no-default-features --features std,signal
+- cargo check --tests --examples --no-default-features --features std,window
+- cargo check --tests --examples --no-default-features --features std,interpolate
 - cargo test -v
 - cargo test --release -v
 - cargo doc -v
