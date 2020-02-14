@@ -3,8 +3,14 @@
 //!
 //! Implementations are provided for all fixed-size arrays up to 32 elements in length.
 
+use conv::{
+    DuplexBoxedFrameSlice, DuplexBoxedSampleSlice, DuplexBoxedSlice, DuplexFrameSlice,
+    DuplexFrameSliceMut, DuplexSampleSlice, DuplexSampleSliceMut, DuplexSlice, DuplexSliceMut,
+    FromBoxedFrameSlice, FromBoxedSampleSlice, FromFrameSlice, FromFrameSliceMut, FromSampleSlice,
+    FromSampleSliceMut, ToBoxedFrameSlice, ToBoxedSampleSlice, ToFrameSlice, ToFrameSliceMut,
+    ToSampleSlice, ToSampleSliceMut,
+};
 use Sample;
-use conv::{FromBoxedSampleSlice, FromFrameSlice, FromFrameSliceMut, FromBoxedFrameSlice, FromSampleSlice, FromSampleSliceMut, ToSampleSlice, ToSampleSliceMut, ToBoxedSampleSlice, ToFrameSlice, DuplexFrameSlice, DuplexSlice, DuplexSampleSlice, DuplexBoxedFrameSlice, DuplexBoxedSampleSlice, DuplexBoxedSlice, ToBoxedFrameSlice, DuplexFrameSliceMut, DuplexSampleSliceMut, DuplexSliceMut, ToFrameSliceMut};
 
 pub type Mono<S> = [S; 1];
 pub type Stereo<S> = [S; 2];
@@ -398,7 +404,7 @@ macro_rules! impl_frame {
     };
 }
 
-impl_frame!{
+impl_frame! {
     N1  1,  [0],
     N2  2,  [0 1],
     N3  3,  [0 1 2],
@@ -433,7 +439,6 @@ impl_frame!{
     N32 32, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31],
 }
 
-
 impl<F> Iterator for Channels<F>
 where
     F: Frame,
@@ -457,7 +462,6 @@ where
         F::n_channels() - self.next_idx
     }
 }
-
 
 impl<'a, F> FromFrameSlice<'a, F> for &'a [F]
 where
@@ -700,8 +704,7 @@ impl<'a, S, F, T> DuplexSliceMut<'a, S, F> for T
 where
     S: Sample,
     F: Frame<Sample = S>,
-    T: DuplexSampleSliceMut<'a, S>
-        + DuplexFrameSliceMut<'a, F>,
+    T: DuplexSampleSliceMut<'a, S> + DuplexFrameSliceMut<'a, F>,
 {
 }
 
