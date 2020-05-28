@@ -19,14 +19,14 @@ within this repository:
 | [**`dasp`**][dasp] | [![Crates.io][dasp-crates-io-svg]][dasp-crates-io] [![docs.rs][dasp-docs-rs-svg]][dasp-docs-rs] | Top-level API with features for all crates. |
 | [**`dasp_sample`**][dasp_sample] | [![Crates.io][dasp_sample-crates-io-svg]][dasp_sample-crates-io] [![docs.rs][dasp_sample-docs-rs-svg]][dasp_sample-docs-rs] | Sample trait, types, conversions and operations. |
 | [**`dasp_frame`**][dasp_frame] | [![Crates.io][dasp_frame-crates-io-svg]][dasp_frame-crates-io] [![docs.rs][dasp_frame-docs-rs-svg]][dasp_frame-docs-rs] | Frame trait, types, conversions and operations. |
-| [**`dasp_slice`**][dasp_slice] | [![Crates.io][dasp_slice-crates-io-svg]][dasp_slice-crates-io] [![docs.rs][dasp_slice-docs-rs-svg]][dasp_slice-docs-rs] | Conversions and operations for slices of samples or frames. |
+| [**`dasp_slice`**][dasp_slice] | [![Crates.io][dasp_slice-crates-io-svg]][dasp_slice-crates-io] [![docs.rs][dasp_slice-docs-rs-svg]][dasp_slice-docs-rs] | Conversions and ops for slices of samples/frames. |
 | [**`dasp_ring_buffer`**][dasp_ring_buffer] | [![Crates.io][dasp_ring_buffer-crates-io-svg]][dasp_ring_buffer-crates-io] [![docs.rs][dasp_ring_buffer-docs-rs-svg]][dasp_ring_buffer-docs-rs] | Simple fixed and bounded ring buffers. |
-| [**`dasp_peak`**][dasp_peak] | [![Crates.io][dasp_peak-crates-io-svg]][dasp_peak-crates-io] [![docs.rs][dasp_peak-docs-rs-svg]][dasp_peak-docs-rs] | Peak detection with half/full positive/negative wave rectifiers. |
+| [**`dasp_peak`**][dasp_peak] | [![Crates.io][dasp_peak-crates-io-svg]][dasp_peak-crates-io] [![docs.rs][dasp_peak-docs-rs-svg]][dasp_peak-docs-rs] | Peak detection with half/full pos/neg wave rectifiers. |
 | [**`dasp_rms`**][dasp_rms] | [![Crates.io][dasp_rms-crates-io-svg]][dasp_rms-crates-io] [![docs.rs][dasp_rms-docs-rs-svg]][dasp_rms-docs-rs] | RMS detection with configurable window. |
-| [**`dasp_envelope`**][dasp_envelope] | [![Crates.io][dasp_envelope-crates-io-svg]][dasp_envelope-crates-io] [![docs.rs][dasp_envelope-docs-rs-svg]][dasp_envelope-docs-rs] | Envelope detection abstraction with peak and RMS implementations. |
-| [**`dasp_interpolate`**][dasp_interpolate] | [![Crates.io][dasp_interpolate-crates-io-svg]][dasp_interpolate-crates-io] [![docs.rs][dasp_interpolate-docs-rs-svg]][dasp_interpolate-docs-rs] | Abstraction for frame interpolation (provides linear, sinc and more). |
-| [**`dasp_window`**][dasp_window] | [![Crates.io][dasp_window-crates-io-svg]][dasp_window-crates-io] [![docs.rs][dasp_window-docs-rs-svg]][dasp_window-docs-rs] | Windowing abstraction with provided hanning and rectangle functions. |
-| [**`dasp_signal`**][dasp_signal] | [![Crates.io][dasp_signal-crates-io-svg]][dasp_signal-crates-io] [![docs.rs][dasp_signal-docs-rs-svg]][dasp_signal-docs-rs] | An iterator-like API for working with streams of audio frames. |
+| [**`dasp_envelope`**][dasp_envelope] | [![Crates.io][dasp_envelope-crates-io-svg]][dasp_envelope-crates-io] [![docs.rs][dasp_envelope-docs-rs-svg]][dasp_envelope-docs-rs] | Envelope detection with peak and RMS impls. |
+| [**`dasp_interpolate`**][dasp_interpolate] | [![Crates.io][dasp_interpolate-crates-io-svg]][dasp_interpolate-crates-io] [![docs.rs][dasp_interpolate-docs-rs-svg]][dasp_interpolate-docs-rs] | Inter-frame rate interpolation (linear, sinc, etc). |
+| [**`dasp_window`**][dasp_window] | [![Crates.io][dasp_window-crates-io-svg]][dasp_window-crates-io] [![docs.rs][dasp_window-docs-rs-svg]][dasp_window-docs-rs] | Windowing function abstraction (hanning, rectangle). |
+| [**`dasp_signal`**][dasp_signal] | [![Crates.io][dasp_signal-crates-io-svg]][dasp_signal-crates-io] [![docs.rs][dasp_signal-docs-rs-svg]][dasp_signal-docs-rs] | Iterator-like API for streams of audio frames. |
 
 [![deps-graph][deps-graph]][deps-graph]
 
@@ -71,7 +71,7 @@ for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
 
-[deps-graph]: https://github.com/RustAudio/sample/blob/master/assets/deps-graph.png
+[deps-graph]: ./assets/deps-graph.png
 
 [dasp]: ./dasp
 [dasp-crates-io]: https://crates.io/crates/dasp
