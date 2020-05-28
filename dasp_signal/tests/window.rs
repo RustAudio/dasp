@@ -8,16 +8,7 @@ use dasp_signal::window::{self, Windower};
 fn test_window_at_phase() {
     let window = window::hanning::<[f64; 1]>(9);
     let expected = [
-        0.0,
-        0.1464,
-        0.5000,
-        0.8536,
-        1.,
-        0.8536,
-        0.5000,
-        0.1464,
-        0.,
-        0.1464,
+        0.0, 0.1464, 0.5000, 0.8536, 1., 0.8536, 0.5000, 0.1464, 0., 0.1464,
     ];
     for (r, e) in window.zip(&expected) {
         println!("Expected: {}\t\tFound: {}", e, r[0]);

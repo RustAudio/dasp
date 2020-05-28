@@ -64,10 +64,7 @@ where
 
     /// Consumes the `Rms` signal and returns its inner signal `S` and `Rms` detector.
     pub fn into_parts(self) -> (S, rms::Rms<S::Frame, D>) {
-        let Rms {
-            signal,
-            rms,
-        } = self;
+        let Rms { signal, rms } = self;
         (signal, rms)
     }
 }
@@ -75,8 +72,7 @@ where
 impl<S, D> Signal for Rms<S, D>
 where
     S: Signal,
-    D: ring_buffer::Slice<Element = <S::Frame as Frame>::Float>
-        + ring_buffer::SliceMut,
+    D: ring_buffer::Slice<Element = <S::Frame as Frame>::Float> + ring_buffer::SliceMut,
 {
     type Frame = <S::Frame as Frame>::Float;
     fn next(&mut self) -> Self::Frame {

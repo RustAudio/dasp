@@ -1,12 +1,14 @@
 // An example of using `sample` to efficiently perform decent quality sample rate conversion on a
 // WAV file entirely on the stack.
 
-use hound::{WavReader, WavWriter};
 use dasp::{interpolate::sinc::Sinc, ring_buffer, signal, Sample, Signal};
+use hound::{WavReader, WavWriter};
 
 fn main() {
     // Find and load the wav.
-    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
+    let assets = find_folder::Search::ParentsThenKids(5, 5)
+        .for_folder("assets")
+        .unwrap();
     let reader = WavReader::open(assets.join("two_vowels.wav")).unwrap();
 
     // Get the wav spec and create a target with the new desired sample rate.
@@ -15,7 +17,10 @@ fn main() {
     target.sample_rate = 10_000;
 
     // Read the interleaved samples and convert them to a signal.
-    let samples = reader.into_samples().filter_map(Result::ok).map(i16::to_sample::<f64>);
+    let samples = reader
+        .into_samples()
+        .filter_map(Result::ok)
+        .map(i16::to_sample::<f64>);
     let signal = signal::from_interleaved_samples_iter(samples);
 
     // Convert the signal's sample rate using `Sinc` interpolation.

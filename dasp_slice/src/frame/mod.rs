@@ -37,18 +37,16 @@ where
 /// For converting to and from a slice of `Frame`s.
 pub trait DuplexFrameSlice<'a, F>: FromFrameSlice<'a, F> + ToFrameSlice<'a, F>
 where
-    F: Frame
+    F: Frame,
 {
 }
 
 /// For converting to and from a mutable slice of `Frame`s.
-pub trait DuplexFrameSliceMut<'a, F>
-    : FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F>
+pub trait DuplexFrameSliceMut<'a, F>: FromFrameSliceMut<'a, F> + ToFrameSliceMut<'a, F>
 where
-    F: Frame
+    F: Frame,
 {
 }
-
 
 impl<'a, F> FromFrameSlice<'a, F> for &'a [F]
 where
@@ -131,7 +129,6 @@ where
 {
     slice.to_frame_slice()
 }
-
 
 /// Converts the given mutable slice into a mutable slice of `Frame`s.
 ///

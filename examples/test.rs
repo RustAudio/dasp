@@ -47,7 +47,6 @@ fn main() {
             sample_i32
         );
 
-
         let wave_f32 = sample_f32.to_sample::<f64>();
         let wave_u8 = sample_u8.to_sample::<f64>();
         let wave_u16 = sample_u16.to_sample::<f64>();

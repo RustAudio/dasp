@@ -47,28 +47,25 @@ where
 }
 
 /// For converting to and from a boxed slice of `Sample`s.
-pub trait DuplexBoxedSampleSlice<S>
-    : FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S>
+pub trait DuplexBoxedSampleSlice<S>: FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S>
 where
-    S: Sample
+    S: Sample,
 {
 }
 
 /// For converting to and from a boxed slice of `Frame`s.
-pub trait DuplexBoxedFrameSlice<F>
-    : FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>
+pub trait DuplexBoxedFrameSlice<F>: FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>
 where
-    F: Frame
+    F: Frame,
 {
 }
 
 /// For converting to and from a boxed slice of `Sample`s of type `S` and a slice of `Frame`s of
 /// type `F`.
-pub trait DuplexBoxedSlice<S, F>
-    : DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>
+pub trait DuplexBoxedSlice<S, F>: DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>
 where
     S: Sample,
-    F: Frame<Sample = S>
+    F: Frame<Sample = S>,
 {
 }
 

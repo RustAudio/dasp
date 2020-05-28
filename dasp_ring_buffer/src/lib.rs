@@ -12,10 +12,10 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-use core::mem;
 use core::iter::{Chain, Cycle, FromIterator, Skip, Take};
-use core::ptr;
+use core::mem;
 use core::ops::{Index, IndexMut};
+use core::ptr;
 use core::slice;
 
 #[cfg(not(feature = "std"))]
@@ -723,10 +723,7 @@ where
             return None;
         }
         let wrapped_index = index % self.max_len();
-        unsafe {
-            Some(self.data.slice_mut().get_unchecked_mut(wrapped_index) as
-                &mut _)
-        }
+        unsafe { Some(self.data.slice_mut().get_unchecked_mut(wrapped_index) as &mut _) }
     }
 
     /// Pushes the given element to the back of the buffer.
@@ -832,9 +829,7 @@ where
     /// }
     /// ```
     pub fn drain(&mut self) -> DrainBounded<S> {
-        DrainBounded {
-            bounded: self,
-        }
+        DrainBounded { bounded: self }
     }
 
     /// Creates a `Bounded` ring buffer from its start index, length and data slice.

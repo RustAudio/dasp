@@ -1,12 +1,12 @@
 //! Implementations of the slice conversion traits for slices of fixed-size-array frames.
 
-use crate::{
-    FromFrameSlice, FromFrameSliceMut, FromSampleSlice, FromSampleSliceMut, ToFrameSlice,
-    ToFrameSliceMut, ToSampleSlice, ToSampleSliceMut,
-};
 #[cfg(feature = "boxed")]
 use crate::boxed::{
     Box, FromBoxedFrameSlice, FromBoxedSampleSlice, ToBoxedFrameSlice, ToBoxedSampleSlice,
+};
+use crate::{
+    FromFrameSlice, FromFrameSliceMut, FromSampleSlice, FromSampleSliceMut, ToFrameSlice,
+    ToFrameSliceMut, ToSampleSlice, ToSampleSliceMut,
 };
 use dasp_frame::Frame;
 use dasp_sample::Sample;

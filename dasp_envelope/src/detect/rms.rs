@@ -1,13 +1,12 @@
 use crate::{Detect, Detector};
 use dasp_frame::Frame;
-use dasp_rms as rms;
 use dasp_ring_buffer as ring_buffer;
+use dasp_rms as rms;
 
 impl<F, S> Detect<F> for rms::Rms<F, S>
 where
     F: Frame,
-    S: ring_buffer::Slice<Element = F::Float>
-        + ring_buffer::SliceMut,
+    S: ring_buffer::Slice<Element = F::Float> + ring_buffer::SliceMut,
 {
     type Output = F::Float;
     fn detect(&mut self, frame: F) -> Self::Output {

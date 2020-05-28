@@ -5,7 +5,9 @@ use dasp::slice::ToFrameSliceMut;
 
 fn main() -> Result<(), anyhow::Error> {
     // Find and load the wav.
-    let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
+    let assets = find_folder::Search::ParentsThenKids(5, 5)
+        .for_folder("assets")
+        .unwrap();
     let reader = hound::WavReader::open(assets.join("thumbpiano A#3.wav")).unwrap();
     let spec = reader.spec();
 
@@ -43,7 +45,7 @@ fn main() -> Result<(), anyhow::Error> {
                 None => {
                     complete_tx.try_send(()).ok();
                     *out_frame = dasp::Frame::equilibrium();
-                },
+                }
             }
         }
     };

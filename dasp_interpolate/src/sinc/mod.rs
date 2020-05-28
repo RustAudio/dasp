@@ -1,5 +1,5 @@
-use core::f64::consts::PI;
 use crate::Interpolator;
+use core::f64::consts::PI;
 use dasp_frame::Frame;
 use dasp_ring_buffer as ring_buffer;
 use dasp_sample::{Duplex, Sample};

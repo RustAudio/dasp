@@ -7,13 +7,34 @@ macro_rules! test_type {
             #[test]
             fn ops() {
                 use dasp_sample::types::$mod_name::$T;
-                assert_eq!($T::new(8).unwrap() + $T::new(12).unwrap(), $T::new(20).unwrap());
-                assert_eq!($T::new(12).unwrap() - $T::new(4).unwrap(), $T::new(8).unwrap());
-                assert_eq!($T::new(2).unwrap() * $T::new(2).unwrap(), $T::new(4).unwrap());
-                assert_eq!($T::new(3).unwrap() * $T::new(3).unwrap(), $T::new(9).unwrap());
-                assert_eq!($T::new(5).unwrap() * $T::new(10).unwrap(), $T::new(50).unwrap());
-                assert_eq!($T::new(16).unwrap() / $T::new(8).unwrap(), $T::new(2).unwrap());
-                assert_eq!($T::new(8).unwrap() % $T::new(3).unwrap(), $T::new(2).unwrap());
+                assert_eq!(
+                    $T::new(8).unwrap() + $T::new(12).unwrap(),
+                    $T::new(20).unwrap()
+                );
+                assert_eq!(
+                    $T::new(12).unwrap() - $T::new(4).unwrap(),
+                    $T::new(8).unwrap()
+                );
+                assert_eq!(
+                    $T::new(2).unwrap() * $T::new(2).unwrap(),
+                    $T::new(4).unwrap()
+                );
+                assert_eq!(
+                    $T::new(3).unwrap() * $T::new(3).unwrap(),
+                    $T::new(9).unwrap()
+                );
+                assert_eq!(
+                    $T::new(5).unwrap() * $T::new(10).unwrap(),
+                    $T::new(50).unwrap()
+                );
+                assert_eq!(
+                    $T::new(16).unwrap() / $T::new(8).unwrap(),
+                    $T::new(2).unwrap()
+                );
+                assert_eq!(
+                    $T::new(8).unwrap() % $T::new(3).unwrap(),
+                    $T::new(2).unwrap()
+                );
             }
 
             #[cfg(debug_assertions)]

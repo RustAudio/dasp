@@ -18,7 +18,10 @@ macro_rules! conv_cmp {
         assert_eq!($fn_name($T::new_unchecked($pre_conv)), $post_conv);
     };
     ($T:ident; $fn_name:ident: $U:ident, $pre_conv:expr, $post_conv:expr) => {
-        assert_eq!($fn_name($T::new_unchecked($pre_conv)), $U::new_unchecked($post_conv));
+        assert_eq!(
+            $fn_name($T::new_unchecked($pre_conv)),
+            $U::new_unchecked($post_conv)
+        );
     };
 }
 
@@ -284,7 +287,6 @@ macro_rules! tests {
         }
     };
 }
-
 
 tests!(i8 {
     to_i16 { -128, -32_768; 0, 0; 127, 32_512; }

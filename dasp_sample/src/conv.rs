@@ -13,7 +13,7 @@
 //! Note that floating point conversions use the range -1.0 <= v < 1.0:
 //! `(1.0 as f64).to_sample::<i16>()` will overflow!
 
-use crate::types::{I24, U24, I48, U48};
+use crate::types::{I24, I48, U24, U48};
 
 macro_rules! conversion_fn {
     ($Rep:ty, $s:ident to_i8 { $body:expr }) => {
@@ -113,7 +113,6 @@ macro_rules! conversion_fn {
             $body
         }
     };
-
 }
 
 macro_rules! conversion_fns {
@@ -132,7 +131,6 @@ macro_rules! conversions {
         }
     };
 }
-
 
 conversions!(i8, i8 {
     s to_i16 { (s as i16) << 8 }
@@ -566,7 +564,6 @@ conversions!(f64, f64 {
     s to_f32 { s as f32 }
 });
 
-
 /// Similar to the std `From` trait, but specifically for converting between sample types.
 ///
 /// We use this trait to be generic over the `Sample::to_sample` and `Sample::from_sample` methods.
@@ -595,85 +592,85 @@ macro_rules! impl_from_sample {
     };
 }
 
-impl_from_sample!{i8, to_i8 from
+impl_from_sample! {i8, to_i8 from
     {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{i16, to_i16 from
+impl_from_sample! {i16, to_i16 from
     {i8:i8} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{I24, to_i24 from
+impl_from_sample! {I24, to_i24 from
     {i8:i8} {i16:i16} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{i32, to_i32 from
+impl_from_sample! {i32, to_i32 from
     {i8:i8} {i16:i16} {I24:i24} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{I48, to_i48 from
+impl_from_sample! {I48, to_i48 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{i64, to_i64 from
+impl_from_sample! {i64, to_i64 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{u8, to_u8 from
+impl_from_sample! {u8, to_u8 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{u16, to_u16 from
+impl_from_sample! {u16, to_u16 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{U24, to_u24 from
+impl_from_sample! {U24, to_u24 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{u32, to_u32 from
+impl_from_sample! {u32, to_u32 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {U48:u48} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{U48, to_u48 from
+impl_from_sample! {U48, to_u48 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {u64:u64}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{u64, to_u64 from
+impl_from_sample! {u64, to_u64 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48}
     {f32:f32} {f64:f64}
 }
 
-impl_from_sample!{f32, to_f32 from
+impl_from_sample! {f32, to_f32 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f64:f64}
 }
 
-impl_from_sample!{f64, to_f64 from
+impl_from_sample! {f64, to_f64 from
     {i8:i8} {i16:i16} {I24:i24} {i32:i32} {I48:i48} {i64:i64}
     {u8:u8} {u16:u16} {U24:u24} {u32:u32} {U48:u48} {u64:u64}
     {f32:f32}
@@ -699,8 +696,4 @@ where
 
 /// Sample types which may be converted to and from some type `S`.
 pub trait Duplex<S>: FromSample<S> + ToSample<S> {}
-impl<S, T> Duplex<S> for T
-where
-    T: FromSample<S> + ToSample<S>,
-{
-}
+impl<S, T> Duplex<S> for T where T: FromSample<S> + ToSample<S> {}

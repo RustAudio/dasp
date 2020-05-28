@@ -143,25 +143,27 @@ where
         // Push back the new frame_square.
         let removed_frame_square = self.window.push(new_frame_square);
         // Add the new frame square and subtract the removed frame square.
-        self.square_sum = self.square_sum.add_amp(new_frame_square).zip_map(
-            removed_frame_square,
-            |s, r| {
-                let diff = s - r;
-                // Don't let floating point rounding errors put us below 0.0.
-                if diff < Sample::equilibrium() {
-                    Sample::equilibrium()
-                } else {
-                    diff
-                }
-            },
-        );
+        self.square_sum =
+            self.square_sum
+                .add_amp(new_frame_square)
+                .zip_map(removed_frame_square, |s, r| {
+                    let diff = s - r;
+                    // Don't let floating point rounding errors put us below 0.0.
+                    if diff < Sample::equilibrium() {
+                        Sample::equilibrium()
+                    } else {
+                        diff
+                    }
+                });
         self.calc_rms_squared()
     }
 
     /// Consumes the **Rms** and returns its inner ring buffer of squared frames along with a frame
     /// representing the sum of all frame squares contained within the ring buffer.
     pub fn into_parts(self) -> (ring_buffer::Fixed<S>, S::Element) {
-        let Rms { window, square_sum, .. } = self;
+        let Rms {
+            window, square_sum, ..
+        } = self;
         (window, square_sum)
     }
 

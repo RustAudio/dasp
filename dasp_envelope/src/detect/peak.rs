@@ -88,6 +88,8 @@ where
 
 impl<R> From<R> for Peak<R> {
     fn from(rectifier: R) -> Self {
-        Peak { rectifier: rectifier }
+        Peak {
+            rectifier: rectifier,
+        }
     }
 }

@@ -132,9 +132,10 @@ where
     // signal and appended to the ring buffer to be received by the other outputs.
     fn next_frame(&mut self, key: usize) -> S::Frame {
         let num_frames = self.buffer.len();
-        let frames_read = self.frames_read.remove(&key).expect(
-            "no frames_read for Output",
-        );
+        let frames_read = self
+            .frames_read
+            .remove(&key)
+            .expect("no frames_read for Output");
 
         let frame = if frames_read < num_frames {
             self.buffer[frames_read]
@@ -146,9 +147,10 @@ where
 
         // If the number of frames read by this output is the lowest, then we can pop the frame
         // from the front.
-        let least_frames_read = !self.frames_read.values().any(|&other_frames_read| {
-            other_frames_read <= frames_read
-        });
+        let least_frames_read = !self
+            .frames_read
+            .values()
+            .any(|&other_frames_read| other_frames_read <= frames_read);
 
         // If this output had read the least number of frames, pop the front frame and decrement
         // the frames read counters for each of the other outputs.
@@ -177,9 +179,10 @@ where
     // Called by the `Output::drop` implementation.
     fn drop_output(&mut self, key: usize) {
         self.frames_read.remove(&key);
-        let least_frames_read = self.frames_read.values().fold(self.buffer.len(), |a, &b| {
-            core::cmp::min(a, b)
-        });
+        let least_frames_read = self
+            .frames_read
+            .values()
+            .fold(self.buffer.len(), |a, &b| core::cmp::min(a, b));
         if least_frames_read > 0 {
             for frames_read in self.frames_read.values_mut() {
                 *frames_read -= least_frames_read;

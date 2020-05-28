@@ -2,7 +2,7 @@
 
 use dasp_interpolate::{floor::Floor, linear::Linear, sinc::Sinc};
 use dasp_ring_buffer as ring_buffer;
-use dasp_signal::{self as signal, Signal, interpolate::Converter};
+use dasp_signal::{self as signal, interpolate::Converter, Signal};
 
 #[test]
 fn test_floor_converter() {
@@ -67,7 +67,9 @@ fn test_sinc() {
     let resampled = source.from_hz_to_hz(interp, 44100.0, 11025.0);
 
     assert_eq!(
-        resampled.until_exhausted().find(|sample| sample[0].is_nan()),
+        resampled
+            .until_exhausted()
+            .find(|sample| sample[0].is_nan()),
         None
     );
 }

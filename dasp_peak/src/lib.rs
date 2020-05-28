@@ -76,10 +76,12 @@ pub fn positive_half_wave<F>(frame: F) -> F
 where
     F: Frame,
 {
-    frame.map(|s| if s < Sample::equilibrium() {
-        Sample::equilibrium()
-    } else {
-        s
+    frame.map(|s| {
+        if s < Sample::equilibrium() {
+            Sample::equilibrium()
+        } else {
+            s
+        }
     })
 }
 
@@ -88,9 +90,11 @@ pub fn negative_half_wave<F>(frame: F) -> F
 where
     F: Frame,
 {
-    frame.map(|s| if s > Sample::equilibrium() {
-        Sample::equilibrium()
-    } else {
-        s
+    frame.map(|s| {
+        if s > Sample::equilibrium() {
+            Sample::equilibrium()
+        } else {
+            s
+        }
     })
 }

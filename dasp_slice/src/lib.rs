@@ -10,9 +10,9 @@ use dasp_sample::Sample;
 
 #[cfg(feature = "boxed")]
 pub use boxed::{
-    FromBoxedSampleSlice, FromBoxedFrameSlice, ToBoxedSampleSlice, ToBoxedFrameSlice,
-    DuplexBoxedSampleSlice, DuplexBoxedFrameSlice, DuplexBoxedSlice, to_boxed_sample_slice,
-    to_boxed_frame_slice, from_boxed_sample_slice, from_boxed_frame_slice,
+    from_boxed_frame_slice, from_boxed_sample_slice, to_boxed_frame_slice, to_boxed_sample_slice,
+    DuplexBoxedFrameSlice, DuplexBoxedSampleSlice, DuplexBoxedSlice, FromBoxedFrameSlice,
+    FromBoxedSampleSlice, ToBoxedFrameSlice, ToBoxedSampleSlice,
 };
 
 pub use frame::{

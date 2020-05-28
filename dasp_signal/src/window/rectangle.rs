@@ -1,6 +1,6 @@
+use super::{Window, Windower};
 use dasp_frame::Frame;
 use dasp_window::rectangle::Rectangle;
-use super::{Window, Windower};
 
 impl<'a, F> Windower<'a, F, Rectangle>
 where
