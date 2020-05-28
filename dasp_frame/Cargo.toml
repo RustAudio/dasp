@@ -1,0 +1,15 @@
+[package]
+name = "dasp_frame"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+dasp_sample = { path = "../dasp_sample", default-features = false }
+
+[features]
+default = ["std"]
+std = ["dasp_sample/std"]
+
+[package.metadata.docs.rs]
+all-features = true

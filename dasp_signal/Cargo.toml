@@ -1,0 +1,43 @@
+[package]
+name = "dasp_signal"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+dasp_envelope = { path = "../dasp_envelope", default-features = false, optional = true }
+dasp_frame = { path = "../dasp_frame", default-features = false }
+dasp_interpolate = { path = "../dasp_interpolate", default-features = false }
+dasp_peak = { path = "../dasp_peak", default-features = false }
+dasp_ring_buffer = { path = "../dasp_ring_buffer", default-features = false }
+dasp_rms = { path = "../dasp_rms", default-features = false, optional = true }
+dasp_sample = { path = "../dasp_sample", default-features = false }
+dasp_window = { path = "../dasp_window", default-features = false, optional = true }
+
+[dev-dependencies]
+dasp_envelope = { path = "../dasp_envelope", default-features = false, features = ["peak"] }
+dasp_interpolate = { path = "../dasp_interpolate", default-features = false, features = ["floor", "linear", "sinc"] }
+dasp_window = { path = "../dasp_window", default-features = false, features = ["hanning"] }
+
+[features]
+default = ["std"]
+boxed = []
+bus = []
+envelope = ["dasp_envelope"]
+rms = ["dasp_rms"]
+std = [
+    "dasp_envelope/std",
+    "dasp_frame/std",
+    "dasp_interpolate/std",
+    "dasp_peak/std",
+    "dasp_ring_buffer/std",
+    "dasp_rms/std",
+    "dasp_sample/std",
+    "dasp_window/std",
+]
+window = ["dasp_window"]
+window-hanning = ["dasp_window/hanning"]
+window-rectangle = ["dasp_window/rectangle"]
+
+[package.metadata.docs.rs]
+all-features = true

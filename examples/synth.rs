@@ -1,8 +1,7 @@
-extern crate portaudio as pa;
-extern crate sample;
+use portaudio as pa;
 
-#[cfg(feature = "signal")]
-use sample::{signal, Frame, Sample, Signal, ToFrameSliceMut};
+use dasp::{signal, Frame, Sample, Signal};
+use dasp::slice::ToFrameSliceMut;
 
 const FRAMES_PER_BUFFER: u32 = 512;
 const NUM_CHANNELS: i32 = 1;
@@ -12,9 +11,7 @@ fn main() {
     run().unwrap();
 }
 
-#[cfg(feature = "signal")]
 fn run() -> Result<(), pa::Error> {
-
     // Create a signal chain to play back 1 second of each oscillator at A4.
     let hz = signal::rate(SAMPLE_RATE).const_hz(440.0);
     let one_sec = SAMPLE_RATE as usize;
@@ -28,12 +25,12 @@ fn run() -> Result<(), pa::Error> {
         .map(|f| f.map(|s| s.to_sample::<f32>() * 0.2));
 
     // Initialise PortAudio.
-    let pa = try!(pa::PortAudio::new());
-    let settings = try!(pa.default_output_stream_settings::<f32>(
+    let pa = pa::PortAudio::new()?;
+    let settings = pa.default_output_stream_settings::<f32>(
         NUM_CHANNELS,
         SAMPLE_RATE,
         FRAMES_PER_BUFFER,
-    ));
+    )?;
 
     // Define the callback which provides PortAudio the audio.
     let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
@@ -47,20 +44,15 @@ fn run() -> Result<(), pa::Error> {
         pa::Continue
     };
 
-    let mut stream = try!(pa.open_non_blocking_stream(settings, callback));
-    try!(stream.start());
+    let mut stream = pa.open_non_blocking_stream(settings, callback)?;
+    stream.start()?;
 
     while let Ok(true) = stream.is_active() {
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
-    try!(stream.stop());
-    try!(stream.close());
+    stream.stop()?;
+    stream.close()?;
 
     Ok(())
-}
-
-#[cfg(not(feature = "signal"))]
-fn run() -> Result<(), pa::Error> {
-    panic!("This example only works when compiled with the 'signal' feature.");
 }

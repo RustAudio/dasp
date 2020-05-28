@@ -1,9 +1,7 @@
 //! A short example that converts an f64 sine wave to a few of the sample types available within
 //! the `Sample` crate, prints their values, and then converts them back to the original f64.
 
-extern crate sample;
-
-use sample::Sample;
+use dasp::Sample;
 
 /// An iterator that continually steps forward the phase for a signal by `0.03`.
 struct Iter {

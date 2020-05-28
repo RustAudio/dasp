@@ -1,0 +1,16 @@
+[package]
+name = "dasp_peak"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+dasp_frame = { path = "../dasp_frame", default-features = false }
+dasp_sample = { path = "../dasp_sample", default-features = false }
+
+[features]
+default = ["std"]
+std = ["dasp_frame/std", "dasp_sample/std"]
+
+[package.metadata.docs.rs]
+all-features = true

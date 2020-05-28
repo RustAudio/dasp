@@ -1,0 +1,20 @@
+[package]
+name = "dasp_interpolate"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+dasp_frame = { path = "../dasp_frame", default-features = false }
+dasp_ring_buffer = { path = "../dasp_ring_buffer", default-features = false }
+dasp_sample = { path = "../dasp_sample", default-features = false }
+
+[features]
+default = ["std"]
+floor = []
+linear = []
+sinc = []
+std = ["dasp_frame/std", "dasp_ring_buffer/std", "dasp_sample/std"]
+
+[package.metadata.docs.rs]
+all-features = true

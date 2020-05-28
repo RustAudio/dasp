@@ -1,0 +1,9 @@
+[package]
+name = "dasp_ring_buffer"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[features]
+default = ["std"]
+std = []

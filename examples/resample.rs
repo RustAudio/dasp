@@ -1,15 +1,9 @@
 // An example of using `sample` to efficiently perform decent quality sample rate conversion on a
 // WAV file entirely on the stack.
 
-extern crate find_folder;
-extern crate hound;
-extern crate sample;
-
 use hound::{WavReader, WavWriter};
-#[cfg(all(feature = "interpolate", feature = "ring_buffer", feature = "signal"))]
-use sample::{interpolate, ring_buffer, signal, Sample, Signal};
+use dasp::{interpolate::sinc::Sinc, ring_buffer, signal, Sample, Signal};
 
-#[cfg(all(feature = "interpolate", feature = "ring_buffer", feature = "signal"))]
 fn main() {
     // Find and load the wav.
     let assets = find_folder::Search::ParentsThenKids(5, 5).for_folder("assets").unwrap();
@@ -26,7 +20,7 @@ fn main() {
 
     // Convert the signal's sample rate using `Sinc` interpolation.
     let ring_buffer = ring_buffer::Fixed::from([[0.0]; 100]);
-    let sinc = interpolate::Sinc::new(ring_buffer);
+    let sinc = Sinc::new(ring_buffer);
     let new_signal = signal.from_hz_to_hz(sinc, spec.sample_rate as f64, target.sample_rate as f64);
 
     // Write the result to a new file.
@@ -34,9 +28,4 @@ fn main() {
     for frame in new_signal.until_exhausted() {
         writer.write_sample(frame[0].to_sample::<i16>()).unwrap();
     }
-}
-
-#[cfg(not(all(feature = "interpolate", feature = "ring_buffer", feature = "signal")))]
-fn main() {
-    panic!("This example only works when compiled with the features 'interpolate', 'ring_buffer' and 'signal'.");
 }

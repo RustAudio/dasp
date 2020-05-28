@@ -1,28 +1,15 @@
-[package]
-name = "sample"
-description = "A crate providing the fundamentals for working with audio PCM DSP."
-version = "0.10.0"
-authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
-readme = "README.md"
-keywords = ["dsp", "bit-depth", "rate", "pcm", "audio"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/RustAudio/sample.git"
-homepage = "https://github.com/RustAudio/sample"
-
-[dev-dependencies]
-find_folder = "0.3"
-hound = "2.0"
-portaudio = "0.7"
-
-[features]
-default = ["std", "slice", "envelope", "frame", "peak", "ring_buffer", "rms", "signal", "window", "interpolate"]
-std = []
-slice = ["frame"]
-envelope = ["frame", "peak", "ring_buffer", "rms", "interpolate", "signal"]
-frame = []
-peak = ["frame"]
-ring_buffer = []
-rms = ["frame", "ring_buffer"]
-signal = ["frame", "envelope", "ring_buffer", "interpolate", "rms"]
-window = ["frame", "signal"]
-interpolate = ["ring_buffer", "frame", "signal"]
+[workspace]
+members = [
+    "dasp",
+    "dasp_envelope",
+    "dasp_frame",
+    "dasp_interpolate",
+    "dasp_peak",
+    "dasp_ring_buffer",
+    "dasp_rms",
+    "dasp_sample",
+    "dasp_signal",
+    "dasp_slice",
+    "dasp_window",
+    "examples",
+]
