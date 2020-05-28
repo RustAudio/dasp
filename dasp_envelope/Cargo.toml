@@ -1,7 +1,13 @@
 [package]
 name = "dasp_envelope"
 version = "0.11.0"
+description = "Audio PCM DSP envelope detection with peak and RMS implementations."
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "../README.md"
+keywords = ["envelope", "detector", "follower", "peak", "rms"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustaudio/dasp.git"
+homepage = "https://github.com/rustaudio/dasp"
 edition = "2018"
 
 [dependencies]

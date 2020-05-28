@@ -1,7 +1,13 @@
 [package]
 name = "dasp_interpolate"
+description = "An abstraction for audio PCM DSP rate interpolation, including floor, linear and sinc."
 version = "0.11.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "../README.md"
+keywords = ["dsp", "interpolate", "sample", "rate", "pcm"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustaudio/dasp.git"
+homepage = "https://github.com/rustaudio/dasp"
 edition = "2018"
 
 [dependencies]
