@@ -211,8 +211,8 @@ pub trait Frame: Copy + Clone + PartialEq {
     ///     let foo = [0.25, 0.4].mul_amp([0.2, 0.5]);
     ///     assert_eq!(foo, [0.05, 0.2]);
     ///
-    ///     let bar = [192u8, 64].mul_amp([0.0, -2.0]);
-    ///     assert_eq!(bar, [128, 0]);
+    ///     let bar = [192u8, 64].mul_amp([0.0, -1.0]);
+    ///     assert_eq!(bar, [128, 192]);
     /// }
     /// ```
     #[inline]
