@@ -1,4 +1,4 @@
-# dasp
+# dasp [![Actions Status][dasp-actions-svg]][dasp-actions]
 
 **Digital Audio Signal Processing in Rust.**
 
@@ -30,8 +30,8 @@ within this repository:
 
 [![deps-graph][deps-graph]][deps-graph]
 
-*Red dotted lines indicate optional use, while black lines indicate required
-dependencies.*
+*Red dotted lines indicate optional dependencies, while black lines indicate
+required dependencies.*
 
 
 ### Features
@@ -50,9 +50,9 @@ To enable all of a crate's features *without* the std library, you may use
 
 ## Contributing
 
-If the **sample** crate is missing types, conversions or other fundamental
-functionality that you wish it had, feel free to open an issue or pull request!
-The more hands on deck, the merrier :)
+If **dasp** is missing types, conversions or other fundamental functionality
+that you wish it had, feel free to open an issue or pull request! The more
+hands on deck, the merrier :)
 
 
 ## License
@@ -71,8 +71,9 @@ for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
 
+[dasp-actions]: https://github.com/nannou-org/dasp/actions
+[dasp-actions-svg]: https://github.com/rustaudio/dasp/workflows/dasp/badge.svg
 [deps-graph]: ./assets/deps-graph.png
-
 [dasp]: ./dasp
 [dasp-crates-io]: https://crates.io/crates/dasp
 [dasp-crates-io-svg]: https://img.shields.io/crates/v/dasp.svg
