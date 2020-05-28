@@ -13,3 +13,6 @@ edition = "2018"
 [features]
 default = ["std"]
 std = []
+
+[package.metadata.docs.rs]
+all-features = true
