@@ -5,10 +5,11 @@ authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1"
+cpal = { git = "https://github.com/rustaudio/cpal", branch = "master" }
 dasp = { path = "../dasp", features = ["slice", "interpolate", "interpolate-sinc", "ring_buffer", "signal"] }
 find_folder = "0.3"
 hound = "3"
-portaudio = "0.7"
 
 [[example]]
 name = "play_wav"

@@ -1,58 +1,82 @@
-use portaudio as pa;
+use cpal;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use dasp::{signal, Sample, Signal};
+use std::sync::mpsc;
 
-use dasp::{signal, Frame, Sample, Signal};
-use dasp::slice::ToFrameSliceMut;
+fn main() -> Result<(), anyhow::Error> {
+    let host = cpal::default_host();
+    let device = host
+        .default_output_device()
+        .expect("failed to find a default output device");
+    let config = device.default_output_config()?;
 
-const FRAMES_PER_BUFFER: u32 = 512;
-const NUM_CHANNELS: i32 = 1;
-const SAMPLE_RATE: f64 = 44_100.0;
+    match config.sample_format() {
+        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into())?,
+        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into())?,
+        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into())?,
+    }
 
-fn main() {
-    run().unwrap();
+    Ok(())
 }
 
-fn run() -> Result<(), pa::Error> {
+fn run<T>(device: &cpal::Device, config: &cpal::StreamConfig) -> Result<(), anyhow::Error>
+where
+    T: cpal::Sample,
+{
     // Create a signal chain to play back 1 second of each oscillator at A4.
-    let hz = signal::rate(SAMPLE_RATE).const_hz(440.0);
-    let one_sec = SAMPLE_RATE as usize;
-    let mut waves = hz.clone()
+    let hz = signal::rate(config.sample_rate.0 as f64).const_hz(440.0);
+    let one_sec = config.sample_rate.0 as usize;
+    let mut synth = hz
+        .clone()
         .sine()
         .take(one_sec)
         .chain(hz.clone().saw().take(one_sec))
         .chain(hz.clone().square().take(one_sec))
         .chain(hz.clone().noise_simplex().take(one_sec))
         .chain(signal::noise(0).take(one_sec))
-        .map(|f| f.map(|s| s.to_sample::<f32>() * 0.2));
+        .map(|[s]| s.to_sample::<f32>() * 0.2);
 
-    // Initialise PortAudio.
-    let pa = pa::PortAudio::new()?;
-    let settings = pa.default_output_stream_settings::<f32>(
-        NUM_CHANNELS,
-        SAMPLE_RATE,
-        FRAMES_PER_BUFFER,
+    // A channel for indicating when playback has completed.
+    let (complete_tx, complete_rx) = mpsc::sync_channel(1);
+
+    // Create and run the stream.
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
+    let channels = config.channels as usize;
+    let stream = device.build_output_stream(
+        config,
+        move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
+            write_data(data, channels, &complete_tx, &mut synth)
+        },
+        err_fn,
     )?;
+    stream.play()?;
 
-    // Define the callback which provides PortAudio the audio.
-    let callback = move |pa::OutputStreamCallbackArgs { buffer, .. }| {
-        let buffer: &mut [[f32; 1]] = buffer.to_frame_slice_mut().unwrap();
-        for out_frame in buffer {
-            match waves.next() {
-                Some(frame) => *out_frame = frame,
-                None => return pa::Complete,
-            }
-        }
-        pa::Continue
-    };
-
-    let mut stream = pa.open_non_blocking_stream(settings, callback)?;
-    stream.start()?;
-
-    while let Ok(true) = stream.is_active() {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-
-    stream.stop()?;
-    stream.close()?;
+    // Wait for playback to complete.
+    complete_rx.recv().unwrap();
+    stream.pause()?;
 
     Ok(())
+}
+
+fn write_data<T>(
+    output: &mut [T],
+    channels: usize,
+    complete_tx: &mpsc::SyncSender<()>,
+    signal: &mut dyn Iterator<Item = f32>,
+) where
+    T: cpal::Sample,
+{
+    for frame in output.chunks_mut(channels) {
+        let sample = match signal.next() {
+            None => {
+                complete_tx.try_send(()).ok();
+                0.0
+            }
+            Some(sample) => sample,
+        };
+        let value: T = cpal::Sample::from::<f32>(&sample);
+        for sample in frame.iter_mut() {
+            *sample = value;
+        }
+    }
 }
