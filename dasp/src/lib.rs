@@ -9,6 +9,8 @@
 //! - See the [**interpolate** module](./interpolate/index.html) for sample rate conversion and scaling.
 //! - See the [**ring_buffer** module](./ring_buffer/index.html) for fast FIFO queue options.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 #[cfg(feature = "envelope")]
 #[doc(inline)]
 pub use dasp_envelope as envelope;
