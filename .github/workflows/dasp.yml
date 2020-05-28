@@ -50,13 +50,64 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: nightly
         override: true
-    - name: cargo test (no default features)
+    # Can't do `--no-default-features` for all pkgs, so do them one by one.
+    - name: cargo test dasp (no default features)
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --all --no-default-features --verbose
+        args: --manifest-path dasp/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_envelope (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_envelope/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_frame (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_frame/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_interpolate (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_interpolate/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_peak (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_peak/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_ring_buffer (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_ring_buffer/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_rms (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_rms/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_sample (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_sample/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_signal (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_signal/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_slice (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_slice/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_window (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_window/Cargo.toml --no-default-features --verbose
 
   cargo-test-all-features:
     runs-on: ubuntu-latest
@@ -90,8 +141,9 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: nightly
         override: true
+    # Can't do `--no-default-features` or `--features` for all pkgs, so do them one by one.
     - name: cargo test dasp (all features no std)
       uses: actions-rs/cargo@v1
       with:
