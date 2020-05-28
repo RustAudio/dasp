@@ -1,0 +1,195 @@
+name: dasp
+on: [push, pull_request]
+jobs:
+  cargo-fmt-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        components: rustfmt
+    - name: cargo fmt check
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+
+  cargo-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa
+      run: sudo apt-get install libasound2-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: cargo test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all --verbose
+
+  cargo-test-no-default-features:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa
+      run: sudo apt-get install libasound2-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: cargo test (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all --no-default-features --verbose
+
+  cargo-test-all-features:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa
+      run: sudo apt-get install libasound2-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: cargo test (all features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all --all-features --verbose
+
+  cargo-test-all-features-no-std:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa
+      run: sudo apt-get install libasound2-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: cargo test dasp (all features no std)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+    - name: cargo test dasp_signal (all features no std)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_signal/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+    - name: cargo test dasp_slice (all features no std)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_slice/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+    - name: cargo test dasp_interpolate (all features no std)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_interpolate/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+    - name: cargo test window (all features no std)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_window/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+    - name: cargo test dasp_envelope (all features no std)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_envelope/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+
+  cargo-doc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa
+      run: sudo apt-get install libasound2-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: cargo doc
+      uses: actions-rs/cargo@v1
+      with:
+        command: doc
+        args: --all --all-features --verbose
+
+  cargo-publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    env:
+      CRATESIO_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update apt
+      run: sudo apt update
+    - name: Install alsa dev tools
+      run: sudo apt-get install libasound2-dev
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: cargo publish dasp_sample
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_sample/Cargo.toml
+    - name: cargo publish dasp_frame
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_frame/Cargo.toml
+    - name: cargo publish dasp_slice
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_slice/Cargo.toml
+    - name: cargo publish dasp_ring_buffer
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_ring_buffer/Cargo.toml
+    - name: cargo publish dasp_peak
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_peak/Cargo.toml
+    - name: cargo publish dasp_rms
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_rms/Cargo.toml
+    - name: cargo publish dasp_interpolate
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_interpolate/Cargo.toml
+    - name: cargo publish dasp_window
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_window/Cargo.toml
+    - name: cargo publish dasp_envelope
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_envelope/Cargo.toml
+    - name: cargo publish dasp_signal
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_signal/Cargo.toml
+    - name: cargo publish dasp
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp/Cargo.toml

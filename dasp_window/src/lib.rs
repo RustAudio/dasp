@@ -1,6 +1,9 @@
 //! Module for windowing over a batch of Frames. Includes default Hanning and Rectangle window
 //! types.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
+
 use dasp_sample::Sample;
 
 #[cfg(feature = "hanning")]

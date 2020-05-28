@@ -1,5 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 #![allow(dead_code)]
 
 pub mod f64 {

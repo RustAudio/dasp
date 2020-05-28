@@ -13,9 +13,19 @@ dasp_sample = { path = "../dasp_sample", default-features = false }
 
 [features]
 default = ["std"]
+all-features-no-std = [
+    "peak",
+    "rms",
+]
+std = [
+    "dasp_frame/std",
+    "dasp_peak/std",
+    "dasp_ring_buffer/std",
+    "dasp_rms/std",
+    "dasp_sample/std",
+]
 peak = ["dasp_peak"]
 rms = ["dasp_rms"]
-std = ["dasp_frame/std", "dasp_peak/std", "dasp_ring_buffer/std", "dasp_rms/std", "dasp_sample/std"]
 
 [package.metadata.docs.rs]
 all-features = true

@@ -21,10 +21,15 @@ dasp_window = { path = "../dasp_window", default-features = false, features = ["
 
 [features]
 default = ["std"]
-boxed = []
-bus = []
-envelope = ["dasp_envelope"]
-rms = ["dasp_rms"]
+all-features-no-std = [
+    "boxed",
+    "bus",
+    "envelope",
+    "rms",
+    "window",
+    "window-hanning",
+    "window-rectangle",
+]
 std = [
     "dasp_envelope/std",
     "dasp_frame/std",
@@ -35,6 +40,10 @@ std = [
     "dasp_sample/std",
     "dasp_window/std",
 ]
+boxed = []
+bus = []
+envelope = ["dasp_envelope"]
+rms = ["dasp_rms"]
 window = ["dasp_window"]
 window-hanning = ["dasp_window/hanning"]
 window-rectangle = ["dasp_window/rectangle"]

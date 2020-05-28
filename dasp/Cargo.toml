@@ -18,6 +18,31 @@ dasp_window = { path = "../dasp_window", default-features = false, optional = tr
 
 [features]
 default = ["std"]
+all-features-no-std = [
+    "envelope",
+    "envelope-peak",
+    "envelope-rms",
+    "interpolate",
+    "interpolate-floor",
+    "interpolate-linear",
+    "interpolate-sinc",
+    "peak",
+    "ring_buffer",
+    "rms",
+    "signal",
+    "signal-boxed",
+    "signal-bus",
+    "signal-envelope",
+    "signal-rms",
+    "signal-window",
+    "signal-window-hanning",
+    "signal-window-rectangle",
+    "slice",
+    "slice-boxed",
+    "window",
+    "window-hanning",
+    "window-rectangle",
+]
 std = [
     "dasp_envelope/std",
     "dasp_frame/std",

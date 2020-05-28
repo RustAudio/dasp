@@ -10,8 +10,14 @@ dasp_frame = { path = "../dasp_frame", default-features = false }
 
 [features]
 default = ["std"]
+all-features-no-std = [
+    "boxed",
+]
+std = [
+    "dasp_sample/std",
+    "dasp_frame/std",
+]
 boxed = []
-std = ["dasp_sample/std", "dasp_frame/std"]
 
 [package.metadata.docs.rs]
 all-features = true

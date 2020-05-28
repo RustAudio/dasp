@@ -9,9 +9,15 @@ dasp_sample = { path = "../dasp_sample", default-features = false }
 
 [features]
 default = ["std"]
+all-features-no-std = [
+    "hanning",
+    "rectangle",
+]
+std = [
+    "dasp_sample/std",
+]
 hanning = []
 rectangle = []
-std = ["dasp_sample/std"]
 
 [package.metadata.docs.rs]
 all-features = true
