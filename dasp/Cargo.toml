@@ -1,20 +1,20 @@
 [package]
 name = "dasp"
-version = "0.1.0"
+version = "0.11.0"
 authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-dasp_envelope = { path = "../dasp_envelope", default-features = false, optional = true }
-dasp_frame = { path = "../dasp_frame", default-features = false }
-dasp_interpolate = { path = "../dasp_interpolate", default-features = false, optional = true }
-dasp_peak = { path = "../dasp_peak", default-features = false, optional = true }
-dasp_ring_buffer = { path = "../dasp_ring_buffer", default-features = false, optional = true }
-dasp_rms = { path = "../dasp_rms", default-features = false, optional = true }
-dasp_sample = { path = "../dasp_sample", default-features = false }
-dasp_signal = { path = "../dasp_signal", default-features = false, optional = true }
-dasp_slice = { path = "../dasp_slice", default-features = false, optional = true }
-dasp_window = { path = "../dasp_window", default-features = false, optional = true }
+dasp_envelope = { version = "0.11", path = "../dasp_envelope", default-features = false, optional = true }
+dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
+dasp_interpolate = { version = "0.11", path = "../dasp_interpolate", default-features = false, optional = true }
+dasp_peak = { version = "0.11", path = "../dasp_peak", default-features = false, optional = true }
+dasp_ring_buffer = { version = "0.11", path = "../dasp_ring_buffer", default-features = false, optional = true }
+dasp_rms = { version = "0.11", path = "../dasp_rms", default-features = false, optional = true }
+dasp_sample = { version = "0.11", path = "../dasp_sample", default-features = false }
+dasp_signal = { version = "0.11", path = "../dasp_signal", default-features = false, optional = true }
+dasp_slice = { version = "0.11", path = "../dasp_slice", default-features = false, optional = true }
+dasp_window = { version = "0.11", path = "../dasp_window", default-features = false, optional = true }
 
 [features]
 default = ["std"]
