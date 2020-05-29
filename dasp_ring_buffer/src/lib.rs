@@ -446,20 +446,6 @@ where
 ///     dasp_ring_buffer::Bounded::from(&slice[..]);
 /// }
 /// ```
-///
-/// Two slightly more efficient constructors are provided for fixed-size arrays and boxed slices.
-/// These are generally more efficient as they do not require initialising elements.
-///
-/// ```
-/// fn main() {
-///     // Fixed-size array.
-///     dasp_ring_buffer::Bounded::<[i32; 4]>::array();
-///
-///     // Boxed slice.
-///     let mut rb = dasp_ring_buffer::Bounded::boxed_slice(4);
-///     rb.push(1);
-/// }
-/// ```
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Bounded<S> {
     start: usize,
@@ -475,63 +461,11 @@ pub struct DrainBounded<'a, S: 'a> {
     bounded: &'a mut Bounded<S>,
 }
 
-impl<T> Bounded<Box<[T]>>
-where
-    T: Copy,
-{
-    /// A `Bounded` ring buffer that uses a `Box`ed slice with the given maximum length to
-    /// represent the data.
-    ///
-    /// Slightly more efficient than using the similar `From` constructor as this creates the
-    /// underlying slice with uninitialised memory.
-    ///
-    /// ```
-    /// fn main() {
-    ///     let mut rb = dasp_ring_buffer::Bounded::boxed_slice(4);
-    ///     assert_eq!(rb.max_len(), 4);
-    ///     assert_eq!(rb.len(), 0);
-    ///     rb.push(1);
-    ///     rb.push(2);
-    /// }
-    /// ```
-    pub fn boxed_slice(max_len: usize) -> Self {
-        let mut vec = Vec::new();
-        vec.reserve_exact(max_len);
-        unsafe {
-            vec.set_len(max_len);
-            let data = vec.into_boxed_slice();
-            Self::from_raw_parts(0, 0, data)
-        }
-    }
-}
-
 impl<S> Bounded<S>
 where
     S: Slice,
     S::Element: Copy,
 {
-    /// A `Bounded` buffer that uses a fixed-size array to represent data.
-    ///
-    /// Slightly more efficient than using the similar `From` constructor as this creates the
-    /// underlying array with uninitialised memory.
-    ///
-    /// ```
-    /// fn main() {
-    ///     let mut rb = dasp_ring_buffer::Bounded::<[f32; 3]>::array();
-    ///     assert_eq!(rb.len(), 0);
-    ///     assert_eq!(rb.max_len(), 3);
-    /// }
-    /// ```
-    pub fn array() -> Self
-    where
-        S: FixedSizeArray,
-    {
-        unsafe {
-            let data = mem::uninitialized();
-            Self::from_raw_parts(0, 0, data)
-        }
-    }
-
     /// The same as the `From` implementation, but assumes that the given `data` is full of valid
     /// elements and initialises the ring buffer with a length equal to `max_len`.
     ///
@@ -555,7 +489,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::<[i32; 3]>::array();
+    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::from([0i32; 3]);
     ///     assert_eq!(ring_buffer.max_len(), 3);
     /// }
     /// ```
@@ -568,7 +502,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::<[i32; 3]>::array();
+    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::from([0i32; 3]);
     ///     assert_eq!(ring_buffer.len(), 0);
     /// }
     /// ```
@@ -583,7 +517,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut rb = dasp_ring_buffer::Bounded::<[i32; 2]>::array();
+    ///     let mut rb = dasp_ring_buffer::Bounded::from([0i32; 2]);
     ///     assert!(rb.is_empty());
     ///     rb.push(0);
     ///     assert!(!rb.is_empty());
@@ -599,7 +533,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut rb = dasp_ring_buffer::Bounded::<[i32; 2]>::array();
+    ///     let mut rb = dasp_ring_buffer::Bounded::from([0i32; 2]);
     ///     assert!(!rb.is_full());
     ///     rb.push(0);
     ///     rb.push(1);
@@ -619,7 +553,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::<[i32; 4]>::array();
+    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::from([0i32; 4]);
     ///     assert_eq!(ring_buffer.slices(), (&[][..], &[][..]));
     ///     ring_buffer.push(1);
     ///     ring_buffer.push(2);
@@ -664,7 +598,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut rb = dasp_ring_buffer::Bounded::<[i32; 3]>::array();
+    ///     let mut rb = dasp_ring_buffer::Bounded::from([0i32; 3]);
     ///     assert_eq!(rb.iter().count(), 0);
     ///     rb.push(1);
     ///     rb.push(2);
@@ -695,7 +629,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut rb = dasp_ring_buffer::Bounded::<[i32; 4]>::array();
+    ///     let mut rb = dasp_ring_buffer::Bounded::from([0i32; 4]);
     ///     assert_eq!(rb.get(1), None);
     ///     rb.push(0);
     ///     rb.push(1);
@@ -736,7 +670,7 @@ where
     ///
     /// ```
     /// fn main() {
-    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::<[i32; 3]>::array();
+    ///     let mut ring_buffer = dasp_ring_buffer::Bounded::from([0i32; 3]);
     ///     assert_eq!(ring_buffer.push(1), None);
     ///     assert_eq!(ring_buffer.push(2), None);
     ///     assert_eq!(ring_buffer.len(), 2);
@@ -841,8 +775,7 @@ where
     /// elements when using this method.
     ///
     /// **Note:** This method should only be necessary if you require specifying the `start` and
-    /// initial `len`. Please see the `Bounded::array` and `Bounded::boxed_slice` functions for
-    /// simpler constructor options that do not require manually passing indices.
+    /// initial `len`.
     ///
     /// **Panic!**s if the following conditions are not met:
     ///

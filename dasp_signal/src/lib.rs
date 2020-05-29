@@ -624,7 +624,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let signal = signal::rate(44_100.0).const_hz(440.0).sine();
-    ///     let ring_buffer = ring_buffer::Bounded::<[[f64; 1]; 64]>::array();
+    ///     let ring_buffer = ring_buffer::Bounded::from([[0f64; 1]; 64]);
     ///     let mut fork = signal.fork(ring_buffer);
     ///
     ///     // Forks can be split into their branches via reference.
@@ -721,7 +721,7 @@ pub trait Signal {
     /// fn main() {
     ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
     ///     let signal = signal::from_iter(frames.iter().cloned());
-    ///     let ring_buffer = ring_buffer::Bounded::<[[f32; 1]; 2]>::array();
+    ///     let ring_buffer = ring_buffer::Bounded::from([[0f32; 1]; 2]);
     ///     let mut buffered_signal = signal.buffered(ring_buffer);
     ///     assert_eq!(buffered_signal.next(), [0.1]);
     ///     assert_eq!(buffered_signal.next(), [0.2]);
@@ -2406,7 +2406,7 @@ where
     /// fn main() {
     ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
     ///     let signal = signal::from_iter(frames.iter().cloned());
-    ///     let ring_buffer = ring_buffer::Bounded::<[[f32; 1]; 2]>::array();
+    ///     let ring_buffer = ring_buffer::Bounded::from([[0f32; 1]; 2]);
     ///     let mut buffered_signal = signal.buffered(ring_buffer);
     ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.1], [0.2]]);
     ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.3], [0.4]]);

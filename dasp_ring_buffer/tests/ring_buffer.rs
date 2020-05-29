@@ -2,7 +2,7 @@ use dasp_ring_buffer as ring_buffer;
 
 #[test]
 fn test_bounded_boxed_slice() {
-    let mut rb = ring_buffer::Bounded::boxed_slice(3);
+    let mut rb = ring_buffer::Bounded::from(vec![0; 3].into_boxed_slice());
     assert_eq!(rb.push(1), None);
     assert_eq!(rb.push(2), None);
     assert_eq!(rb.push(3), None);
@@ -11,7 +11,7 @@ fn test_bounded_boxed_slice() {
 
 #[test]
 fn test_bounded_array() {
-    let mut rb = ring_buffer::Bounded::<[i32; 3]>::array();
+    let mut rb = ring_buffer::Bounded::from([0i32; 3]);
     assert_eq!(rb.push(1), None);
     assert_eq!(rb.push(2), None);
     assert_eq!(rb.push(3), None);
@@ -36,6 +36,6 @@ fn test_bounded_from_vec() {
 #[test]
 #[should_panic]
 fn test_bounded_get_out_of_range() {
-    let rb = ring_buffer::Bounded::<[i32; 3]>::array();
+    let rb = ring_buffer::Bounded::from([0i32; 3]);
     let _ = rb[0];
 }
