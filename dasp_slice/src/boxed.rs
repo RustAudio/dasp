@@ -1,4 +1,9 @@
 //! Items related to boxed-slice conversions.
+//!
+//! ### Required Features
+//!
+//! - When using `dasp_slice`, this module requires the **boxed** feature to be enabled.
+//! - When using `dasp`, this module requires the **slice-boxed** feature to be enabled.
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
@@ -6,8 +11,10 @@ extern crate alloc;
 use dasp_frame::Frame;
 use dasp_sample::Sample;
 
+/// Equal to `std::boxed::Box` on std, `alloc::boxed::Box` in `no_std` context.
 #[cfg(not(feature = "std"))]
 pub type Box<T> = alloc::boxed::Box<T>;
+/// Equal to `std::boxed::Box` on std, `alloc::boxed::Box` in `no_std` context.
 #[cfg(feature = "std")]
 pub type Box<T> = std::boxed::Box<T>;
 
@@ -15,6 +22,11 @@ pub type Box<T> = std::boxed::Box<T>;
 // ----------------------------------------------------------------------------
 
 /// For converting a boxed slice of `Sample`s to a boxed slice of `Frame`s.
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub trait FromBoxedSampleSlice<S>: Sized
 where
     S: Sample,
@@ -23,6 +35,11 @@ where
 }
 
 /// For converting from a boxed slice of `Frame`s to a boxed slice of `Sample`s.
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub trait FromBoxedFrameSlice<F>
 where
     F: Frame,
@@ -31,6 +48,11 @@ where
 }
 
 /// For converting from a boxed slice of `Frame`s to a boxed slice of `Sample`s.
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub trait ToBoxedSampleSlice<S>
 where
     S: Sample,
@@ -39,6 +61,11 @@ where
 }
 
 /// For converting from a boxed slice of `Sample`s to a boxed slice of `Frame`s.
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub trait ToBoxedFrameSlice<F>
 where
     F: Frame,
@@ -47,6 +74,11 @@ where
 }
 
 /// For converting to and from a boxed slice of `Sample`s.
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub trait DuplexBoxedSampleSlice<S>: FromBoxedSampleSlice<S> + ToBoxedSampleSlice<S>
 where
     S: Sample,
@@ -54,6 +86,11 @@ where
 }
 
 /// For converting to and from a boxed slice of `Frame`s.
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub trait DuplexBoxedFrameSlice<F>: FromBoxedFrameSlice<F> + ToBoxedFrameSlice<F>
 where
     F: Frame,
@@ -62,6 +99,11 @@ where
 
 /// For converting to and from a boxed slice of `Sample`s of type `S` and a slice of `Frame`s of
 /// type `F`.
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub trait DuplexBoxedSlice<S, F>: DuplexBoxedSampleSlice<S> + DuplexBoxedFrameSlice<F>
 where
     S: Sample,
@@ -150,6 +192,11 @@ where
 ///     assert_eq!(bar.into_vec(), vec![0.0, 0.5, 0.0, -0.5]);
 /// }
 /// ```
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub fn to_boxed_sample_slice<T, S>(slice: T) -> Box<[S]>
 where
     S: Sample,
@@ -178,6 +225,11 @@ where
 ///     assert_eq!(bar, None::<Box<[[f32; 2]]>>);
 /// }
 /// ```
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub fn to_boxed_frame_slice<T, F>(slice: T) -> Option<Box<[F]>>
 where
     F: Frame,
@@ -202,6 +254,11 @@ where
 ///     assert_eq!(bar.into_vec(), vec![[0.0, 0.5], [0.0, -0.5]]);
 /// }
 /// ```
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub fn from_boxed_sample_slice<T, S>(slice: Box<[S]>) -> Option<T>
 where
     S: Sample,
@@ -223,6 +280,11 @@ where
 ///     assert_eq!(bar.into_vec(), vec![0.0, 0.5, 0.0, -0.5]);
 /// }
 /// ```
+///
+/// ### Required Features
+///
+/// - When using `dasp_slice`, this item requires the **boxed** feature to be enabled.
+/// - When using `dasp`, this item requires the **slice-boxed** feature to be enabled.
 pub fn from_boxed_frame_slice<T, F>(slice: Box<[F]>) -> T
 where
     F: Frame,

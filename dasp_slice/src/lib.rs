@@ -2,6 +2,11 @@
 //!
 //! Items related to conversion between slices of frames and slices of samples, particularly useful
 //! for working with interleaved data.
+//!
+//! ### Optional Features
+//!
+//! - The **boxed** feature (or **slice-boxed** feature if using `dasp`) provides a suite of boxed
+//!   slice conversion traits and functions under the [**boxed**](./boxed/index.html) module.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

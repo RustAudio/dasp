@@ -20,6 +20,11 @@ where
     S: ring_buffer::Slice<Element = F::Float> + ring_buffer::SliceMut,
 {
     /// Construct a new **Rms** **Detector**.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_envelope`, this item requires the **rms** feature to be enabled.
+    /// - When using `dasp`, this item requires the **envelope-rms** feature to be enabled.
     pub fn rms(buffer: ring_buffer::Fixed<S>, attack_frames: f32, release_frames: f32) -> Self {
         let rms = rms::Rms::new(buffer);
         Self::new(rms, attack_frames, release_frames)

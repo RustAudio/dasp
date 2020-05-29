@@ -1,3 +1,10 @@
+//! An extension to the **Signal** trait that enables multiple signal outputs.
+//!
+//! ### Required Features
+//!
+//! - When using `dasp_signal`, this item requires the **bus** feature to be enabled.
+//! - When using `dasp`, this item requires the **signal-bus** feature to be enabled.
+
 use crate::{Rc, Signal};
 
 #[cfg(not(feature = "std"))]
@@ -10,6 +17,12 @@ type VecDeque<T> = alloc::collections::vec_deque::VecDeque<T>;
 #[cfg(feature = "std")]
 type VecDeque<T> = std::collections::vec_deque::VecDeque<T>;
 
+/// An extension to the **Signal** trait that enables multiple signal outputs.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **bus** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-bus** feature to be enabled.
 pub trait SignalBus: Signal {
     /// Moves the `Signal` into a `Bus` from which its output may be divided into multiple other
     /// `Signal`s in the form of `Output`s.
@@ -44,6 +57,11 @@ pub trait SignalBus: Signal {
     ///     assert_eq!(a.take(3).collect::<Vec<_>>(), vec![[0.4], [0.5], [0.6]]);
     /// }
     /// ```
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **bus** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-bus** feature to be enabled.
     fn bus(self) -> Bus<Self>
     where
         Self: Sized,
@@ -68,7 +86,10 @@ where
 
 /// A type which allows for `send`ing a single `Signal` to multiple outputs.
 ///
-/// This type manages
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **bus** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-bus** feature to be enabled.
 pub struct Bus<S>
 where
     S: Signal,
@@ -79,6 +100,11 @@ where
 /// An output node to which some signal `S` is `Output`ing its frames.
 ///
 /// It may be more accurate to say that the `Output` "pull"s frames from the signal.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **bus** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-bus** feature to be enabled.
 pub struct Output<S>
 where
     S: Signal,
@@ -103,6 +129,11 @@ where
     }
 
     /// Produce a new Output node to which the signal `S` will output its frames.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **bus** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-bus** feature to be enabled.
     #[inline]
     pub fn send(&self) -> Output<S> {
         let mut node = self.node.borrow_mut();
@@ -221,6 +252,11 @@ where
     ///     assert_eq!(monitor.pending_frames(), 2);
     /// }
     /// ```
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **bus** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-bus** feature to be enabled.
     #[inline]
     pub fn pending_frames(&self) -> usize {
         self.node.borrow().pending_frames(self.key)

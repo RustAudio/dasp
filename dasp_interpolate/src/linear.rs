@@ -1,15 +1,33 @@
+//! A linear interpolator implementation.
+//!
+//! ### Required Features
+//!
+//! - When using `dasp_interpolate`, this module requires the **linear** feature to be enabled.
+//! - When using `dasp`, this module requires the **interpolate-linear** feature to be enabled.
+
 use crate::Interpolator;
 use dasp_frame::Frame;
 use dasp_sample::{Duplex, Sample};
 
 /// Interpolator that interpolates linearly between the previous value and the next value
+///
+/// ### Required Features
+///
+/// - When using `dasp_interpolate`, this item requires the **linear** feature to be enabled.
+/// - When using `dasp`, this item requires the **interpolate-linear** feature to be enabled.
 pub struct Linear<F> {
     left: F,
     right: F,
 }
 
 impl<F> Linear<F> {
-    /// Create a new Linear Interpolator.
+    /// Create a new Linear Interpolator, where `left` and `right` are the first two frames to be
+    /// interpolated.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_interpolate`, this item requires the **linear** feature to be enabled.
+    /// - When using `dasp`, this item requires the **interpolate-linear** feature to be enabled.
     pub fn new(left: F, right: F) -> Linear<F> {
         Linear {
             left: left,

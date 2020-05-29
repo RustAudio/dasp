@@ -1,16 +1,17 @@
+//! The [**Converter**](./struct.Converter.html) type for interpolating the rate of a signal.
+
 use crate::Signal;
 use dasp_interpolate::Interpolator;
 
-/// An iterator that converts the rate at which frames are yielded from some given frame
-/// Interpolator into a new type.
+/// A signal type that converts the rate at which frames are yielded from some source signal to
+/// some target rate.
 ///
 /// Other names for `sample::interpolate::Converter` might include:
 ///
-/// - Sample rate converter
-/// - {Up/Down}sampler
-/// - Sample interpolater
-/// - Sample decimator
-///
+/// - Sample rate converter.
+/// - {Up/Down}sampler.
+/// - Sample interpolater.
+/// - Sample decimator.
 #[derive(Clone)]
 pub struct Converter<S, I>
 where

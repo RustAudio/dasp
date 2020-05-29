@@ -1,6 +1,19 @@
+//! An extension to the **Signal** trait that enables envelope detection.
+//!
+//! ### Required Features
+//!
+//! - When using `dasp_signal`, this item requires the **envelope** feature to be enabled.
+//! - When using `dasp`, this item requires the **signal-envelope** feature to be enabled.
+
 use crate::Signal;
 use dasp_envelope as envelope;
 
+/// An extension to the **Signal** trait that enables envelope detection.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **envelope** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-envelope** feature to be enabled.
 pub trait SignalEnvelope: Signal {
     /// An adaptor that detects and yields the envelope of the signal.
     ///
@@ -23,6 +36,11 @@ pub trait SignalEnvelope: Signal {
     ///     );
     /// }
     /// ```
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **envelope** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-envelope** feature to be enabled.
     fn detect_envelope<D>(
         self,
         detector: envelope::Detector<Self::Frame, D>,
@@ -39,6 +57,11 @@ pub trait SignalEnvelope: Signal {
 }
 
 /// An adaptor that detects and yields the envelope of the signal.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **envelope** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-envelope** feature to be enabled.
 #[derive(Clone)]
 pub struct DetectEnvelope<S, D>
 where
@@ -55,16 +78,31 @@ where
     D: envelope::Detect<S::Frame>,
 {
     /// Set the **Detector**'s attack time as a number of frames.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **envelope** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-envelope** feature to be enabled.
     pub fn set_attack_frames(&mut self, frames: f32) {
         self.detector.set_attack_frames(frames);
     }
 
     /// Set the **Detector**'s release time as a number of frames.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **envelope** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-envelope** feature to be enabled.
     pub fn set_release_frames(&mut self, frames: f32) {
         self.detector.set_release_frames(frames);
     }
 
     /// Consumes `Self` and returns the inner signal `S` and `Detector`.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **envelope** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-envelope** feature to be enabled.
     pub fn into_parts(self) -> (S, envelope::Detector<S::Frame, D>) {
         let DetectEnvelope { signal, detector } = self;
         (signal, detector)

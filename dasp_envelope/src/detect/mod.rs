@@ -2,6 +2,9 @@ use dasp_frame::Frame;
 use dasp_sample::Sample;
 use ops::f32::powf32;
 
+#[cfg(feature = "peak")]
+pub use self::peak::Peak;
+
 mod ops;
 #[cfg(feature = "peak")]
 mod peak;
@@ -45,8 +48,8 @@ where
     F: Frame,
     D: Detect<F>,
 {
-    #[cfg(any(feature = "peak", feature = "rms"))]
-    fn new(detect: D, attack_frames: f32, release_frames: f32) -> Self {
+    /// Construct a **Detector** with the given **Detect** implementation.
+    pub fn new(detect: D, attack_frames: f32, release_frames: f32) -> Self {
         Detector {
             last_env_frame: D::Output::equilibrium(),
             attack_gain: calc_gain(attack_frames),

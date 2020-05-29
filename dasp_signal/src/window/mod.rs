@@ -1,3 +1,5 @@
+//! Items to ease the application of windowing functions to signals.
+
 use crate::{ConstHz, FromIterator, Phase, Signal};
 use core::marker::PhantomData;
 use dasp_frame::Frame;
@@ -16,6 +18,11 @@ mod rectangle;
 
 /// A `Signal` type that for every yielded `phase`, yields the amplitude across the `window::Type`
 /// for that phase.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **window** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-window** feature to be enabled.
 #[derive(Clone)]
 pub struct Window<F, W>
 where
@@ -28,6 +35,11 @@ where
 }
 
 /// Takes a long slice of frames and yields `Windowed` chunks of size `bin` once every `hop` frames.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **window** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-window** feature to be enabled.
 #[derive(Clone)]
 pub struct Windower<'a, F, W>
 where
@@ -46,6 +58,11 @@ where
 /// An Iterator that multiplies a Signal with a Window.
 ///
 /// Returns `None` once the `Window` has been exhausted.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **window** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-window** feature to be enabled.
 #[derive(Clone)]
 pub struct Windowed<S, W>
 where
@@ -62,6 +79,11 @@ where
     W: WindowType,
 {
     /// Construct a new `Window` with the given length as a number of frames.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **window** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-window** feature to be enabled.
     pub fn new(len: usize) -> Self {
         let step = crate::rate(len as f64 - 1.0).const_hz(1.0);
         Window {
@@ -77,6 +99,11 @@ where
     W: WindowType,
 {
     /// Constructor for a new `Windower` iterator.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **window** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-window** feature to be enabled.
     pub fn new(frames: &'a [F], bin: usize, hop: usize) -> Self {
         Windower {
             bin: bin,

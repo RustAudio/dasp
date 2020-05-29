@@ -1,3 +1,10 @@
+//! A sinc interpolator implementation.
+//!
+//! ### Required Features
+//!
+//! - When using `dasp_interpolate`, this module requires the **sinc** feature to be enabled.
+//! - When using `dasp`, this module requires the **interpolate-sinc** feature to be enabled.
+
 use crate::Interpolator;
 use core::f64::consts::PI;
 use dasp_frame::Frame;
@@ -11,6 +18,11 @@ mod ops;
 ///
 /// Generally accepted as one of the better sample rate converters, although it uses significantly
 /// more computation.
+///
+/// ### Required Features
+///
+/// - When using `dasp_interpolate`, this item requires the **sinc** feature to be enabled.
+/// - When using `dasp`, this item requires the **interpolate-sinc** feature to be enabled.
 pub struct Sinc<S> {
     frames: ring_buffer::Fixed<S>,
     idx: usize,
@@ -25,6 +37,11 @@ impl<S> Sinc<S> {
     /// The initial contents of the ring_buffer will act as padding for the interpolated signal.
     ///
     /// **panic!**s if the given ring buffer's length is not a multiple of `2`.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_interpolate`, this item requires the **sinc** feature to be enabled.
+    /// - When using `dasp`, this item requires the **interpolate-sinc** feature to be enabled.
     pub fn new(frames: ring_buffer::Fixed<S>) -> Self
     where
         S: ring_buffer::SliceMut,

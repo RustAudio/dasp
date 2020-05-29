@@ -7,6 +7,11 @@ mod ops;
 /// A type of window function, also known as the "raised cosine window".
 ///
 /// [Wiki entry](https://en.wikipedia.org/wiki/Window_function#Hann_.28Hanning.29_window).
+///
+/// ### Required Features
+///
+/// - When using `dasp_window`, this item requires the **hanning** feature to be enabled.
+/// - When using `dasp`, this item requires the **window-hanning** feature to be enabled.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hanning;
 

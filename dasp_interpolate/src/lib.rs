@@ -1,4 +1,19 @@
-//! The Interpolate module allows for conversion between various sample rates.
+//! An abstraction for sample/frame rate interpolation.
+//!
+//! The [**Interpolator**](./trait.Interpolator.html) trait provides an abstraction over different
+//! types of rate interpolation.
+//!
+//! See the `dasp_signal` crate (or `dasp::signal` module) **Converter** type for a convenient way
+//! to interpolate the rate of arbitrary signals.
+//!
+//! ### Optional Features
+//!
+//! - The **floor** feature (or **interpolate-floor** feature if using `dasp`) provides a floor
+//!   interpolator implementation.
+//! - The **linear** feature (or **interpolate-linear** feature if using `dasp`) provides a linear
+//!   interpolator implementation.
+//! - The **sinc** feature (or **interpolate-sinc** feature if using `dasp`) provides a sinc
+//!   interpolator implementation.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]

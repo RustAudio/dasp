@@ -1,8 +1,21 @@
+//! An extension to the **Signal** trait that monitors the RMS of a signal.
+//!
+//! ### Required Features
+//!
+//! - When using `dasp_signal`, this module requires the **rms** feature to be enabled.
+//! - When using `dasp`, this module requires the **signal-rms** feature to be enabled.
+
 use crate::Signal;
 use dasp_frame::Frame;
 use dasp_ring_buffer as ring_buffer;
 use dasp_rms as rms;
 
+/// An extension to the **Signal** trait that monitors the RMS of a signal.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **rms** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-rms** feature to be enabled.
 pub trait SignalRms: Signal {
     /// An adaptor that yields the RMS of the signal.
     ///
@@ -26,6 +39,11 @@ pub trait SignalRms: Signal {
     ///     );
     /// }
     /// ```
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **rms** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-rms** feature to be enabled.
     fn rms<S>(self, ring_buffer: ring_buffer::Fixed<S>) -> Rms<Self, S>
     where
         Self: Sized,
@@ -41,6 +59,11 @@ pub trait SignalRms: Signal {
 /// An adaptor that yields the RMS of the signal.
 ///
 /// The window size of the RMS detector is equal to the given ring buffer length.
+///
+/// ### Required Features
+///
+/// - When using `dasp_signal`, this item requires the **rms** feature to be enabled.
+/// - When using `dasp`, this item requires the **signal-rms** feature to be enabled.
 #[derive(Clone)]
 pub struct Rms<S, D>
 where
@@ -58,11 +81,21 @@ where
 {
     /// The same as `Signal::next` but does not calculate the final square root required to
     /// determine the RMS.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **rms** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-rms** feature to be enabled.
     pub fn next_squared(&mut self) -> <Self as Signal>::Frame {
         self.rms.next_squared(self.signal.next())
     }
 
     /// Consumes the `Rms` signal and returns its inner signal `S` and `Rms` detector.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_signal`, this item requires the **rms** feature to be enabled.
+    /// - When using `dasp`, this item requires the **signal-rms** feature to be enabled.
     pub fn into_parts(self) -> (S, rms::Rms<S::Frame, D>) {
         let Rms { signal, rms } = self;
         (signal, rms)

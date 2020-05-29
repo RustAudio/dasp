@@ -1,6 +1,6 @@
-//! Use the **Signal** trait for working with **Iterator**s that yield **Frame**s. To complement
-//! the **Iterator** trait, **Signal** provides methods for adding, scaling, offsetting,
-//! multiplying, clipping and generating frame iterators and more.
+//! Use the [**Signal**](./trait.Signal.html) trait to abstract over infinite-iterator-like types
+//! that yield **Frame**s. The **Signal** trait provides methods for adding, scaling, offsetting,
+//! multiplying, clipping, generating frame iterators and more.
 //!
 //! You may also find a series of **Signal** source functions, including:
 //!
@@ -19,6 +19,19 @@
 //!
 //! Working with **Signal**s allows for easy, readable creation of rich and complex DSP graphs with
 //! a simple and familiar API.
+//!
+//! ### Optional Features
+//!
+//! - The **boxed** feature (or **signal-boxed** feature if using `dasp`) provides a **Signal**
+//!   implementation for `Box<dyn Signal>`.
+//! - The **bus** feature (or **signal-bus** feature if using `dasp`) provides the
+//!   [**SignalBus**](./bus/trait.SignalBus.html) trait.
+//! - The **envelope** feature (or **signal-envelope** feature if using `dasp`) provides the
+//!   [**SignalEnvelope**](./envelope/trait.SignalEnvelope.html) trait.
+//! - The **rms** feature (or **signal-rms** feature if using `dasp`) provides the
+//!   [**SignalRms**](./rms/trait.SignalRms.html) trait.
+//! - The **window** feature (or **signal-window** feature if using `dasp`) provides the
+//!   [**window**](./window/index.html) module.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
@@ -38,7 +51,7 @@ pub mod interpolate;
 mod ops;
 
 #[cfg(features = "boxed")]
-pub mod boxed;
+mod boxed;
 #[cfg(feature = "bus")]
 pub mod bus;
 #[cfg(feature = "envelope")]

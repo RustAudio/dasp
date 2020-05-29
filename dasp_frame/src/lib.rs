@@ -1,4 +1,4 @@
-//! Use the Frame trait to remain generic over the number of channels at
+//! Use the [**Frame** trait](./trait.Frame.html) to remain generic over the number of channels at
 //! a single discrete moment in time.
 //!
 //! Implementations are provided for all fixed-size arrays up to 32 elements in length.
