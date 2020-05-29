@@ -1,5 +1,5 @@
-//! **dasp** is a suite of crates, providing the fundamentals for working with pulse-code
-//! modulation digital signal processing. In other words, `dasp` provides a suite of low-level,
+//! **dasp** is a suite of crates providing the fundamentals for working with pulse-code modulation
+//! **digital audio signal processing**. In other words, **dasp** provides a suite of low-level,
 //! high-performance tools including types, traits and functions for working with digital audio
 //! signals.
 //!
@@ -69,7 +69,7 @@
 //!     - The **window-rectangle** feature enables the
 //!       [**Rectangle**](./window/struct.Rectangle.html) window implementation.
 //!
-//! Enable all of the above features with the `--all-features` flag.
+//! Enable all of the above features with the `--all-features` flag or with the **all** feature.
 //!
 //! ### no_std
 //!

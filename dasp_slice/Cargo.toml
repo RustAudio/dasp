@@ -16,6 +16,7 @@ dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = fals
 
 [features]
 default = ["std"]
+all = ["std", "all-no-std"]
 all-no-std = [
     "boxed",
 ]

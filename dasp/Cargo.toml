@@ -24,6 +24,7 @@ dasp_window = { version = "0.11", path = "../dasp_window", default-features = fa
 
 [features]
 default = ["std"]
+all = ["std", "all-no-std"]
 all-no-std = [
     "envelope",
     "envelope-peak",
