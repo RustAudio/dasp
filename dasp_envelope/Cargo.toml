@@ -1,0 +1,38 @@
+[package]
+name = "dasp_envelope"
+version = "0.11.0"
+description = "Audio PCM DSP envelope detection with peak and RMS implementations."
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "../README.md"
+keywords = ["envelope", "detector", "follower", "peak", "rms"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustaudio/dasp.git"
+homepage = "https://github.com/rustaudio/dasp"
+edition = "2018"
+
+[dependencies]
+dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
+dasp_peak = { version = "0.11", path = "../dasp_peak", default-features = false, optional = true }
+dasp_ring_buffer = { version = "0.11", path = "../dasp_ring_buffer", default-features = false }
+dasp_rms = { version = "0.11", path = "../dasp_rms", default-features = false, optional = true }
+dasp_sample = { version = "0.11", path = "../dasp_sample", default-features = false }
+
+[features]
+default = ["std"]
+all = ["std", "all-no-std"]
+all-no-std = [
+    "peak",
+    "rms",
+]
+std = [
+    "dasp_frame/std",
+    "dasp_peak/std",
+    "dasp_ring_buffer/std",
+    "dasp_rms/std",
+    "dasp_sample/std",
+]
+peak = ["dasp_peak"]
+rms = ["dasp_rms"]
+
+[package.metadata.docs.rs]
+all-features = true

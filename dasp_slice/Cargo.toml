@@ -1,0 +1,30 @@
+[package]
+name = "dasp_slice"
+description = "Conversions and operations for slices of audio PCM DSP samples and frames."
+version = "0.11.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "../README.md"
+keywords = ["dsp", "bit-depth", "rate", "pcm", "audio"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustaudio/dasp.git"
+homepage = "https://github.com/rustaudio/dasp"
+edition = "2018"
+
+[dependencies]
+dasp_sample = { version = "0.11", path = "../dasp_sample", default-features = false }
+dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
+
+[features]
+default = ["std"]
+all = ["std", "all-no-std"]
+all-no-std = [
+    "boxed",
+]
+std = [
+    "dasp_sample/std",
+    "dasp_frame/std",
+]
+boxed = []
+
+[package.metadata.docs.rs]
+all-features = true

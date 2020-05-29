@@ -1,0 +1,18 @@
+[package]
+name = "dasp_ring_buffer"
+description = "Simple fixed and bounded ring buffers for audio PCM DSP."
+version = "0.11.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "../README.md"
+keywords = ["ring", "buffer", "dsp", "pcm", "audio"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustaudio/dasp.git"
+homepage = "https://github.com/rustaudio/dasp"
+edition = "2018"
+
+[features]
+default = ["std"]
+std = []
+
+[package.metadata.docs.rs]
+all-features = true

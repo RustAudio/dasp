@@ -1,0 +1,59 @@
+[package]
+name = "dasp_signal"
+description = "An iterator-like API for audio PCM DSP streams."
+version = "0.11.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "../README.md"
+keywords = ["dsp", "signal", "rate", "pcm", "audio"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustaudio/dasp.git"
+homepage = "https://github.com/rustaudio/dasp"
+edition = "2018"
+
+[dependencies]
+dasp_envelope = { version = "0.11", path = "../dasp_envelope", default-features = false, optional = true }
+dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
+dasp_interpolate = { version = "0.11", path = "../dasp_interpolate", default-features = false }
+dasp_peak = { version = "0.11", path = "../dasp_peak", default-features = false }
+dasp_ring_buffer = { version = "0.11", path = "../dasp_ring_buffer", default-features = false }
+dasp_rms = { version = "0.11", path = "../dasp_rms", default-features = false, optional = true }
+dasp_sample = { version = "0.11", path = "../dasp_sample", default-features = false }
+dasp_window = { version = "0.11", path = "../dasp_window", default-features = false, optional = true }
+
+[dev-dependencies]
+dasp_envelope = { version = "0.11", path = "../dasp_envelope", default-features = false, features = ["peak"] }
+dasp_interpolate = { version = "0.11", path = "../dasp_interpolate", default-features = false, features = ["floor", "linear", "sinc"] }
+dasp_window = { version = "0.11", path = "../dasp_window", default-features = false, features = ["hanning"] }
+
+[features]
+default = ["std"]
+all = ["std", "all-no-std"]
+all-no-std = [
+    "boxed",
+    "bus",
+    "envelope",
+    "rms",
+    "window",
+    "window-hanning",
+    "window-rectangle",
+]
+std = [
+    "dasp_envelope/std",
+    "dasp_frame/std",
+    "dasp_interpolate/std",
+    "dasp_peak/std",
+    "dasp_ring_buffer/std",
+    "dasp_rms/std",
+    "dasp_sample/std",
+    "dasp_window/std",
+]
+boxed = []
+bus = []
+envelope = ["dasp_envelope"]
+rms = ["dasp_rms"]
+window = ["dasp_window"]
+window-hanning = ["dasp_window/hanning"]
+window-rectangle = ["dasp_window/rectangle"]
+
+[package.metadata.docs.rs]
+all-features = true

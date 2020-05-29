@@ -1,0 +1,23 @@
+[package]
+name = "dasp_rms"
+description = "RMS detection with configurable window for audio PCM DSP."
+version = "0.11.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+readme = "../README.md"
+keywords = ["dsp", "rms", "envelope", "pcm", "audio"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustaudio/dasp.git"
+homepage = "https://github.com/rustaudio/dasp"
+edition = "2018"
+
+[dependencies]
+dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
+dasp_ring_buffer = { version = "0.11", path = "../dasp_ring_buffer", default-features = false }
+dasp_sample = { version = "0.11", path = "../dasp_sample", default-features = false }
+
+[features]
+default = ["std"]
+std = ["dasp_frame/std", "dasp_ring_buffer/std", "dasp_sample/std"]
+
+[package.metadata.docs.rs]
+all-features = true

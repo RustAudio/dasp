@@ -1,0 +1,25 @@
+[package]
+name = "examples"
+version = "0.1.0"
+authors = ["mitchmindtree <mitchell.nordine@gmail.com>"]
+edition = "2018"
+
+[dev-dependencies]
+anyhow = "1"
+cpal = { git = "https://github.com/rustaudio/cpal", branch = "master" }
+dasp = { version = "0.11", path = "../dasp", features = ["all"] }
+find_folder = "0.3"
+hound = "3"
+
+[[example]]
+name = "play_wav"
+path = "play_wav.rs"
+[[example]]
+name = "resample"
+path = "resample.rs"
+[[example]]
+name = "synth"
+path = "synth.rs"
+[[example]]
+name = "test"
+path = "test.rs"
