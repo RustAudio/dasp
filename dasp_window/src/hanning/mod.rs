@@ -15,8 +15,12 @@ mod ops;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Hanning;
 
-impl Window for Hanning {
-    fn at_phase<S: Sample>(phase: S) -> S {
+impl<S> Window<S> for Hanning
+where
+    S: Sample,
+{
+    type Output = S;
+    fn window(phase: S) -> Self::Output {
         const PI_2: f64 = core::f64::consts::PI * 2.0;
         let v = phase.to_float_sample().to_sample() * PI_2;
         (0.5 * (1.0 - cos(v)))

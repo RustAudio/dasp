@@ -12,8 +12,12 @@ use dasp_sample::{FloatSample, Sample};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Rectangle;
 
-impl Window for Rectangle {
-    fn at_phase<S: Sample>(_phase: S) -> S {
+impl<S> Window<S> for Rectangle
+where
+    S: Sample,
+{
+    type Output = S;
+    fn window(_phase: S) -> Self::Output {
         <S::Float as FloatSample>::identity().to_sample::<S>()
     }
 }

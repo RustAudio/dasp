@@ -27,7 +27,7 @@ mod rectangle;
 pub struct Window<F, W>
 where
     F: Frame,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     /// Yields phase stepped at a constant rate to be passed to the window function `W`.
     pub phase: Phase<ConstHz>,
@@ -44,7 +44,7 @@ where
 pub struct Windower<'a, F, W>
 where
     F: 'a + Frame,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     /// The size of each `Windowed` chunk to be yielded.
     pub bin: usize,
@@ -67,7 +67,7 @@ where
 pub struct Windowed<S, W>
 where
     S: Signal,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     signal: S,
     window: Window<<S::Frame as Frame>::Float, W>,
@@ -76,7 +76,7 @@ where
 impl<F, W> Window<F, W>
 where
     F: Frame,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     /// Construct a new `Window` with the given length as a number of frames.
     ///
@@ -96,7 +96,7 @@ where
 impl<'a, F, W> Windower<'a, F, W>
 where
     F: 'a + Frame,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     /// Constructor for a new `Windower` iterator.
     ///
@@ -117,12 +117,12 @@ where
 impl<F, W> Iterator for Window<F, W>
 where
     F: Frame,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     type Item = F;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let v = W::at_phase(self.phase.next_phase());
+        let v = W::window(self.phase.next_phase());
         let v_f: <F::Sample as Sample>::Float = v.to_sample();
         Some(F::from_fn(|_| v_f.to_sample::<F::Sample>()))
     }
@@ -131,7 +131,7 @@ where
 impl<'a, F, W> Iterator for Windower<'a, F, W>
 where
     F: 'a + Frame,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     type Item = Windowed<FromIterator<core::iter::Cloned<core::slice::Iter<'a, F>>>, W>;
 
@@ -175,7 +175,7 @@ where
 impl<S, W> Iterator for Windowed<S, W>
 where
     S: Signal,
-    W: WindowType,
+    W: WindowType<f64, Output = f64>,
 {
     type Item = S::Frame;
     fn next(&mut self) -> Option<Self::Item> {

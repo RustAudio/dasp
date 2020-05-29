@@ -32,6 +32,8 @@
     - `dasp_slice` crate:
         - `boxed` - enables conversions between boxed slices.
     - The `dasp` crate has a feature for each of the above.
+- Make **Window** trait generic over its phase and amplitude type. Update the
+  `dasp_signal::window` module items accordingly.
 
 ---
 

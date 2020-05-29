@@ -18,8 +18,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
-use dasp_sample::Sample;
-
 #[cfg(feature = "hanning")]
 pub use hanning::Hanning;
 #[cfg(feature = "rectangle")]
@@ -30,8 +28,13 @@ mod hanning;
 #[cfg(feature = "rectangle")]
 mod rectangle;
 
-/// The window function used within a `Window`.
-pub trait Window {
+/// An abstraction supporting different types of `Window` functions.
+///
+/// The type `S` represents the phase of the window, while the `Output` represents the window
+/// amplitude.
+pub trait Window<S> {
+    /// The type used to represent the window amplitude.
+    type Output;
     /// Returns the amplitude for the given phase, given as some `Sample` type.
-    fn at_phase<S: Sample>(phase: S) -> S;
+    fn window(phase: S) -> Self::Output;
 }
