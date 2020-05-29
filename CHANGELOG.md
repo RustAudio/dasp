@@ -39,6 +39,10 @@
   traitsin favour of `EQUILIBRIUM` and `IDENTITY` associated consts.
 - Remove `Frame::n_channels` function in favour of `Frame::CHANNELS` associated
   const.
+- Add implementation of `Frame` for all primitive `Sample` types where each are
+  assumed to represent a frame of a monophonic signal. This greatly simplifies
+  working with monophonic signal sources as demonstrated in the updated
+  `dasp_signal` crate.
 
 ---
 

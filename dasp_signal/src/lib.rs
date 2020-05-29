@@ -174,10 +174,10 @@ pub trait Signal {
     ///     let sine_wave = signal::rate(4.0).const_hz(1.0).sine();
     ///     let mut peak = sine_wave
     ///         .map(peak::full_wave)
-    ///         .map(|f| [f[0].round()]);
+    ///         .map(|f| f.round());
     ///     assert_eq!(
     ///         peak.take(4).collect::<Vec<_>>(),
-    ///         vec![[0.0], [1.0], [0.0], [1.0]]
+    ///         vec![0.0, 1.0, 0.0, 1.0]
     ///     );
     /// }
     /// ```
@@ -412,21 +412,21 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
-    ///     let mul = [[1.0], [1.0], [0.5], [0.5], [0.5], [0.5]];
+    ///     let foo = [0.0, 1.0, 0.0, -1.0];
+    ///     let mul = [1.0, 1.0, 0.5, 0.5, 0.5, 0.5];
     ///     let mut source = signal::from_iter(foo.iter().cloned());
     ///     let a = source.next();
     ///     let b = source.next();
     ///     let interp = Linear::new(a, b);
     ///     let hz_signal = signal::from_iter(mul.iter().cloned());
     ///     let frames: Vec<_> = source.mul_hz(interp, hz_signal).take(6).collect();
-    ///     assert_eq!(&frames[..], &[[0.0], [1.0], [0.0], [-0.5], [-1.0], [-0.5]][..]);
+    ///     assert_eq!(&frames[..], &[0.0, 1.0, 0.0, -0.5, -1.0, -0.5][..]);
     /// }
     /// ```
     fn mul_hz<M, I>(self, interpolator: I, mul_per_frame: M) -> MulHz<Self, M, I>
     where
         Self: Sized,
-        M: Signal<Frame = [f64; 1]>,
+        M: Signal<Frame = f64>,
         I: Interpolator,
     {
         MulHz {
@@ -573,17 +573,17 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let mut f = [0.0];
+    ///     let mut f = 0.0;
     ///     let mut signal = signal::gen_mut(move || {
-    ///         f[0] += 0.1;
+    ///         f += 0.1;
     ///         f
     ///     });
-    ///     let func = |x: &[f64; 1]| {
-    ///         assert_eq!(*x, [0.1]);
+    ///     let func = |x: &f64| {
+    ///         assert_eq!(*x, 0.1);
     ///     };
     ///     let mut inspected = signal.inspect(func);
     ///     let out = inspected.next();
-    ///     assert_eq!(out, [0.1]);
+    ///     assert_eq!(out, 0.1);
     /// }
     /// ```
     fn inspect<F>(self, inspect: F) -> Inspect<Self, F>
@@ -624,7 +624,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     let signal = signal::rate(44_100.0).const_hz(440.0).sine();
-    ///     let ring_buffer = ring_buffer::Bounded::from([[0f64; 1]; 64]);
+    ///     let ring_buffer = ring_buffer::Bounded::from([0f64; 64]);
     ///     let mut fork = signal.fork(ring_buffer);
     ///
     ///     // Forks can be split into their branches via reference.
@@ -719,15 +719,15 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
+    ///     let frames = [0.1, 0.2, 0.3, 0.4];
     ///     let signal = signal::from_iter(frames.iter().cloned());
-    ///     let ring_buffer = ring_buffer::Bounded::from([[0f32; 1]; 2]);
+    ///     let ring_buffer = ring_buffer::Bounded::from([0f32; 2]);
     ///     let mut buffered_signal = signal.buffered(ring_buffer);
-    ///     assert_eq!(buffered_signal.next(), [0.1]);
-    ///     assert_eq!(buffered_signal.next(), [0.2]);
-    ///     assert_eq!(buffered_signal.next(), [0.3]);
-    ///     assert_eq!(buffered_signal.next(), [0.4]);
-    ///     assert_eq!(buffered_signal.next(), [0.0]);
+    ///     assert_eq!(buffered_signal.next(), 0.1);
+    ///     assert_eq!(buffered_signal.next(), 0.2);
+    ///     assert_eq!(buffered_signal.next(), 0.3);
+    ///     assert_eq!(buffered_signal.next(), 0.4);
+    ///     assert_eq!(buffered_signal.next(), 0.0);
     /// }
     /// ```
     ///
@@ -738,17 +738,17 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
+    ///     let frames = [0.1, 0.2, 0.3, 0.4];
     ///     let signal = signal::from_iter(frames.iter().cloned());
-    ///     let ring_buffer = ring_buffer::Bounded::from_full([[0.8], [0.9]]);
+    ///     let ring_buffer = ring_buffer::Bounded::from_full([0.8, 0.9]);
     ///     let mut buffered_signal = signal.buffered(ring_buffer);
-    ///     assert_eq!(buffered_signal.next(), [0.8]);
-    ///     assert_eq!(buffered_signal.next(), [0.9]);
-    ///     assert_eq!(buffered_signal.next(), [0.1]);
-    ///     assert_eq!(buffered_signal.next(), [0.2]);
-    ///     assert_eq!(buffered_signal.next(), [0.3]);
-    ///     assert_eq!(buffered_signal.next(), [0.4]);
-    ///     assert_eq!(buffered_signal.next(), [0.0]);
+    ///     assert_eq!(buffered_signal.next(), 0.8);
+    ///     assert_eq!(buffered_signal.next(), 0.9);
+    ///     assert_eq!(buffered_signal.next(), 0.1);
+    ///     assert_eq!(buffered_signal.next(), 0.2);
+    ///     assert_eq!(buffered_signal.next(), 0.3);
+    ///     assert_eq!(buffered_signal.next(), 0.4);
+    ///     assert_eq!(buffered_signal.next(), 0.0);
     /// }
     /// ```
     fn buffered<S>(self, ring_buffer: ring_buffer::Bounded<S>) -> Buffered<Self, S>
@@ -773,12 +773,12 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0], [1], [2], [3], [4]];
+    ///     let frames = [0, 1, 2, 3, 4];
     ///     let mut signal = signal::from_iter(frames.iter().cloned());
-    ///     assert_eq!(signal.next(), [0]);
-    ///     assert_eq!(signal.by_ref().take(2).collect::<Vec<_>>(), vec![[1], [2]]);
-    ///     assert_eq!(signal.next(), [3]);
-    ///     assert_eq!(signal.next(), [4]);
+    ///     assert_eq!(signal.next(), 0);
+    ///     assert_eq!(signal.by_ref().take(2).collect::<Vec<_>>(), vec![1, 2]);
+    ///     assert_eq!(signal.next(), 3);
+    ///     assert_eq!(signal.next(), 4);
     /// }
     /// ```
     fn by_ref(&mut self) -> &mut Self
@@ -1249,8 +1249,8 @@ pub struct BufferedFrames<'a, D: 'a> {
 /// use dasp_signal::{self as signal, Signal};
 ///
 /// fn main() {
-///     let equilibrium: Vec<[f32; 1]> = signal::equilibrium().take(4).collect();
-///     assert_eq!(equilibrium, vec![[0.0], [0.0], [0.0], [0.0]]);
+///     let equilibrium: Vec<f32> = signal::equilibrium().take(4).collect();
+///     assert_eq!(equilibrium, vec![0.0, 0.0, 0.0, 0.0]);
 ///
 ///     let equilibrium: Vec<[u8; 2]> = signal::equilibrium().take(3).collect();
 ///     assert_eq!(equilibrium, vec![[128, 128], [128, 128], [128, 128]]);
@@ -1410,12 +1410,12 @@ where
 ///     let step = signal::rate(4.0).const_hz(1.0);
 ///     // Note that this is the same as `step.phase()`, a composable alternative.
 ///     let mut phase = signal::phase(step);
-///     assert_eq!(phase.next(), [0.0]);
-///     assert_eq!(phase.next(), [0.25]);
-///     assert_eq!(phase.next(), [0.5]);
-///     assert_eq!(phase.next(), [0.75]);
-///     assert_eq!(phase.next(), [0.0]);
-///     assert_eq!(phase.next(), [0.25]);
+///     assert_eq!(phase.next(), 0.0);
+///     assert_eq!(phase.next(), 0.25);
+///     assert_eq!(phase.next(), 0.5);
+///     assert_eq!(phase.next(), 0.75);
+///     assert_eq!(phase.next(), 0.0);
+///     assert_eq!(phase.next(), 0.25);
 /// }
 /// ```
 pub fn phase<S>(step: S) -> Phase<S>
@@ -1447,10 +1447,10 @@ pub fn rate(hz: f64) -> Rate {
 /// fn main() {
 ///     // Generates a sine wave signal at 1hz to be sampled 4 times per second.
 ///     let mut signal = signal::rate(4.0).const_hz(1.0).sine();
-///     assert_eq!(signal.next(), [0.0]);
-///     assert_eq!(signal.next(), [1.0]);
+///     assert_eq!(signal.next(), 0.0);
+///     assert_eq!(signal.next(), 1.0);
 ///     signal.next();
-///     assert_eq!(signal.next(), [-1.0]);
+///     assert_eq!(signal.next(), -1.0);
 /// }
 /// ```
 pub fn sine<S>(phase: Phase<S>) -> Sine<S> {
@@ -1467,10 +1467,10 @@ pub fn sine<S>(phase: Phase<S>) -> Sine<S> {
 /// fn main() {
 ///     // Generates a saw wave signal at 1hz to be sampled 4 times per second.
 ///     let mut signal = signal::rate(4.0).const_hz(1.0).saw();
-///     assert_eq!(signal.next(), [1.0]);
-///     assert_eq!(signal.next(), [0.5]);
-///     assert_eq!(signal.next(), [0.0]);
-///     assert_eq!(signal.next(), [-0.5]);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 0.5);
+///     assert_eq!(signal.next(), 0.0);
+///     assert_eq!(signal.next(), -0.5);
 /// }
 /// ```
 pub fn saw<S>(phase: Phase<S>) -> Saw<S> {
@@ -1487,10 +1487,10 @@ pub fn saw<S>(phase: Phase<S>) -> Saw<S> {
 /// fn main() {
 ///     // Generates a square wave signal at 1hz to be sampled 4 times per second.
 ///     let mut signal = signal::rate(4.0).const_hz(1.0).square();
-///     assert_eq!(signal.next(), [1.0]);
-///     assert_eq!(signal.next(), [1.0]);
-///     assert_eq!(signal.next(), [-1.0]);
-///     assert_eq!(signal.next(), [-1.0]);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
 /// }
 /// ```
 pub fn square<S>(phase: Phase<S>) -> Square<S> {
@@ -1507,7 +1507,7 @@ pub fn square<S>(phase: Phase<S>) -> Square<S> {
 /// fn main() {
 ///     let mut noise = signal::noise(0);
 ///     for n in noise.take(1_000_000) {
-///         assert!(-1.0 <= n[0] && n[0] < 1.0);
+///         assert!(-1.0 <= n && n < 1.0);
 ///     }
 /// }
 /// ```
@@ -1528,7 +1528,7 @@ pub fn noise(seed: u64) -> Noise {
 ///     // Creates a simplex noise signal oscillating at 440hz sampled 44_100 times per second.
 ///     let mut signal = signal::rate(44_100.0).const_hz(440.0).noise_simplex();
 ///     for n in signal.take(1_000_000) {
-///         assert!(-1.0 <= n[0] && n[0] < 1.0);
+///         assert!(-1.0 <= n && n < 1.0);
 ///     }
 /// }
 /// ```
@@ -1681,13 +1681,13 @@ where
 
 impl<S> Signal for Hz<S>
 where
-    S: Signal<Frame = [f64; 1]>,
+    S: Signal<Frame = f64>,
 {
-    type Frame = [f64; 1];
+    type Frame = f64;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        [self.step()]
+        self.step()
     }
 
     #[inline]
@@ -1697,11 +1697,11 @@ where
 }
 
 impl Signal for ConstHz {
-    type Frame = [f64; 1];
+    type Frame = f64;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        [self.step()]
+        self.step()
     }
 }
 
@@ -1709,11 +1709,11 @@ impl<S> Signal for Phase<S>
 where
     S: Step,
 {
-    type Frame = [f64; 1];
+    type Frame = f64;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        [self.next_phase()]
+        self.next_phase()
     }
 }
 
@@ -1721,13 +1721,13 @@ impl<S> Signal for Sine<S>
 where
     S: Step,
 {
-    type Frame = [f64; 1];
+    type Frame = f64;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
         const PI_2: f64 = core::f64::consts::PI * 2.0;
         let phase = self.phase.next_phase();
-        [ops::f64::sin(PI_2 * phase)]
+        ops::f64::sin(PI_2 * phase)
     }
 }
 
@@ -1735,12 +1735,12 @@ impl<S> Signal for Saw<S>
 where
     S: Step,
 {
-    type Frame = [f64; 1];
+    type Frame = f64;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
         let phase = self.phase.next_phase();
-        [phase * -2.0 + 1.0]
+        phase * -2.0 + 1.0
     }
 }
 
@@ -1748,12 +1748,16 @@ impl<S> Signal for Square<S>
 where
     S: Step,
 {
-    type Frame = [f64; 1];
+    type Frame = f64;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
         let phase = self.phase.next_phase();
-        [if phase < 0.5 { 1.0 } else { -1.0 }]
+        if phase < 0.5 {
+            1.0
+        } else {
+            -1.0
+        }
     }
 }
 
@@ -1772,19 +1776,19 @@ impl Rate {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let step = signal::rate(4.0).hz(signal::gen(|| [1.0]));
+    ///     let step = signal::rate(4.0).hz(signal::gen(|| 1.0));
     ///     let mut phase = signal::phase(step);
-    ///     assert_eq!(phase.next(), [0.0]);
-    ///     assert_eq!(phase.next(), [0.25]);
-    ///     assert_eq!(phase.next(), [0.5]);
-    ///     assert_eq!(phase.next(), [0.75]);
-    ///     assert_eq!(phase.next(), [0.0]);
-    ///     assert_eq!(phase.next(), [0.25]);
+    ///     assert_eq!(phase.next(), 0.0);
+    ///     assert_eq!(phase.next(), 0.25);
+    ///     assert_eq!(phase.next(), 0.5);
+    ///     assert_eq!(phase.next(), 0.75);
+    ///     assert_eq!(phase.next(), 0.0);
+    ///     assert_eq!(phase.next(), 0.25);
     /// }
     /// ```
     pub fn hz<S>(self, hz: S) -> Hz<S>
     where
-        S: Signal<Frame = [f64; 1]>,
+        S: Signal<Frame = f64>,
     {
         Hz { hz: hz, rate: self }
     }
@@ -1792,7 +1796,7 @@ impl Rate {
 
 impl<S> Hz<S>
 where
-    S: Signal<Frame = [f64; 1]>,
+    S: Signal<Frame = f64>,
 {
     /// Construct a `Phase` iterator that, for every `hz` yielded by `self`, yields a phase that is
     /// stepped by `hz / self.rate.hz`.
@@ -1880,11 +1884,11 @@ impl Step for ConstHz {
 
 impl<S> Step for Hz<S>
 where
-    S: Signal<Frame = [f64; 1]>,
+    S: Signal<Frame = f64>,
 {
     #[inline]
     fn step(&mut self) -> f64 {
-        let hz = self.hz.next()[0];
+        let hz = self.hz.next();
         hz / self.rate.hz
     }
 }
@@ -1964,10 +1968,10 @@ impl Noise {
 }
 
 impl Signal for Noise {
-    type Frame = [f64; 1];
+    type Frame = f64;
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        [self.next_sample()]
+        self.next_sample()
     }
 }
 
@@ -2063,11 +2067,11 @@ impl<S> Signal for NoiseSimplex<S>
 where
     S: Step,
 {
-    type Frame = [f64; 1];
+    type Frame = f64;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        [self.next_sample()]
+        self.next_sample()
     }
 }
 
@@ -2195,14 +2199,14 @@ impl<S, M, I> Signal for MulHz<S, M, I>
 where
     S: Signal,
     <S::Frame as Frame>::Sample: Duplex<f64>,
-    M: Signal<Frame = [f64; 1]>,
+    M: Signal<Frame = f64>,
     I: Interpolator<Frame = S::Frame>,
 {
     type Frame = S::Frame;
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        let mul = self.mul_per_frame.next()[0];
+        let mul = self.mul_per_frame.next();
         self.signal.set_playback_hz_scale(mul);
         self.signal.next()
     }
@@ -2404,13 +2408,13 @@ where
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
+    ///     let frames = [0.1, 0.2, 0.3, 0.4];
     ///     let signal = signal::from_iter(frames.iter().cloned());
-    ///     let ring_buffer = ring_buffer::Bounded::from([[0f32; 1]; 2]);
+    ///     let ring_buffer = ring_buffer::Bounded::from([0f32; 2]);
     ///     let mut buffered_signal = signal.buffered(ring_buffer);
-    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.1], [0.2]]);
-    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.3], [0.4]]);
-    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![[0.0], [0.0]]);
+    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![0.1, 0.2]);
+    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![0.3, 0.4]);
+    ///     assert_eq!(buffered_signal.next_frames().collect::<Vec<_>>(), vec![0.0, 0.0]);
     /// }
     /// ```
     pub fn next_frames(&mut self) -> BufferedFrames<D> {

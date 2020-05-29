@@ -10,7 +10,10 @@ use dasp_sample::Sample;
 /// Represents one sample from each channel at a single discrete instance in time within a
 /// PCM signal.
 ///
-/// We provide implementations for `Frame` for all fixed-size arrays up to a length of 32 elements.
+/// Implementations are provided for:
+///
+/// - All fixed-size arrays up to a length of 32 elements.
+/// - All primitive types that implement `Sample`. These implementations assume `CHANNELS = 1`.
 pub trait Frame: Copy + Clone + PartialEq {
     /// The type of PCM sample stored at each channel within the frame.
     type Sample: Sample;
@@ -255,7 +258,7 @@ pub struct Channels<F> {
     frame: F,
 }
 
-macro_rules! impl_frame {
+macro_rules! impl_frame_for_fixed_size_array {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
         $(
             /// A typified version of a number of channels.
@@ -381,13 +384,12 @@ macro_rules! impl_frame {
                         [$(self[$idx].add_amp(*other.channel_unchecked($idx)), )*]
                     }
                 }
-
             }
         )*
     };
 }
 
-impl_frame! {
+impl_frame_for_fixed_size_array! {
     N1  1,  [0],
     N2  2,  [0 1],
     N3  3,  [0 1 2],
@@ -420,6 +422,136 @@ impl_frame! {
     N30 30, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29],
     N31 31, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30],
     N32 32, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31],
+}
+
+macro_rules! impl_frame_for_sample {
+    ($($T:ty)*) => {
+        $(
+            impl Frame for $T {
+                type Sample = $T;
+                type NumChannels = N1;
+                type Channels = Channels<Self>;
+                type Float = <$T as Sample>::Float;
+                type Signed = <$T as Sample>::Signed;
+
+                const EQUILIBRIUM: Self = <$T as Sample>::EQUILIBRIUM;
+                const CHANNELS: usize = 1;
+
+                #[inline]
+                fn channels(self) -> Self::Channels {
+                    Channels {
+                        next_idx: 0,
+                        frame: self,
+                    }
+                }
+
+                #[inline]
+                fn channel(&self, idx: usize) -> Option<&Self::Sample> {
+                    if idx == 0 {
+                        Some(self)
+                    } else {
+                        None
+                    }
+                }
+
+                #[inline]
+                fn from_fn<F>(mut from: F) -> Self
+                where
+                    F: FnMut(usize) -> Self::Sample,
+                {
+                    from(0)
+                }
+
+                #[inline]
+                fn from_samples<I>(samples: &mut I) -> Option<Self>
+                where
+                    I: Iterator<Item=Self::Sample>
+                {
+                    samples.next()
+                }
+
+                #[inline(always)]
+                unsafe fn channel_unchecked(&self, _idx: usize) -> &Self::Sample {
+                    self
+                }
+
+                #[inline]
+                fn to_signed_frame(self) -> Self::Signed {
+                    self.to_signed_sample()
+                }
+
+                #[inline]
+                fn to_float_frame(self) -> Self::Float {
+                    self.to_float_sample()
+                }
+
+                #[inline]
+                fn map<F, M>(self, mut map: M) -> F
+                where
+                    F: Frame<NumChannels=Self::NumChannels>,
+                    M: FnMut(Self::Sample) -> F::Sample,
+                {
+                    F::from_fn(|channel_idx| {
+                        // Here we do not require run-time bounds checking as we have asserted that
+                        // the two arrays have the same number of channels at compile time with our
+                        // where clause, i.e.
+                        //
+                        // `F: Frame<NumChannels=Self::NumChannels>`
+                        unsafe { map(*self.channel_unchecked(channel_idx)) }
+                    })
+                }
+
+                #[inline]
+                fn zip_map<O, F, M>(self, other: O, mut zip_map: M) -> F
+                where
+                    O: Frame<NumChannels=Self::NumChannels>,
+                    F: Frame<NumChannels=Self::NumChannels>,
+                    M: FnMut(Self::Sample, O::Sample) -> F::Sample
+                {
+                    F::from_fn(|channel_idx| {
+                        // Here we do not require run-time bounds checking as we have asserted that the two
+                        // arrays have the same number of channels at compile time with our where clause, i.e.
+                        //
+                        // ```
+                        // O: Frame<NumChannels=Self::NumChannels>
+                        // F: Frame<NumChannels=Self::NumChannels>
+                        // ```
+                        unsafe {
+                            zip_map(*self.channel_unchecked(channel_idx),
+                                    *other.channel_unchecked(channel_idx))
+                        }
+                    })
+                }
+
+                #[inline]
+                fn scale_amp(self, amp: <$T as Sample>::Float) -> Self {
+                    Sample::mul_amp(self, amp)
+                }
+
+                #[inline]
+                fn add_amp<F>(self, other: F) -> Self
+                where
+                    F: Frame<Sample=<$T as Sample>::Signed, NumChannels=N1>,
+                {
+                    // Here we do not require run-time bounds checking as we have asserted that the two
+                    // arrays have the same number of channels at compile time with our where clause, i.e.
+                    unsafe {
+                        Sample::add_amp(self, *other.channel_unchecked(0))
+                    }
+                }
+            }
+        )*
+    };
+}
+
+impl_frame_for_sample! {
+    i8 i16 i32 i64 u8 u16 u32 u64 f32 f64
+}
+impl_frame_for_sample! {
+    dasp_sample::types::I24
+    dasp_sample::types::I48
+    dasp_sample::types::U24
+    dasp_sample::types::U48
 }
 
 impl<F> Iterator for Channels<F>

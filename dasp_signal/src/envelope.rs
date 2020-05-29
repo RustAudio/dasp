@@ -32,7 +32,7 @@ pub trait SignalEnvelope: Signal {
     ///     let mut envelope = signal.detect_envelope(detector);
     ///     assert_eq!(
     ///         envelope.take(4).collect::<Vec<_>>(),
-    ///         vec![[0.0], [0.6321205496788025], [0.23254416035257117], [0.7176687675647109]]
+    ///         vec![0.0, 0.6321205496788025, 0.23254416035257117, 0.7176687675647109]
     ///     );
     /// }
     /// ```

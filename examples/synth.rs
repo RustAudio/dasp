@@ -34,7 +34,7 @@ where
         .chain(hz.clone().square().take(one_sec))
         .chain(hz.clone().noise_simplex().take(one_sec))
         .chain(signal::noise(0).take(one_sec))
-        .map(|[s]| s.to_sample::<f32>() * 0.2);
+        .map(|s| s.to_sample::<f32>() * 0.2);
 
     // A channel for indicating when playback has completed.
     let (complete_tx, complete_rx) = mpsc::sync_channel(1);

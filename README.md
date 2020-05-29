@@ -90,25 +90,25 @@ let clipped: Vec<_> = signal::from_iter(frames.iter().cloned()).clip_amp(0.9).ta
 assert_eq!(clipped, vec![[0.9, 0.8], [-0.7, -0.9]]);
 
 // Add `a` with `b` and yield the result.
-let a = [[0.2], [-0.6], [0.5]];
-let b = [[0.2], [0.1], [-0.8]];
+let a = [0.2, -0.6, 0.5];
+let b = [0.2, 0.1, -0.8];
 let a_signal = signal::from_iter(a.iter().cloned());
 let b_signal = signal::from_iter(b.iter().cloned());
-let added: Vec<[f32; 1]> = a_signal.add_amp(b_signal).take(3).collect();
-assert_eq!(added, vec![[0.4], [-0.5], [-0.3]]);
+let added: Vec<f32> = a_signal.add_amp(b_signal).take(3).collect();
+assert_eq!(added, vec![0.4, -0.5, -0.3]);
 
 // Scale the playback rate by `0.5`.
-let foo = [[0.0], [1.0], [0.0], [-1.0]];
+let foo = [0.0, 1.0, 0.0, -1.0];
 let mut source = signal::from_iter(foo.iter().cloned());
 let a = source.next();
 let b = source.next();
 let interp = Linear::new(a, b);
 let frames: Vec<_> = source.scale_hz(interp, 0.5).take(8).collect();
-assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
+assert_eq!(&frames[..], &[0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][..]);
 
 // Convert a signal to its RMS.
 let signal = signal::rate(44_100.0).const_hz(440.0).sine();;
-let ring_buffer = ring_buffer::Fixed::from([[0.0]; WINDOW_SIZE]);
+let ring_buffer = ring_buffer::Fixed::from([0.0; WINDOW_SIZE]);
 let mut rms_signal = signal.rms(ring_buffer);
 ```
 
@@ -177,7 +177,7 @@ let detector = envelope::Detector::peak(attack, release);
 let mut envelope = signal.detect_envelope(detector);
 assert_eq!(
     envelope.take(4).collect::<Vec<_>>(),
-    vec![[0.0], [0.6321205496788025], [0.23254416035257117], [0.7176687675647109]]
+    vec![0.0, 0.6321205496788025, 0.23254416035257117, 0.7176687675647109]
 );
 ```
 
