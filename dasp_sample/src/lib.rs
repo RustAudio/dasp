@@ -1,13 +1,8 @@
-//! A crate of fundamentals for audio PCM DSP.
+//! Use the [**Sample**](./trait.Sample.html) trait to remain generic over sample types, easily
+//! access sample type conversions, apply basic audio operations and more.
 //!
-//! - Use the [**Sample** trait](./trait.Sample.html) to remain generic across bit-depth.
-//! - Use the [**Frame** trait](./frame/trait.Frame.html) to remain generic over channel layout.
-//! - Use the [**Signal** trait](./signal/trait.Signal.html) for working with **Iterators** that yield **Frames**.
-//! - Use the [**slice** module](./slice/index.html) for working with slices of **Samples** and **Frames**.
-//! - See the [**conv** module](./conv/index.html) for fast conversions between slices, frames and samples.
-//! - See the [**types** module](./types/index.html) for provided custom sample types.
-//! - See the [**interpolate** module](./interpolate/index.html) for sample rate conversion and scaling.
-//! - See the [**ring_buffer** module](./ring_buffer/index.html) for fast FIFO queue options.
+//! The **Sample** trait is the core abstraction throughout dasp on which most other abstractions
+//! are based.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]

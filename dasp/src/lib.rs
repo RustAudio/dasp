@@ -1,7 +1,7 @@
-//! **dasp** is a suite of crates providing the fundamentals for working with pulse-code modulation
-//! **digital audio signal processing**. In other words, **dasp** provides a suite of low-level,
-//! high-performance tools including types, traits and functions for working with digital audio
-//! signals.
+//! **dasp** (formerly known as ***sample***) is a suite of crates providing the fundamentals for
+//! working with pulse-code modulation **digital audio signal processing**. In other words,
+//! **dasp** provides a suite of low-level, high-performance tools including types, traits and
+//! functions for working with digital audio signals.
 //!
 //! Each of the **dasp** crates are re-exported under their respective
 //! [modules](file:///home/mindtree/programming/rust/dasp/target/doc/dasp/index.html#modules).
@@ -29,6 +29,12 @@
 //! By default, only the **sample** and **frame** modules and their respective traits are included
 //! within this crate. You may pick and choose between the following features for additional
 //! functionality.
+//!
+//! - The **all** feature enables all of the following features.
+//! - The **std** feature enables the std library. This is enabled by default.
+//! - The **all-no-std** feature enables all of the following features (without std).
+//!
+//! The following features map to each of the sub-crates and their respective features.
 //!
 //! - The **envelope** feature enables the `dasp_envelope` crate via the
 //!   [envelope](./envelope/index.html) module.
@@ -69,7 +75,7 @@
 //!     - The **window-rectangle** feature enables the
 //!       [**Rectangle**](./window/struct.Rectangle.html) window implementation.
 //!
-//! Enable all of the above features with the `--all-features` flag or with the **all** feature.
+//! You can also enable all of the above features with the `--all-features` flag.
 //!
 //! ### no_std
 //!

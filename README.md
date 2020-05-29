@@ -2,6 +2,8 @@
 
 **Digital Audio Signal Processing in Rust.**
 
+*Formerly the [`sample` crate](https://crates.io/crates/sample).*
+
 A suite of crates providing the fundamentals for working with PCM (pulse-code
 modulation) DSP (digital signal processing). In other words, `dasp` provides a
 suite of low-level, high-performance tools including types, traits and functions

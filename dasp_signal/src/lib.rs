@@ -73,10 +73,16 @@ type Rc<T> = alloc::rc::Rc<T>;
 #[cfg(feature = "std")]
 type Rc<T> = std::rc::Rc<T>;
 
-/// Types that yield `Frame`s as a multi-channel PCM signal.
+/// Types that yield `Frame`s of a one-or-more-channel PCM signal.
 ///
 /// For example, `Signal` allows us to add two signals, modulate a signal's amplitude by another
-/// signal, scale a signals amplitude and much more.
+/// signal, scale a signal's amplitude and much more.
+///
+/// The **Signal** trait is inspired by the `Iterator` trait but is different in the sense that it
+/// will always yield frames and will never return `None`. That said, implementors of `Signal` may
+/// optionally indicate exhaustian via the `is_exhausted` method. This allows for converting
+/// exhaustive signals back to iterators that are well behaved. Calling **next** on an exhausted
+/// signal should always yield `Self::Frame::EQUILIBRIUM`.
 pub trait Signal {
     /// The `Frame` type returned by the `Signal`.
     type Frame: Frame;
@@ -85,15 +91,31 @@ pub trait Signal {
     ///
     /// # Example
     ///
+    /// An example of a mono (single-channel) signal.
+    ///
     /// ```rust
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0.2], [-0.6], [0.4]];
+    ///     let frames = [0.2, -0.6, 0.4];
     ///     let mut signal = signal::from_iter(frames.iter().cloned());
-    ///     assert_eq!(signal.next(), [0.2]);
-    ///     assert_eq!(signal.next(), [-0.6]);
-    ///     assert_eq!(signal.next(), [0.4]);
+    ///     assert_eq!(signal.next(), 0.2);
+    ///     assert_eq!(signal.next(), -0.6);
+    ///     assert_eq!(signal.next(), 0.4);
+    /// }
+    /// ```
+    ///
+    /// An example of a stereo (dual-channel) signal.
+    ///
+    /// ```rust
+    /// use dasp_signal::{self as signal, Signal};
+    ///
+    /// fn main() {
+    ///     let frames = [[0.2, 0.2], [-0.6, -0.6], [0.4, 0.4]];
+    ///     let mut signal = signal::from_iter(frames.iter().cloned());
+    ///     assert_eq!(signal.next(), [0.2, 0.2]);
+    ///     assert_eq!(signal.next(), [-0.6, -0.6]);
+    ///     assert_eq!(signal.next(), [0.4, 0.4]);
     /// }
     /// ```
     fn next(&mut self) -> Self::Frame;
@@ -125,15 +147,15 @@ pub trait Signal {
     ///     assert_eq!(sine_signal.is_exhausted(), false);
     ///
     ///     // Signals over iterators return `true` when the inner iterator is exhausted.
-    ///     let frames = [[0.2], [-0.6], [0.4]];
+    ///     let frames = [0.2, -0.6, 0.4];
     ///     let mut iter_signal = signal::from_iter(frames.iter().cloned());
     ///     assert_eq!(iter_signal.is_exhausted(), false);
     ///     iter_signal.by_ref().take(3).count();
     ///     assert_eq!(iter_signal.is_exhausted(), true);
     ///
     ///     // Adaptors return `true` when the first signal becomes exhausted.
-    ///     let a = [[1], [2]];
-    ///     let b = [[1], [2], [3], [4]];
+    ///     let a = [1, 2];
+    ///     let b = [1, 2, 3, 4];
     ///     let a_signal = signal::from_iter(a.iter().cloned());
     ///     let b_signal = signal::from_iter(b.iter().cloned());
     ///     let mut added = a_signal.add_amp(b_signal);
@@ -155,8 +177,8 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = signal::gen(|| [0.5]);
-    ///     let mut mapper = frames.map(|f| [f[0], 0.25]);
+    ///     let frames = signal::gen(|| 0.5);
+    ///     let mut mapper = frames.map(|f| [f, 0.25]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
@@ -202,9 +224,9 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = signal::gen(|| [0.5]);
-    ///     let more_frames = signal::gen(|| [0.25]);
-    ///     let mut mapper = frames.zip_map(more_frames, |f, o| [f[0], o[0]]);
+    ///     let frames = signal::gen(|| 0.5);
+    ///     let more_frames = signal::gen(|| 0.25);
+    ///     let mut mapper = frames.zip_map(more_frames, |f, o| [f, o]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
     ///     assert_eq!(mapper.next(), [0.5, 0.25]);
@@ -234,12 +256,12 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let a = [[0.2], [-0.6], [0.4]];
-    ///     let b = [[0.2], [0.1], [-0.8]];
+    ///     let a = [0.2, -0.6, 0.4];
+    ///     let b = [0.2, 0.1, -0.8];
     ///     let a_signal = signal::from_iter(a.iter().cloned());
     ///     let b_signal = signal::from_iter(b.iter().cloned());
     ///     let added: Vec<_> = a_signal.add_amp(b_signal).take(3).collect();
-    ///     assert_eq!(added, vec![[0.4], [-0.5], [-0.4]]);
+    ///     assert_eq!(added, vec![0.4, -0.5, -0.4]);
     /// }
     /// ```
     #[inline]
@@ -264,12 +286,12 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let a = [[0.25], [-0.8], [-0.5]];
-    ///     let b = [[0.2], [0.5], [0.8]];
+    ///     let a = [0.25, -0.8, -0.5];
+    ///     let b = [0.2, 0.5, 0.8];
     ///     let a_signal = signal::from_iter(a.iter().cloned());
     ///     let b_signal = signal::from_iter(b.iter().cloned());
     ///     let added: Vec<_> = a_signal.mul_amp(b_signal).take(3).collect();
-    ///     assert_eq!(added, vec![[0.05], [-0.4], [-0.4]]);
+    ///     assert_eq!(added, vec![0.05, -0.4, -0.4]);
     /// }
     /// ```
     #[inline]
@@ -323,10 +345,10 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0.2], [-0.5], [-0.4], [0.3]];
+    ///     let frames = [0.2, -0.5, -0.4, 0.3];
     ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let scaled: Vec<_> = signal.scale_amp(2.0).take(4).collect();
-    ///     assert_eq!(scaled, vec![[0.4], [-1.0], [-0.8], [0.6]]);
+    ///     assert_eq!(scaled, vec![0.4, -1.0, -0.8, 0.6]);
     /// }
     /// ```
     #[inline]
@@ -444,13 +466,13 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
+    ///     let foo = [0.0, 1.0, 0.0, -1.0];
     ///     let mut source = signal::from_iter(foo.iter().cloned());
     ///     let a = source.next();
     ///     let b = source.next();
     ///     let interp = Linear::new(a, b);
     ///     let frames: Vec<_> = source.from_hz_to_hz(interp, 1.0, 2.0).take(8).collect();
-    ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
+    ///     assert_eq!(&frames[..], &[0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][..]);
     /// }
     /// ```
     fn from_hz_to_hz<I>(self, interpolator: I, source_hz: f64, target_hz: f64) -> Converter<Self, I>
@@ -470,13 +492,13 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let foo = [[0.0], [1.0], [0.0], [-1.0]];
+    ///     let foo = [0.0, 1.0, 0.0, -1.0];
     ///     let mut source = signal::from_iter(foo.iter().cloned());
     ///     let a = source.next();
     ///     let b = source.next();
     ///     let interp = Linear::new(a, b);
     ///     let frames: Vec<_> = source.scale_hz(interp, 0.5).take(8).collect();
-    ///     assert_eq!(&frames[..], &[[0.0], [0.5], [1.0], [0.5], [0.0], [-0.5], [-1.0], [-0.5]][..]);
+    ///     assert_eq!(&frames[..], &[0.0, 0.5, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5][..]);
     /// }
     /// ```
     fn scale_hz<I>(self, interpolator: I, multi: f64) -> Converter<Self, I>
@@ -498,10 +520,10 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0.2], [0.4]];
+    ///     let frames = [0.2, 0.4];
     ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let delayed: Vec<_> = signal.delay(2).take(4).collect();
-    ///     assert_eq!(delayed, vec![[0.0], [0.0], [0.2], [0.4]]);
+    ///     assert_eq!(delayed, vec![0.0, 0.0, 0.2, 0.4]);
     /// }
     /// ```
     fn delay(self, n_frames: usize) -> Delay<Self>
@@ -672,10 +694,10 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[0.1], [0.2], [0.3], [0.4]];
+    ///     let frames = [0.1, 0.2, 0.3, 0.4];
     ///     let mut signal = signal::from_iter(frames.iter().cloned()).take(2);
-    ///     assert_eq!(signal.next(), Some([0.1]));
-    ///     assert_eq!(signal.next(), Some([0.2]));
+    ///     assert_eq!(signal.next(), Some(0.1));
+    ///     assert_eq!(signal.next(), Some(0.2));
     ///     assert_eq!(signal.next(), None);
     /// }
     /// ```
@@ -695,7 +717,7 @@ pub trait Signal {
     /// use dasp_signal::{self as signal, Signal};
     ///
     /// fn main() {
-    ///     let frames = [[1], [2]];
+    ///     let frames = [1, 2];
     ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     assert_eq!(signal.until_exhausted().count(), 2);
     /// }
@@ -802,9 +824,9 @@ pub trait Signal {
 /// use dasp_signal::{self as signal, Signal};
 ///
 /// fn main() {
-///     let frames = vec![[0], [1], [2], [3]];
+///     let frames = vec![0, 1, 2, 3];
 ///     let offset_frames = signal::lift(frames, |signal| signal.offset_amp(2));
-///     assert_eq!(offset_frames.collect::<Vec<_>>(), vec![[2], [3], [4], [5]]);
+///     assert_eq!(offset_frames.collect::<Vec<_>>(), vec![2, 3, 4, 5]);
 /// }
 /// ```
 pub fn lift<I, F, S>(iter: I, f: F) -> UntilExhausted<S>
