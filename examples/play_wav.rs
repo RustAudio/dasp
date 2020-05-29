@@ -44,7 +44,7 @@ fn main() -> Result<(), anyhow::Error> {
                 Some(frame) => *out_frame = frame,
                 None => {
                     complete_tx.try_send(()).ok();
-                    *out_frame = dasp::Frame::equilibrium();
+                    *out_frame = dasp::Frame::EQUILIBRIUM;
                 }
             }
         }

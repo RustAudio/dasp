@@ -35,6 +35,10 @@
 - Make **Window** trait generic over its phase and amplitude type. Update the
   `dasp_signal::window` module items accordingly.
 - Remove unsafe uninitialized ring buffer constructors.
+- Remove `equilibrium()` and `identity()` constructors from `Sample` and `Frame`
+  traitsin favour of `EQUILIBRIUM` and `IDENTITY` associated consts.
+- Remove `Frame::n_channels` function in favour of `Frame::CHANNELS` associated
+  const.
 
 ---
 

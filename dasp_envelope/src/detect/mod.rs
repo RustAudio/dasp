@@ -51,7 +51,7 @@ where
     /// Construct a **Detector** with the given **Detect** implementation.
     pub fn new(detect: D, attack_frames: f32, release_frames: f32) -> Self {
         Detector {
-            last_env_frame: D::Output::equilibrium(),
+            last_env_frame: D::Output::EQUILIBRIUM,
             attack_gain: calc_gain(attack_frames),
             release_gain: calc_gain(release_frames),
             detect: detect,

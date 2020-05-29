@@ -53,7 +53,7 @@ where
         Rms {
             frame: PhantomData,
             window: ring_buffer,
-            square_sum: Frame::equilibrium(),
+            square_sum: Frame::EQUILIBRIUM,
         }
     }
 
@@ -77,9 +77,9 @@ where
         S: ring_buffer::SliceMut,
     {
         for sample_square in self.window.iter_mut() {
-            *sample_square = Frame::equilibrium();
+            *sample_square = Frame::EQUILIBRIUM;
         }
-        self.square_sum = Frame::equilibrium();
+        self.square_sum = Frame::EQUILIBRIUM;
     }
 
     /// The length of the window as a number of frames.
@@ -149,8 +149,8 @@ where
                 .zip_map(removed_frame_square, |s, r| {
                     let diff = s - r;
                     // Don't let floating point rounding errors put us below 0.0.
-                    if diff < Sample::equilibrium() {
-                        Sample::equilibrium()
+                    if diff < Sample::EQUILIBRIUM {
+                        Sample::EQUILIBRIUM
                     } else {
                         diff
                     }

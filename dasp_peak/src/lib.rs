@@ -63,7 +63,7 @@ where
 {
     frame.map(|s| {
         let signed = s.to_signed_sample();
-        if signed < Sample::equilibrium() {
+        if signed < Sample::EQUILIBRIUM {
             -signed
         } else {
             signed
@@ -77,8 +77,8 @@ where
     F: Frame,
 {
     frame.map(|s| {
-        if s < Sample::equilibrium() {
-            Sample::equilibrium()
+        if s < Sample::EQUILIBRIUM {
+            Sample::EQUILIBRIUM
         } else {
             s
         }
@@ -91,8 +91,8 @@ where
     F: Frame,
 {
     frame.map(|s| {
-        if s > Sample::equilibrium() {
-            Sample::equilibrium()
+        if s > Sample::EQUILIBRIUM {
+            Sample::EQUILIBRIUM
         } else {
             s
         }

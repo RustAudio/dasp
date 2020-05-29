@@ -1,6 +1,6 @@
 use crate::Window;
 
-use dasp_sample::{FloatSample, Sample};
+use dasp_sample::Sample;
 
 /// The simplest window type, equivalent to replacing all but *N* values of data sequence by
 /// zeroes, making it appear as though the waveform suddenly turns on and off.
@@ -18,6 +18,6 @@ where
 {
     type Output = S;
     fn window(_phase: S) -> Self::Output {
-        <S::Float as FloatSample>::identity().to_sample::<S>()
+        S::IDENTITY.to_sample::<S>()
     }
 }

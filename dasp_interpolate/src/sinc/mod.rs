@@ -88,7 +88,7 @@ where
             depth
         };
 
-        (0..max_depth).fold(Self::Frame::equilibrium(), |mut v, n| {
+        (0..max_depth).fold(Self::Frame::EQUILIBRIUM, |mut v, n| {
             v = {
                 let a = PI * (phil + n as f64);
                 let first = if a == 0.0 { 1.0 } else { sin(a) / a };

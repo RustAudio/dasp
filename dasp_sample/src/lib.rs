@@ -38,7 +38,7 @@ pub mod types;
 ///     assert_eq!(0.0.to_sample::<u8>(), 128);
 ///     assert_eq!(0i32.to_sample::<u32>(), 2_147_483_648);
 ///     assert_eq!(I24::new(0).unwrap(), Sample::from_sample(0.0));
-///     assert_eq!(0.0, Sample::equilibrium());
+///     assert_eq!(0.0, Sample::EQUILIBRIUM);
 /// }
 /// ```
 pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
@@ -80,15 +80,15 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// use dasp_sample::Sample;
     ///
     /// fn main() {
-    ///     assert_eq!(0.0, f32::equilibrium());
-    ///     assert_eq!(0, i32::equilibrium());
-    ///     assert_eq!(128, u8::equilibrium());
-    ///     assert_eq!(32_768_u16, Sample::equilibrium());
+    ///     assert_eq!(0.0, f32::EQUILIBRIUM);
+    ///     assert_eq!(0, i32::EQUILIBRIUM);
+    ///     assert_eq!(128, u8::EQUILIBRIUM);
+    ///     assert_eq!(32_768_u16, Sample::EQUILIBRIUM);
     /// }
     /// ```
     ///
     /// **Note:** This will likely be changed to an "associated const" if the feature lands.
-    fn equilibrium() -> Self;
+    const EQUILIBRIUM: Self;
 
     /// The multiplicative identity of the signal.
     ///
@@ -103,16 +103,13 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// use dasp_sample::{Sample, U48};
     ///
     /// fn main() {
-    ///     assert_eq!(1.0, f32::identity());
-    ///     assert_eq!(1.0, i8::identity());
-    ///     assert_eq!(1.0, u8::identity());
-    ///     assert_eq!(1.0, U48::identity());
+    ///     assert_eq!(1.0, f32::IDENTITY);
+    ///     assert_eq!(1.0, i8::IDENTITY);
+    ///     assert_eq!(1.0, u8::IDENTITY);
+    ///     assert_eq!(1.0, U48::IDENTITY);
     /// }
     /// ```
-    #[inline]
-    fn identity() -> Self::Float {
-        <Self::Float as FloatSample>::identity()
-    }
+    const IDENTITY: Self::Float = <Self::Float as FloatSample>::IDENTITY;
 
     /// Convert `self` to any type that implements `FromSample<Self>`.
     ///
@@ -224,7 +221,7 @@ pub trait Sample: Copy + Clone + PartialOrd + PartialEq {
     /// - `amp` > 1.0 amplifies the sample.
     /// - `amp` < 1.0 attenuates the sample.
     /// - `amp` == 1.0 yields the same sample.
-    /// - `amp` == 0.0 yields the `Sample::equilibrium`.
+    /// - `amp` == 0.0 yields the `Sample::EQUILIBRIUM`.
     ///
     /// `Self` will be converted to `Self::Float`, the multiplication will occur and then the
     /// result will be converted back to `Self`. These conversions allow us to correctly handle the
@@ -253,16 +250,13 @@ macro_rules! impl_sample {
     ($($T:ty:
        Signed: $Addition:ty,
        Float: $Modulation:ty,
-       equilibrium: $equilibrium:expr),*) =>
+       EQUILIBRIUM: $EQUILIBRIUM:expr),*) =>
     {
         $(
             impl Sample for $T {
                 type Signed = $Addition;
                 type Float = $Modulation;
-                #[inline]
-                fn equilibrium() -> Self {
-                    $equilibrium
-                }
+                const EQUILIBRIUM: Self = $EQUILIBRIUM;
             }
         )*
     }
@@ -270,20 +264,20 @@ macro_rules! impl_sample {
 
 // Expands to `Sample` implementations for all of the following types.
 impl_sample! {
-    i8:  Signed: i8,  Float: f32, equilibrium: 0,
-    i16: Signed: i16, Float: f32, equilibrium: 0,
-    I24: Signed: I24, Float: f32, equilibrium: types::i24::EQUILIBRIUM,
-    i32: Signed: i32, Float: f32, equilibrium: 0,
-    I48: Signed: I48, Float: f64, equilibrium: types::i48::EQUILIBRIUM,
-    i64: Signed: i64, Float: f64, equilibrium: 0,
-    u8:  Signed: i8,  Float: f32, equilibrium: 128,
-    u16: Signed: i16, Float: f32, equilibrium: 32_768,
-    U24: Signed: i32, Float: f32, equilibrium: types::u24::EQUILIBRIUM,
-    u32: Signed: i32, Float: f32, equilibrium: 2_147_483_648,
-    U48: Signed: i64, Float: f64, equilibrium: types::u48::EQUILIBRIUM,
-    u64: Signed: i64, Float: f64, equilibrium: 9_223_372_036_854_775_808,
-    f32: Signed: f32, Float: f32, equilibrium: 0.0,
-    f64: Signed: f64, Float: f64, equilibrium: 0.0
+    i8:  Signed: i8,  Float: f32, EQUILIBRIUM: 0,
+    i16: Signed: i16, Float: f32, EQUILIBRIUM: 0,
+    I24: Signed: I24, Float: f32, EQUILIBRIUM: types::i24::EQUILIBRIUM,
+    i32: Signed: i32, Float: f32, EQUILIBRIUM: 0,
+    I48: Signed: I48, Float: f64, EQUILIBRIUM: types::i48::EQUILIBRIUM,
+    i64: Signed: i64, Float: f64, EQUILIBRIUM: 0,
+    u8:  Signed: i8,  Float: f32, EQUILIBRIUM: 128,
+    u16: Signed: i16, Float: f32, EQUILIBRIUM: 32_768,
+    U24: Signed: i32, Float: f32, EQUILIBRIUM: types::u24::EQUILIBRIUM,
+    u32: Signed: i32, Float: f32, EQUILIBRIUM: 2_147_483_648,
+    U48: Signed: i64, Float: f64, EQUILIBRIUM: types::u48::EQUILIBRIUM,
+    u64: Signed: i64, Float: f64, EQUILIBRIUM: 9_223_372_036_854_775_808,
+    f32: Signed: f32, Float: f32, EQUILIBRIUM: 0.0,
+    f64: Signed: f64, Float: f64, EQUILIBRIUM: 0.0
 }
 
 /// Integral and floating-point **Sample** format types whose equilibrium is at 0.
@@ -313,16 +307,13 @@ pub trait FloatSample:
     + Duplex<f64>
 {
     /// Represents the multiplicative identity of the floating point signal.
-    fn identity() -> Self;
+    const IDENTITY: Self;
     /// Calculate the square root of `Self`.
     fn sample_sqrt(self) -> Self;
 }
 
 impl FloatSample for f32 {
-    #[inline]
-    fn identity() -> Self {
-        1.0
-    }
+    const IDENTITY: Self = 1.0;
     #[inline]
     fn sample_sqrt(self) -> Self {
         ops::f32::sqrt(self)
@@ -330,10 +321,7 @@ impl FloatSample for f32 {
 }
 
 impl FloatSample for f64 {
-    #[inline]
-    fn identity() -> Self {
-        1.0
-    }
+    const IDENTITY: Self = 1.0;
     #[inline]
     fn sample_sqrt(self) -> Self {
         ops::f64::sqrt(self)

@@ -289,7 +289,7 @@ pub fn equilibrium<F>(a: &mut [F])
 where
     F: Frame,
 {
-    map_in_place(a, |_| F::equilibrium())
+    map_in_place(a, |_| F::EQUILIBRIUM)
 }
 
 /// Mutate every frame in slice `a` while reading from each frame in slice `b` in lock-step using

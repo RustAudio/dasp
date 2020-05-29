@@ -28,7 +28,21 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// The equilibrium value for the wave that this `Sample` type represents. This is normally the
     /// value that is equal distance from both the min and max ranges of the sample.
     ///
-    /// **NOTE:** This will likely be changed to an "associated const" if the feature lands.
+    /// # Examples
+    ///
+    /// ```rust
+    /// use dasp_frame::{Frame, Mono, Stereo};
+    ///
+    /// fn main() {
+    ///     assert_eq!(Mono::<f32>::EQUILIBRIUM, [0.0]);
+    ///     assert_eq!(Stereo::<f32>::EQUILIBRIUM, [0.0, 0.0]);
+    ///     assert_eq!(<[f32; 3]>::EQUILIBRIUM, [0.0, 0.0, 0.0]);
+    ///     assert_eq!(<[u8; 2]>::EQUILIBRIUM, [128u8, 128]);
+    /// }
+    /// ```
+    const EQUILIBRIUM: Self;
+
+    /// The total number of channels within the frame.
     ///
     /// # Examples
     ///
@@ -36,13 +50,13 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// use dasp_frame::{Frame, Mono, Stereo};
     ///
     /// fn main() {
-    ///     assert_eq!(Mono::<f32>::equilibrium(), [0.0]);
-    ///     assert_eq!(Stereo::<f32>::equilibrium(), [0.0, 0.0]);
-    ///     assert_eq!(<[f32; 3]>::equilibrium(), [0.0, 0.0, 0.0]);
-    ///     assert_eq!(<[u8; 2]>::equilibrium(), [128u8, 128]);
+    ///     assert_eq!(Mono::<f32>::CHANNELS, 1);
+    ///     assert_eq!(Stereo::<f32>::CHANNELS, 2);
+    ///     assert_eq!(<[f32; 3]>::CHANNELS, 3);
+    ///     assert_eq!(<[u8; 2]>::CHANNELS, 2);
     /// }
     /// ```
-    fn equilibrium() -> Self;
+    const CHANNELS: usize;
 
     /// Create a new `Frame` where the `Sample` for each channel is produced by the given function.
     ///
@@ -60,9 +74,6 @@ pub trait Frame: Copy + Clone + PartialEq {
     fn from_samples<I>(samples: &mut I) -> Option<Self>
     where
         I: Iterator<Item = Self::Sample>;
-
-    /// The total number of channels (and in turn samples) stored within the frame.
-    fn n_channels() -> usize;
 
     /// Converts the frame into an iterator yielding the sample for each channel in the frame.
     fn channels(self) -> Self::Channels;
@@ -224,16 +235,6 @@ pub trait Frame: Copy + Clone + PartialEq {
     }
 }
 
-pub type Mono<S> = [S; 1];
-pub type Stereo<S> = [S; 2];
-
-/// An iterator that yields the sample for each channel in the frame by value.
-#[derive(Clone)]
-pub struct Channels<F> {
-    next_idx: usize,
-    frame: F,
-}
-
 /// Restricts the types that may be used as the `Frame::NumChannels` associated type.
 ///
 /// `NumChannels` allows us to enforce the number of channels that a `Frame` must have in certain
@@ -243,6 +244,16 @@ pub struct Channels<F> {
 ///
 /// This trait is implemented for types `N1`...`N32`.
 pub trait NumChannels {}
+
+pub type Mono<S> = [S; 1];
+pub type Stereo<S> = [S; 2];
+
+/// An iterator that yields the sample for each channel in the frame by value.
+#[derive(Clone)]
+pub struct Channels<F> {
+    next_idx: usize,
+    frame: F,
+}
 
 macro_rules! impl_frame {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
@@ -261,15 +272,8 @@ macro_rules! impl_frame {
                 type Float = [S::Float; $N];
                 type Signed = [S::Signed; $N];
 
-                #[inline]
-                fn equilibrium() -> Self {
-                    [S::equilibrium(); $N]
-                }
-
-                #[inline]
-                fn n_channels() -> usize {
-                    $N
-                }
+                const EQUILIBRIUM: Self = [S::EQUILIBRIUM; $N];
+                const CHANNELS: usize = $N;
 
                 #[inline]
                 fn channels(self) -> Self::Channels {
@@ -438,6 +442,6 @@ where
 {
     #[inline]
     fn len(&self) -> usize {
-        F::n_channels() - self.next_idx
+        F::CHANNELS - self.next_idx
     }
 }

@@ -489,7 +489,7 @@ pub trait Signal {
 
     /// Delays the `Signal` by the given number of frames.
     ///
-    /// The delay is performed by yielding `Frame::equilibrium()` `n_frames` times before
+    /// The delay is performed by yielding `Frame::EQUILIBRIUM` `n_frames` times before
     /// continuing to yield frames from `signal`.
     ///
     /// # Example
@@ -1008,7 +1008,7 @@ where
 
 /// Delays the `signal` by the given number of frames.
 ///
-/// The delay is performed by yielding `Frame::equilibrium()` `n_frames` times before
+/// The delay is performed by yielding `Frame::EQUILIBRIUM` `n_frames` times before
 /// continuing to yield frames from `signal`.
 #[derive(Clone)]
 pub struct Delay<S> {
@@ -1569,7 +1569,7 @@ where
                 self.next = self.iter.next();
                 frame
             }
-            None => Frame::equilibrium(),
+            None => Frame::EQUILIBRIUM,
         }
     }
 
@@ -1594,7 +1594,7 @@ where
                 self.next = F::from_samples(&mut self.samples);
                 frame
             }
-            None => F::equilibrium(),
+            None => F::EQUILIBRIUM,
         }
     }
 
@@ -1612,7 +1612,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Self::Frame {
-        F::equilibrium()
+        F::EQUILIBRIUM
     }
 }
 
@@ -2223,7 +2223,7 @@ where
     fn next(&mut self) -> Self::Frame {
         if self.n_frames > 0 {
             self.n_frames -= 1;
-            Self::Frame::equilibrium()
+            Self::Frame::EQUILIBRIUM
         } else {
             self.signal.next()
         }

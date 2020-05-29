@@ -56,7 +56,7 @@ assert_eq!((-1.0).to_sample::<u8>(), 0);
 assert_eq!(0.0.to_sample::<u8>(), 128);
 assert_eq!(0i32.to_sample::<u32>(), 2_147_483_648);
 assert_eq!(I24::new(0).unwrap(), Sample::from_sample(0.0));
-assert_eq!(0.0, Sample::equilibrium());
+assert_eq!(0.0, Sample::EQUILIBRIUM);
 ```
 
 Use the **Frame** trait to remain generic over the number of channels at a
@@ -68,9 +68,9 @@ let foo = [0.1, 0.2, -0.1, -0.2];
 let bar = foo.scale_amp(2.0);
 assert_eq!(bar, [0.2, 0.4, -0.2, -0.4]);
 
-assert_eq!(Mono::<f32>::equilibrium(), [0.0]);
-assert_eq!(Stereo::<f32>::equilibrium(), [0.0, 0.0]);
-assert_eq!(<[f32; 3]>::equilibrium(), [0.0, 0.0, 0.0]);
+assert_eq!(Mono::<f32>::EQUILIBRIUM, [0.0]);
+assert_eq!(Stereo::<f32>::EQUILIBRIUM, [0.0, 0.0]);
+assert_eq!(<[f32; 3]>::EQUILIBRIUM, [0.0, 0.0, 0.0]);
 
 let foo = [0i16, 0];
 let bar: [u8; 2] = foo.map(Sample::to_sample);
