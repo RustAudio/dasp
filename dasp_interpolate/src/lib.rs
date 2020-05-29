@@ -14,6 +14,13 @@
 //!   interpolator implementation.
 //! - The **sinc** feature (or **interpolate-sinc** feature if using `dasp`) provides a sinc
 //!   interpolator implementation.
+//!
+//! ### no_std
+//!
+//! If working in a `no_std` context, you can disable the default **std** feature with
+//! `--no-default-features`.
+//!
+//! To enable all of the above features in a `no_std` context, enable the **all-no-std** feature.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]

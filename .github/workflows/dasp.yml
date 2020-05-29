@@ -148,32 +148,32 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --manifest-path dasp/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+        args: --manifest-path dasp/Cargo.toml --no-default-features --features "all-no-std" --verbose
     - name: cargo test dasp_signal (all features no std)
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --manifest-path dasp_signal/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+        args: --manifest-path dasp_signal/Cargo.toml --no-default-features --features "all-no-std" --verbose
     - name: cargo test dasp_slice (all features no std)
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --manifest-path dasp_slice/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+        args: --manifest-path dasp_slice/Cargo.toml --no-default-features --features "all-no-std" --verbose
     - name: cargo test dasp_interpolate (all features no std)
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --manifest-path dasp_interpolate/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+        args: --manifest-path dasp_interpolate/Cargo.toml --no-default-features --features "all-no-std" --verbose
     - name: cargo test window (all features no std)
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --manifest-path dasp_window/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+        args: --manifest-path dasp_window/Cargo.toml --no-default-features --features "all-no-std" --verbose
     - name: cargo test dasp_envelope (all features no std)
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --manifest-path dasp_envelope/Cargo.toml --no-default-features --features "all-features-no-std" --verbose
+        args: --manifest-path dasp_envelope/Cargo.toml --no-default-features --features "all-no-std" --verbose
 
   cargo-doc:
     runs-on: ubuntu-latest

@@ -7,6 +7,11 @@
 //!
 //! - The **boxed** feature (or **slice-boxed** feature if using `dasp`) provides a suite of boxed
 //!   slice conversion traits and functions under the [**boxed**](./boxed/index.html) module.
+//!
+//! ### no_std
+//!
+//! If working in a `no_std` context, you can disable the default **std** feature with
+//! `--no-default-features`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

@@ -188,7 +188,7 @@ All crates may be compiled with and without the std library. The std library is
 enabled by default, however it may be disabled via `--no-default-features`.
 
 To enable all of a crate's features *without* the std library, you may use
-`--no-default-features --features "all-features-no-std"`.
+`--no-default-features --features "all-no-std"`.
 
 Please note that some of the crates require the `core_intrinsics` feature in
 order to be able to perform operations like `sin`, `cos` and `powf32` in a
