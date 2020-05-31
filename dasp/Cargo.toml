@@ -13,6 +13,7 @@ edition = "2018"
 [dependencies]
 dasp_envelope = { version = "0.11", path = "../dasp_envelope", default-features = false, optional = true }
 dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
+dasp_graph = { version = "0.11", path = "../dasp_graph", default-features = false, optional = true }
 dasp_interpolate = { version = "0.11", path = "../dasp_interpolate", default-features = false, optional = true }
 dasp_peak = { version = "0.11", path = "../dasp_peak", default-features = false, optional = true }
 dasp_ring_buffer = { version = "0.11", path = "../dasp_ring_buffer", default-features = false, optional = true }
@@ -24,7 +25,13 @@ dasp_window = { version = "0.11", path = "../dasp_window", default-features = fa
 
 [features]
 default = ["std"]
-all = ["std", "all-no-std"]
+all = [
+    "std",
+    "all-no-std",
+    # TODO: Move these into `all-no-std` once `dasp_graph` gains `no_std` support.
+    "graph",
+    "graph-all-nodes",
+]
 all-no-std = [
     "envelope",
     "envelope-peak",
@@ -65,6 +72,13 @@ std = [
 envelope = ["dasp_envelope"]
 envelope-peak = ["dasp_envelope/peak"]
 envelope-rms = ["dasp_envelope/rms"]
+graph = ["dasp_graph"]
+graph-all-nodes = ["dasp_graph/all-nodes"]
+graph-node-boxed = ["dasp_graph/node-boxed"]
+graph-node-delay = ["dasp_graph/node-delay"]
+graph-node-graph = ["dasp_graph/node-graph"]
+graph-node-pass = ["dasp_graph/node-pass"]
+graph-node-sum = ["dasp_graph/node-sum"]
 interpolate = ["dasp_interpolate"]
 interpolate-floor = ["dasp_interpolate/floor"]
 interpolate-linear = ["dasp_interpolate/linear"]

@@ -23,6 +23,7 @@
 //! - See the [**Converter** type](./signal/interpolate/struct.Converter.html) for sample rate
 //!   conversion and scaling.
 //! - See the [**ring_buffer** module](./ring_buffer/index.html) for fast FIFO queue options.
+//! - See the [**graph** module](./graph/index.html) for working with dynamic audio graphs.
 //!
 //! ## Optional Features
 //!
@@ -40,6 +41,16 @@
 //!   [envelope](./envelope/index.html) module.
 //!     - The **envelope-peak** feature enables peak envelope detection.
 //!     - The **envelope-rms** feature enables RMS envelope detection.
+//! - The **graph** feature enables the `dasp_graph` crate via the [graph](./graph/index.html)
+//!   module.
+//!     - The **node-boxed** feature provides a `Node` implementation for `Box<dyn Node>`.
+//!     - The **node-delay** feature provides a simple multi-channel `Delay` node.
+//!     - The **node-graph** feature provides an implementation of `Node` for a type that encapsulates
+//!       another `dasp` graph type.
+//!     - The **node-pass** feature provides a `Pass` node that simply passes audio from its
+//!       inputs to its outputs.
+//!     - The **node-signal** feature provides an implementation of `Node` for `dyn Signal`.
+//!     - The **node-sum** feature provides `Sum` and `SumBuffers` `Node` implementations.
 //! - The **interpolate** feature enables the `dasp_interpolate` crate via the
 //!   [interpolate](./interpolate/index.html) module.
 //!     - The **interpolate-floor** feature enables a floor interpolation implementation.
@@ -83,6 +94,10 @@
 //! `--no-default-features`.
 //!
 //! To enable all of the above features in a `no_std` context, enable the **all-no-std** feature.
+//!
+//! *Note: The **graph** module is currently only available with the **std** feature enabled.
+//! Adding support for `no_std` is pending the addition of support for `no_std` in petgraph. See
+//! [this PR](https://github.com/petgraph/petgraph/pull/238).
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -91,6 +106,10 @@
 pub use dasp_envelope as envelope;
 #[doc(inline)]
 pub use dasp_frame::{self as frame, Frame};
+// TODO: Remove `std` requirement once `dasp_graph` gains `no_std` support.
+#[cfg(all(feature = "graph", feature = "std"))]
+#[doc(inline)]
+pub use dasp_graph as graph;
 #[cfg(feature = "interpolate")]
 #[doc(inline)]
 pub use dasp_interpolate as interpolate;
