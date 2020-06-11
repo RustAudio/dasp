@@ -42,12 +42,12 @@ all-no-std = [
     "signal-envelope",
     "signal-rms",
     "signal-window",
-    "signal-window-hanning",
+    "signal-window-hann",
     "signal-window-rectangle",
     "slice",
     "slice-boxed",
     "window",
-    "window-hanning",
+    "window-hann",
     "window-rectangle",
 ]
 std = [
@@ -78,12 +78,12 @@ signal-bus = ["dasp_signal/bus"]
 signal-envelope = ["dasp_signal/envelope", "envelope"]
 signal-rms = ["dasp_signal/rms", "rms"]
 signal-window = ["dasp_signal/window", "window"]
-signal-window-hanning = ["dasp_signal/window-hanning", "window-hanning"]
+signal-window-hann = ["dasp_signal/window-hann", "window-hann"]
 signal-window-rectangle = ["dasp_signal/window-rectangle", "window-rectangle"]
 slice = ["dasp_slice"]
 slice-boxed = ["dasp_slice/boxed"]
 window = ["dasp_window"]
-window-hanning = ["dasp_window/hanning"]
+window-hann = ["dasp_window/hann"]
 window-rectangle = ["dasp_window/rectangle"]
 
 [package.metadata.docs.rs]

@@ -1,10 +1,10 @@
-//! Module for windowing over a batch of Frames. Includes default Hanning and Rectangle window
+//! Module for windowing over a batch of Frames. Includes default Hann and Rectangle window
 //! types.
 //!
 //! ### Optional Features
 //!
-//! - The **hanning** feature (or **window-hanning** feature if using `dasp`) provides the
-//!   [**Hanning**](./struct.Hanning.html) window function implementation.
+//! - The **hann** feature (or **window-hann** feature if using `dasp`) provides the
+//!   [**Hann**](./struct.Hann.html) window function implementation.
 //! - The **rectangle** feature (or **window-rectangle** feature if using `dasp`) provides the
 //!   [**Rectangle**](./struct.Rectangle.html) window function implementation.
 //!
@@ -18,13 +18,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
-#[cfg(feature = "hanning")]
-pub use hanning::Hanning;
+#[cfg(feature = "hann")]
+pub use hann::Hann;
 #[cfg(feature = "rectangle")]
 pub use rectangle::Rectangle;
 
-#[cfg(feature = "hanning")]
-mod hanning;
+#[cfg(feature = "hann")]
+mod hann;
 #[cfg(feature = "rectangle")]
 mod rectangle;
 

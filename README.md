@@ -36,7 +36,7 @@ within this repository:
 | [**`dasp_rms`**][dasp_rms] | [![Crates.io][dasp_rms-crates-io-svg]][dasp_rms-crates-io] [![docs.rs][dasp_rms-docs-rs-svg]][dasp_rms-docs-rs] | RMS detection with configurable window. |
 | [**`dasp_envelope`**][dasp_envelope] | [![Crates.io][dasp_envelope-crates-io-svg]][dasp_envelope-crates-io] [![docs.rs][dasp_envelope-docs-rs-svg]][dasp_envelope-docs-rs] | Envelope detection with peak and RMS impls. |
 | [**`dasp_interpolate`**][dasp_interpolate] | [![Crates.io][dasp_interpolate-crates-io-svg]][dasp_interpolate-crates-io] [![docs.rs][dasp_interpolate-docs-rs-svg]][dasp_interpolate-docs-rs] | Inter-frame rate interpolation (linear, sinc, etc). |
-| [**`dasp_window`**][dasp_window] | [![Crates.io][dasp_window-crates-io-svg]][dasp_window-crates-io] [![docs.rs][dasp_window-docs-rs-svg]][dasp_window-docs-rs] | Windowing function abstraction (hanning, rectangle). |
+| [**`dasp_window`**][dasp_window] | [![Crates.io][dasp_window-crates-io-svg]][dasp_window-crates-io] [![docs.rs][dasp_window-docs-rs-svg]][dasp_window-docs-rs] | Windowing function abstraction (hann, rectangle). |
 | [**`dasp_signal`**][dasp_signal] | [![Crates.io][dasp_signal-crates-io-svg]][dasp_signal-crates-io] [![docs.rs][dasp_signal-docs-rs-svg]][dasp_signal-docs-rs] | Iterator-like API for streams of audio frames. |
 
 [![deps-graph][deps-graph]][deps-graph]

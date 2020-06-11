@@ -1,6 +1,6 @@
 # Unreleased
 
-*No unreleased changes as of yet.*
+- Renamed `window-hanning` to `window-hann`
 
 ---
 
