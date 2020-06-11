@@ -61,8 +61,8 @@
 //!       trait.
 //!     - The **signal-window** feature enables the
 //!       [**signal::window**](./signal/window/index.html) module.
-//!     - The **signal-window-hanning** enables the
-//!       [**signal::window::hanning**](./signal/window/fn.hanning.html) window constructor.
+//!     - The **signal-window-hann** enables the
+//!       [**signal::window::hann**](./signal/window/fn.hann.html) window constructor.
 //!     - The **signal-window-rectangle** enables the
 //!       [**signal::window::rectangle**](./signal/window/fn.rectangle.html) window constructor.
 //! - The **slice** feature enables the `dasp_slice` crate via the [slice](./slice/index.html)
@@ -70,7 +70,7 @@
 //!     - The **slice-boxed** feature enables boxed slice conversion traits and functions.
 //! - The **window** feature enables the `dasp_window` crate via the [window](./window/index.html)
 //!   module.
-//!     - The **window-hanning** feature enables the [**Hanning**](./window/struct.Hanning.html)
+//!     - The **window-hann** feature enables the [**Hann**](./window/struct.Hann.html)
 //!       window implementation.
 //!     - The **window-rectangle** feature enables the
 //!       [**Rectangle**](./window/struct.Rectangle.html) window implementation.

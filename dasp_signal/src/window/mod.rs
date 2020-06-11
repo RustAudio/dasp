@@ -6,13 +6,13 @@ use dasp_frame::Frame;
 use dasp_sample::Sample;
 use dasp_window::Window as WindowType;
 
-#[cfg(feature = "window-hanning")]
-pub use hanning::hanning;
+#[cfg(feature = "window-hann")]
+pub use hann::hann;
 #[cfg(feature = "window-rectangle")]
 pub use rectangle::rectangle;
 
-#[cfg(feature = "window-hanning")]
-mod hanning;
+#[cfg(feature = "window-hann")]
+mod hann;
 #[cfg(feature = "window-rectangle")]
 mod rectangle;
 

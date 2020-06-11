@@ -3,10 +3,10 @@
 use dasp_frame::Frame;
 use dasp_signal::window::{self, Windower};
 
-#[cfg(feature = "window-hanning")]
+#[cfg(feature = "window-hann")]
 #[test]
 fn test_window_at_phase() {
-    let window = window::hanning::<f64>(9);
+    let window = window::hann::<f64>(9);
     let expected = [
         0.0, 0.1464, 0.5000, 0.8536, 1., 0.8536, 0.5000, 0.1464, 0., 0.1464,
     ];
@@ -39,11 +39,11 @@ fn test_windower() {
     }
 }
 
-#[cfg(feature = "window-hanning")]
+#[cfg(feature = "window-hann")]
 #[test]
 fn test_window_size() {
     let v = [1f32; 16];
-    let windows: Vec<Vec<_>> = Windower::hanning(&v, 8, 4)
+    let windows: Vec<Vec<_>> = Windower::hann(&v, 8, 4)
         .map(|i| i.take(8).collect::<Vec<f32>>())
         .take(3)
         .collect();
