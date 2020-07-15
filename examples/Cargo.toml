@@ -6,7 +6,7 @@ edition = "2018"
 
 [dev-dependencies]
 anyhow = "1"
-cpal = { git = "https://github.com/rustaudio/cpal", branch = "master" }
+cpal = "0.12"
 dasp = { version = "0.11", path = "../dasp", features = ["all"] }
 find_folder = "0.3"
 hound = "3"

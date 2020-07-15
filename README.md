@@ -38,6 +38,7 @@ within this repository:
 | [**`dasp_interpolate`**][dasp_interpolate] | [![Crates.io][dasp_interpolate-crates-io-svg]][dasp_interpolate-crates-io] [![docs.rs][dasp_interpolate-docs-rs-svg]][dasp_interpolate-docs-rs] | Inter-frame rate interpolation (linear, sinc, etc). |
 | [**`dasp_window`**][dasp_window] | [![Crates.io][dasp_window-crates-io-svg]][dasp_window-crates-io] [![docs.rs][dasp_window-docs-rs-svg]][dasp_window-docs-rs] | Windowing function abstraction (hann, rectangle). |
 | [**`dasp_signal`**][dasp_signal] | [![Crates.io][dasp_signal-crates-io-svg]][dasp_signal-crates-io] [![docs.rs][dasp_signal-docs-rs-svg]][dasp_signal-docs-rs] | Iterator-like API for streams of audio frames. |
+| [**`dasp_graph`**][dasp_graph] | [![Crates.io][dasp_graph-crates-io-svg]][dasp_graph-crates-io] [![docs.rs][dasp_graph-docs-rs-svg]][dasp_graph-docs-rs] | For working with modular, dynamic audio graphs. |
 
 [![deps-graph][deps-graph]][deps-graph]
 
@@ -239,6 +240,11 @@ dual licensed as above, without any additional terms or conditions.
 [dasp_frame-crates-io-svg]: https://img.shields.io/crates/v/dasp_frame.svg
 [dasp_frame-docs-rs]: https://docs.rs/dasp_frame/
 [dasp_frame-docs-rs-svg]: https://docs.rs/dasp_frame/badge.svg
+[dasp_graph]: ./dasp_graph
+[dasp_graph-crates-io]: https://crates.io/crates/dasp_graph
+[dasp_graph-crates-io-svg]: https://img.shields.io/crates/v/dasp_graph.svg
+[dasp_graph-docs-rs]: https://docs.rs/dasp_graph/
+[dasp_graph-docs-rs-svg]: https://docs.rs/dasp_graph/badge.svg
 [dasp_interpolate]: ./dasp_interpolate
 [dasp_interpolate-crates-io]: https://crates.io/crates/dasp_interpolate
 [dasp_interpolate-crates-io-svg]: https://img.shields.io/crates/v/dasp_interpolate.svg

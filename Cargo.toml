@@ -3,6 +3,7 @@ members = [
     "dasp",
     "dasp_envelope",
     "dasp_frame",
+    "dasp_graph",
     "dasp_interpolate",
     "dasp_peak",
     "dasp_ring_buffer",
