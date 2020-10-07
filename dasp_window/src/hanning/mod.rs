@@ -22,7 +22,7 @@ where
     type Output = S;
     fn window(phase: S) -> Self::Output {
         const PI_2: f64 = core::f64::consts::PI * 2.0;
-        let v = phase.to_float_sample().to_sample() * PI_2;
+        let v = phase.to_float_sample().to_sample::<f64>() * PI_2;
         (0.5 * (1.0 - cos(v)))
             .to_sample::<S::Float>()
             .to_sample::<S>()
