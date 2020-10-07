@@ -30,6 +30,7 @@ fn main() -> Result<(), anyhow::Error> {
     let config = cpal::StreamConfig {
         channels: spec.channels,
         sample_rate: cpal::SampleRate(spec.sample_rate),
+        buffer_size: cpal::BufferSize::Default,
     };
 
     // A channel for indicating when playback has completed.
