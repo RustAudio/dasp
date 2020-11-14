@@ -12,6 +12,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
+use core::convert::TryInto;
 use core::iter::{Chain, Cycle, FromIterator, Skip, Take};
 use core::mem;
 use core::ops::{Index, IndexMut};
@@ -511,6 +512,12 @@ where
         self.len
     }
 
+    /// The remaining space left.
+    #[inline]
+    pub fn remaining(&self) -> usize {
+        self.max_len() - self.len
+    }
+
     /// Whether or not the ring buffer's length is equal to `0`.
     ///
     /// Equivalent to `self.len() == 0`.
@@ -746,6 +753,140 @@ where
         self.start = next_start;
         self.len -= 1;
         Some(old_elem)
+    }
+
+    /// Copy data from `other` into `self` efficiently.
+    ///
+    /// The function will return an error if there is not enough space to copy `other` into `self`.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic on integer overflow during pointer arithmetic, but this is very
+    /// unlikely.
+    pub fn try_extend<O>(&mut self, other: O) -> Result<(), ()>
+    where
+        S: SliceMut,
+        O: Slice<Element = S::Element>,
+    {
+        let other = other.slice();
+        if other.len() > self.remaining() {
+            return Err(());
+        }
+        let other_ptr = other.as_ptr();
+        let self_ptr = self.data.slice_mut().as_mut_ptr();
+        // This relies on `S::Element: Copy`.
+        if self.start + self.len > self.max_len() {
+            // data wraps round
+            let other_start = (self.start + self.len) % self.max_len();
+            // We've already checked that our data will fit in. Because we hold a unique reference
+            // to self, `other` can't overlap with `self`.
+            unsafe {
+                ptr::copy_nonoverlapping(
+                    other_ptr,
+                    self_ptr.offset(other_start.try_into().expect("overflow")),
+                    other.len(),
+                );
+            }
+        } else {
+            // data fits in single slice, we may need to wrap round.
+            if self.max_len() - (self.start + self.len) >= other.len() {
+                // we can fit at the end
+                let other_start = self.start + self.len;
+                unsafe {
+                    ptr::copy_nonoverlapping(
+                        other_ptr,
+                        self_ptr.offset(other_start.try_into().expect("overflow")),
+                        other.len(),
+                    );
+                }
+            } else {
+                // we need to wrap
+                let other_start = self.start + self.len;
+                let end_amt = self.max_len() - (self.start + self.len);
+                unsafe {
+                    ptr::copy_nonoverlapping(
+                        other_ptr,
+                        self_ptr.offset(other_start.try_into().expect("overflow")),
+                        end_amt,
+                    );
+                    ptr::copy_nonoverlapping(
+                        other_ptr.offset(end_amt.try_into().expect("overflow")),
+                        self_ptr,
+                        other.len() - end_amt,
+                    );
+                }
+            }
+        }
+        self.len += other.len();
+        Ok(())
+    }
+
+    /// Copy data from `other` into `self` efficiently.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if there is not enough space to copy `other` into `self`. It will
+    /// also panic on integer overflow during pointer arithmetic, but this is very unlikely.
+    #[inline]
+    pub fn extend<O>(&mut self, other: O)
+    where
+        S: SliceMut,
+        O: Slice<Element = S::Element>,
+    {
+        self.try_extend(other).ok().expect("not enough space")
+    }
+
+    /// Copy data from `self` into `other` efficiently.
+    ///
+    /// The function will return an error if there is not enough data in `self` to fill `other`.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic on integer overflow during pointer arithmetic, but this is very
+    /// unlikely.
+    pub fn try_read<O>(&mut self, mut other: O) -> Result<(), ()>
+    where
+        O: SliceMut<Element = S::Element>,
+    {
+        let other = other.slice_mut();
+        if other.len() > self.len() {
+            return Err(());
+        }
+        let (first, second) = self.slices();
+        if first.len() > other.len() {
+            unsafe {
+                // we only need 1 memcpy
+                ptr::copy_nonoverlapping(first.as_ptr(), other.as_mut_ptr(), other.len());
+            }
+        } else {
+            unsafe {
+                // ensure our code turns into 2 `memcpy`s
+                ptr::copy_nonoverlapping(first.as_ptr(), other.as_mut_ptr(), first.len());
+                ptr::copy_nonoverlapping(
+                    second.as_ptr(),
+                    other
+                        .as_mut_ptr()
+                        .offset(first.len().try_into().expect("overflow")),
+                    other.len() - first.len(),
+                );
+            }
+        }
+        self.start = (self.start + other.len()) % self.max_len();
+        self.len -= other.len();
+        Ok(())
+    }
+
+    /// Copy data from `self` into `other` efficiently.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if there is not enough data in `self` to fill `other`. It will
+    /// also panic on integer overflow during pointer arithmetic, but this is very unlikely.
+    pub fn read<O>(&mut self, other: O)
+    where
+        O: SliceMut<Element = S::Element>,
+    {
+        self.try_read(other).ok().expect("not enough data")
     }
 
     /// Produce an iterator that drains the ring buffer by `pop`ping each element one at a time.
