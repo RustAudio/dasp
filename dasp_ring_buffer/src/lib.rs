@@ -853,6 +853,8 @@ where
             return Err(());
         }
         let (first, second) = self.slices();
+        // Similar to above, we know the slices are nonoverlapping because we have a unique pointer
+        // to `other`.
         if first.len() > other.len() {
             unsafe {
                 // we only need 1 memcpy
