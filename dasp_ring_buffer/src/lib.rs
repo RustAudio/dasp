@@ -12,7 +12,6 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-use core::convert::TryInto;
 use core::iter::{Chain, Cycle, FromIterator, Skip, Take};
 use core::mem;
 use core::ops::{Index, IndexMut};
@@ -465,7 +464,7 @@ pub struct DrainBounded<'a, S: 'a> {
 impl<S> Bounded<S>
 where
     S: Slice,
-    S::Element: Copy,
+    S::Element: Copy, // Safety: code below is only sound with this restriction.
 {
     /// The same as the `From` implementation, but assumes that the given `data` is full of valid
     /// elements and initialises the ring buffer with a length equal to `max_len`.
@@ -687,6 +686,7 @@ where
     ///     assert_eq!(ring_buffer.len(), 3);
     /// }
     /// ```
+    #[inline]
     pub fn push(&mut self, elem: S::Element) -> Option<S::Element>
     where
         S: SliceMut,
@@ -733,6 +733,7 @@ where
     ///     assert_eq!(rb.pop(), None);
     /// }
     /// ```
+    #[inline]
     pub fn pop(&mut self) -> Option<S::Element>
     where
         S: SliceMut,
@@ -759,10 +760,8 @@ where
     ///
     /// The function will return an error if there is not enough space to copy `other` into `self`.
     ///
-    /// # Panics
-    ///
-    /// This function will panic on integer overflow during pointer arithmetic, but this is very
-    /// unlikely.
+    /// See `Bounded::extend` for examples.
+    #[inline]
     pub fn try_extend<O>(&mut self, other: O) -> Result<(), ()>
     where
         S: SliceMut,
@@ -772,50 +771,20 @@ where
         if other.len() > self.remaining() {
             return Err(());
         }
-        let other_ptr = other.as_ptr();
-        let self_ptr = self.data.slice_mut().as_mut_ptr();
-        // This relies on `S::Element: Copy`.
-        if self.start + self.len > self.max_len() {
-            // data wraps round
-            let other_start = (self.start + self.len) % self.max_len();
-            // We've already checked that our data will fit in. Because we hold a unique reference
-            // to self, `other` can't overlap with `self`.
-            unsafe {
-                ptr::copy_nonoverlapping(
-                    other_ptr,
-                    self_ptr.offset(other_start.try_into().expect("overflow")),
-                    other.len(),
-                );
-            }
+        let start = self.start_free();
+
+        if self.is_free_space_contiguous()
+            || self.max_len() - (self.start + self.len) >= other.len()
+        {
+            // new data will fit into end of self.data
+            (&mut self.data.slice_mut()[start..start + other.len()]).copy_from_slice(other);
         } else {
-            // data fits in single slice, we may need to wrap round.
-            if self.max_len() - (self.start + self.len) >= other.len() {
-                // we can fit at the end
-                let other_start = self.start + self.len;
-                unsafe {
-                    ptr::copy_nonoverlapping(
-                        other_ptr,
-                        self_ptr.offset(other_start.try_into().expect("overflow")),
-                        other.len(),
-                    );
-                }
-            } else {
-                // we need to wrap
-                let other_start = self.start + self.len;
-                let end_amt = self.max_len() - (self.start + self.len);
-                unsafe {
-                    ptr::copy_nonoverlapping(
-                        other_ptr,
-                        self_ptr.offset(other_start.try_into().expect("overflow")),
-                        end_amt,
-                    );
-                    ptr::copy_nonoverlapping(
-                        other_ptr.offset(end_amt.try_into().expect("overflow")),
-                        self_ptr,
-                        other.len() - end_amt,
-                    );
-                }
-            }
+            // new data will need to wrap
+            let max_len = self.max_len();
+            let end_amt = max_len - self.start_free();
+            (&mut self.data.slice_mut()[start..max_len]).copy_from_slice(&other[..end_amt]);
+            (&mut self.data.slice_mut()[..other.len() - end_amt])
+                .copy_from_slice(&other[end_amt..]);
         }
         self.len += other.len();
         Ok(())
@@ -825,8 +794,19 @@ where
     ///
     /// # Panics
     ///
-    /// The function will panic if there is not enough space to copy `other` into `self`. It will
-    /// also panic on integer overflow during pointer arithmetic, but this is very unlikely.
+    /// The function will panic if there is not enough space to copy `other` into `self`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dasp_ring_buffer::Bounded;
+    /// let from = &[2u8, 3];
+    /// let mut to = Bounded::from([0u8; 4]);
+    /// to.push(0);
+    /// to.push(1);
+    /// to.extend(&from[..]);
+    /// assert_eq!(to.iter().copied().collect::<Vec<_>>(), vec![0, 1, 2, 3]);
+    /// ```
     #[inline]
     pub fn extend<O>(&mut self, other: O)
     where
@@ -840,10 +820,8 @@ where
     ///
     /// The function will return an error if there is not enough data in `self` to fill `other`.
     ///
-    /// # Panics
-    ///
-    /// This function will panic on integer overflow during pointer arithmetic, but this is very
-    /// unlikely.
+    /// See `Bounded::read` for examples.
+    #[inline]
     pub fn try_read<O>(&mut self, mut other: O) -> Result<(), ()>
     where
         O: SliceMut<Element = S::Element>,
@@ -853,25 +831,12 @@ where
             return Err(());
         }
         let (first, second) = self.slices();
-        // Similar to above, we know the slices are nonoverlapping because we have a unique pointer
-        // to `other`.
         if first.len() > other.len() {
-            unsafe {
-                // we only need 1 memcpy
-                ptr::copy_nonoverlapping(first.as_ptr(), other.as_mut_ptr(), other.len());
-            }
+            other.copy_from_slice(&first[..other.len()]);
         } else {
-            unsafe {
-                // ensure our code turns into 2 `memcpy`s
-                ptr::copy_nonoverlapping(first.as_ptr(), other.as_mut_ptr(), first.len());
-                ptr::copy_nonoverlapping(
-                    second.as_ptr(),
-                    other
-                        .as_mut_ptr()
-                        .offset(first.len().try_into().expect("overflow")),
-                    other.len() - first.len(),
-                );
-            }
+            // ensure our code turns into 2 `memcpy`s
+            other[..first.len()].copy_from_slice(first);
+            other[first.len()..].copy_from_slice(&second[..self.len - first.len()]);
         }
         self.start = (self.start + other.len()) % self.max_len();
         self.len -= other.len();
@@ -882,13 +847,133 @@ where
     ///
     /// # Panics
     ///
-    /// The function will panic if there is not enough data in `self` to fill `other`. It will
-    /// also panic on integer overflow during pointer arithmetic, but this is very unlikely.
+    /// The function will panic if there is not enough data in `self` to fill `other`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dasp_ring_buffer::Bounded;
+    /// let mut from = Bounded::from([0u8; 4]);
+    /// from.extend(&[0, 1, 2][..]);
+    /// let mut to = [0u8; 2];
+    /// from.read(&mut to[..]);
+    /// assert_eq!(from.pop(), Some(2));
+    /// assert!(from.pop().is_none());
+    /// assert_eq!(to, [0, 1]);
+    /// ```
+    #[inline]
     pub fn read<O>(&mut self, other: O)
     where
         O: SliceMut<Element = S::Element>,
     {
         self.try_read(other).ok().expect("not enough data")
+    }
+
+    /// Copy all data in `self` to `other` efficiently.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use dasp_ring_buffer::Bounded;
+    /// let mut from = Bounded::from_full([0u8, 1]);
+    /// let mut to = Bounded::from([0u8, 0]);
+    /// from.copy(&mut to);
+    /// assert_eq!(to.iter().copied().collect::<Vec<_>>(), vec![0, 1]);
+    /// ```
+    #[inline]
+    pub fn try_copy<O>(&mut self, other: &mut Bounded<O>) -> Result<(), ()>
+    where
+        O: SliceMut<Element = S::Element>,
+    {
+        if self.len() > other.remaining() {
+            return Err(());
+        }
+        let other_start = other.start_free();
+        // 2 x 2 = 4 cases: both self and other's free space can be disjoint or contiguous.
+        match (self.is_data_contiguous(), other.is_free_space_contiguous()) {
+            // single memcpy
+            (true, true) => {
+                other.data.slice_mut()[other_start..other_start + self.len]
+                    .copy_from_slice(&self.data.slice()[self.start..self.start + self.len]);
+            }
+            // 1 or 2 memcpys
+            (true, false) => {
+                let other_remaining_at_end = other.max_len() - other.start_free();
+                if self.len <= other_remaining_at_end {
+                    // our data will fit at the end of `other`.
+                    other.data.slice_mut()[other_start..other_start + self.len]
+                        .copy_from_slice(&self.data.slice()[self.start..self.start + self.len]);
+                } else {
+                    other.data.slice_mut()[other_start..].copy_from_slice(
+                        &self.data.slice()[self.start..self.start + other_remaining_at_end],
+                    );
+                    other.data.slice_mut()[..self.len - other_remaining_at_end].copy_from_slice(
+                        &self.data.slice()
+                            [self.start + other_remaining_at_end..self.start + self.len],
+                    );
+                }
+            }
+            // 2 memcpys
+            (false, true) => {
+                // copy to the end of our buffer.
+                let first_len = self.max_len() - self.start;
+                other.data.slice_mut()[other_start..other_start + first_len]
+                    .copy_from_slice(&self.data.slice()[self.start..]);
+                other.data.slice_mut()[other_start + first_len..other_start + self.len]
+                    .copy_from_slice(&self.data.slice()[..self.len - first_len]);
+            }
+            // 2 or 3 memcpys
+            (false, false) => {
+                // see which split comes first
+                let self_first_len = self.max_len() - self.start;
+                let other_first_len = other.max_len() - other.start_free();
+                if self_first_len <= other_first_len {
+                    // We can copy all our first slice into other in one go.
+                    other.data.slice_mut()[other_start..other_start + self_first_len]
+                        .copy_from_slice(&self.data.slice()[self.start..]);
+                    if self.len <= other_first_len {
+                        // we can fit the whole thing in the first slice of other
+                        other.data.slice_mut()
+                            [other_start + self_first_len..other_start + self.len]
+                            .copy_from_slice(&self.data.slice()[..self.len - self_first_len]);
+                    } else {
+                        other.data.slice_mut()[other_start + self_first_len..].copy_from_slice(
+                            &self.data.slice()[..other_first_len - self_first_len],
+                        );
+                        other.data.slice_mut()[..self.len - other_first_len].copy_from_slice(
+                            &self.data.slice()[other_first_len - self_first_len..self.start_free()],
+                        );
+                    }
+                } else {
+                    // We must split our first slice up.
+                    other.data.slice_mut()[other_start..].copy_from_slice(
+                        &self.data.slice()[self.start..self.start + other_first_len],
+                    );
+                    let remaining_first = self_first_len - other_first_len;
+                    other.data.slice_mut()[..remaining_first]
+                        .copy_from_slice(&self.data.slice()[self.start + other_first_len..]);
+                    other.data.slice_mut()
+                        [remaining_first..remaining_first + self.len - self_first_len]
+                        .copy_from_slice(&self.data.slice()[..self.len - self_first_len]);
+                }
+            }
+        }
+        other.len += self.len;
+        self.len = 0;
+        Ok(())
+    }
+
+    /// Copy all data in `self` to `other` efficiently.
+    ///
+    /// # Panics
+    ///
+    /// The function will panic if there is not enough space to copy `self` into `other`.
+    #[inline]
+    pub fn copy<O>(&mut self, other: &mut Bounded<O>)
+    where
+        O: SliceMut<Element = S::Element>,
+    {
+        self.try_copy(other).expect("not enough space")
     }
 
     /// Produce an iterator that drains the ring buffer by `pop`ping each element one at a time.
@@ -905,6 +990,7 @@ where
     ///     assert_eq!(rb.pop(), None);
     /// }
     /// ```
+    #[inline]
     pub fn drain(&mut self) -> DrainBounded<S> {
         DrainBounded { bounded: self }
     }
@@ -954,6 +1040,25 @@ where
     pub unsafe fn into_raw_parts(self) -> (usize, usize, S) {
         let Bounded { start, len, data } = self;
         (start, len, data)
+    }
+
+    /// True if the data in the backing store is contiguous.
+    #[inline]
+    fn is_data_contiguous(&self) -> bool {
+        self.start + self.len <= self.max_len()
+    }
+
+    /// True if the unused space in the backing store is contiguous.
+    #[inline]
+    fn is_free_space_contiguous(&self) -> bool {
+        self.start == 0 || self.start + self.len > self.max_len()
+    }
+
+    /// Returns the offset of the element after the last element in the buffer (which might be 0 if
+    /// we wrapped).
+    #[inline]
+    fn start_free(&self) -> usize {
+        (self.start + self.len) % self.max_len()
     }
 }
 
@@ -1032,5 +1137,78 @@ where
 {
     fn len(&self) -> usize {
         self.bounded.len()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Bounded;
+    use itertools::iproduct;
+
+    #[test]
+    fn copy() {
+        const LIM: usize = 4;
+        let data = [0u8, 1, 2, 3];
+        // To make sure we cover edge cases, test on ALL permutations of length 5 bounded ringbufs.
+        for (from_start, from_len, to_start, to_len) in iproduct!(0..LIM, 0..LIM, 0..LIM, 0..LIM) {
+            let mut from = Bounded {
+                start: from_start,
+                len: from_len,
+                data,
+            };
+            let old_from = from.clone();
+            let mut to = Bounded {
+                start: to_start,
+                len: to_len,
+                data,
+            };
+            let old_to = to.clone();
+            let res = from.try_copy(&mut to);
+            if to_len > (LIM - from_len) {
+                assert!(res.is_err());
+            } else {
+                assert!(res.is_ok());
+                assert_eq!(from.len, 0);
+                assert_eq!(to.len, old_to.len + old_from.len);
+                // check contents (this is harder)
+                let first = from_start as u8;
+                let first_end = ((from_start + from_len) % LIM) as u8;
+                let second = to_start as u8;
+                let second_end = ((to_start + to_len) % LIM) as u8;
+                let expected = sequence_mod(second, second_end, LIM as u8)
+                    .chain(sequence_mod(first, first_end, LIM as u8))
+                    .collect::<Vec<_>>();
+                let actual = to.iter().copied().collect::<Vec<_>>();
+                assert_eq!(
+                    expected, actual,
+                    "from({}-{}) to({}-{})",
+                    first, first_end, second, second_end
+                );
+            }
+        }
+    }
+
+    fn sequence_mod(start: u8, end: u8, modulo: u8) -> impl Iterator<Item = u8> {
+        struct ModIter {
+            pos: u8,
+            end: u8,
+            modulo: u8,
+        }
+        impl Iterator for ModIter {
+            type Item = u8;
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.pos == self.end {
+                    return None;
+                }
+                let pos = self.pos;
+                self.pos = (self.pos + 1) % self.modulo;
+                Some(pos)
+            }
+        }
+        ModIter {
+            pos: start,
+            end,
+            modulo,
+        }
     }
 }
