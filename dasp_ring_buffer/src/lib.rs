@@ -464,7 +464,7 @@ pub struct DrainBounded<'a, S: 'a> {
 impl<S> Bounded<S>
 where
     S: Slice,
-    S::Element: Copy, // Safety: code below is only sound with this restriction.
+    S::Element: Copy,
 {
     /// The same as the `From` implementation, but assumes that the given `data` is full of valid
     /// elements and initialises the ring buffer with a length equal to `max_len`.
