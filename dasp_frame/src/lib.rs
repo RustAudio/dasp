@@ -95,6 +95,9 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// at *compile-time*.
     unsafe fn channel_unchecked(&self, idx: usize) -> &Self::Sample;
 
+    /// Like [`channel_unchecked()`], but yields a mutable reference instead.
+    unsafe fn channel_unchecked_mut(&mut self, idx: usize) -> &mut Self::Sample;
+
     /// Applies the given function to each sample in the `Frame` in channel order and returns the
     /// result as a new `Frame`.
     ///
@@ -326,6 +329,11 @@ macro_rules! impl_frame_for_fixed_size_array {
                     self.get_unchecked(idx)
                 }
 
+                #[inline(always)]
+                unsafe fn channel_unchecked_mut(&mut self, idx: usize) -> &mut Self::Sample {
+                    self.get_unchecked_mut(idx)
+                }
+
                 #[inline]
                 fn to_signed_frame(self) -> Self::Signed {
                     self.map(|s| s.to_sample())
@@ -489,6 +497,11 @@ macro_rules! impl_frame_for_sample {
 
                 #[inline(always)]
                 unsafe fn channel_unchecked(&self, _idx: usize) -> &Self::Sample {
+                    self
+                }
+
+                #[inline(always)]
+                unsafe fn channel_unchecked_mut(&mut self, _idx: usize) -> &mut Self::Sample {
                     self
                 }
 
