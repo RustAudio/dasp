@@ -272,14 +272,10 @@ pub struct Channels<F> {
 
 /// An iterator that yields the sample for each channel in the frame by reference.
 #[derive(Clone)]
-pub struct ChannelsRef<'a, F: Frame> {
-    iter: std::slice::Iter<'a, F::Sample>,
-}
+pub struct ChannelsRef<'a, F: Frame>(std::slice::Iter<'a, F::Sample>);
 
 /// Like [`ChannelsRef`], but yields mutable references instead.
-pub struct ChannelsMut<'a, F: Frame> {
-    iter: std::slice::IterMut<'a, F::Sample>,
-}
+pub struct ChannelsMut<'a, F: Frame>(std::slice::IterMut<'a, F::Sample>);
 
 macro_rules! impl_frame_for_fixed_size_array {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
@@ -311,16 +307,12 @@ macro_rules! impl_frame_for_fixed_size_array {
 
                 #[inline]
                 fn channels_ref(&self) -> ChannelsRef<'_, Self> {
-                    ChannelsRef {
-                        iter: self.iter()
-                    }
+                    ChannelsRef(self.iter())
                 }
 
                 #[inline]
                 fn channels_mut(&mut self) -> ChannelsMut<'_, Self> {
-                    ChannelsMut {
-                        iter: self.iter_mut()
-                    }
+                    ChannelsMut(self.iter_mut())
                 }
 
                 #[inline]
@@ -494,16 +486,12 @@ macro_rules! impl_frame_for_sample {
 
                 #[inline]
                 fn channels_ref(&self) -> ChannelsRef<'_, Self> {
-                    ChannelsRef {
-                        iter: std::slice::from_ref(self).iter()
-                    }
+                    ChannelsRef(std::slice::from_ref(self).iter())
                 }
 
                 #[inline]
                 fn channels_mut(&mut self) -> ChannelsMut<'_, Self> {
-                    ChannelsMut {
-                        iter: std::slice::from_mut(self).iter_mut()
-                    }
+                    ChannelsMut(std::slice::from_mut(self).iter_mut())
                 }
 
                 #[inline]
@@ -658,19 +646,19 @@ impl<'a, F: Frame> Iterator for ChannelsRef<'a, F> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.0.next()
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
+        self.0.size_hint()
     }
 }
 
 impl<'a, F: Frame> ExactSizeIterator for ChannelsRef<'a, F> {
     #[inline]
     fn len(&self) -> usize {
-        self.iter.len()
+        self.0.len()
     }
 }
 
@@ -679,18 +667,18 @@ impl<'a, F: Frame> Iterator for ChannelsMut<'a, F> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.0.next()
     }
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
+        self.0.size_hint()
     }
 }
 
 impl<'a, F: Frame> ExactSizeIterator for ChannelsMut<'a, F> {
     #[inline]
     fn len(&self) -> usize {
-        self.iter.len()
+        self.0.len()
     }
 }
