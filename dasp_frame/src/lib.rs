@@ -84,6 +84,9 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// Yields a reference to the `Sample` of the channel at the given index if there is one.
     fn channel(&self, idx: usize) -> Option<&Self::Sample>;
 
+    /// Like [`channel()`], but yields a mutable reference instead.
+    fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample>;
+
     /// Returns a pointer to the sample of the channel at the given index, without doing bounds
     /// checking.
     ///
@@ -292,6 +295,11 @@ macro_rules! impl_frame_for_fixed_size_array {
                 }
 
                 #[inline]
+                fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample> {
+                    self.get_mut(idx)
+                }
+
+                #[inline]
                 fn from_fn<F>(mut from: F) -> Self
                 where
                     F: FnMut(usize) -> S,
@@ -447,6 +455,15 @@ macro_rules! impl_frame_for_sample {
 
                 #[inline]
                 fn channel(&self, idx: usize) -> Option<&Self::Sample> {
+                    if idx == 0 {
+                        Some(self)
+                    } else {
+                        None
+                    }
+                }
+
+                #[inline]
+                fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample> {
                     if idx == 0 {
                         Some(self)
                     } else {
