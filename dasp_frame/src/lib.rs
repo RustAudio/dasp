@@ -5,6 +5,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::iter::DoubleEndedIterator;
+
 use dasp_sample::Sample;
 
 /// Represents one sample from each channel at a single discrete instance in time within a
@@ -662,6 +664,13 @@ impl<'a, F: Frame> ExactSizeIterator for ChannelsRef<'a, F> {
     }
 }
 
+impl<'a, F: Frame> DoubleEndedIterator for ChannelsRef<'a, F> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
 impl<'a, F: Frame> Iterator for ChannelsMut<'a, F> {
     type Item = &'a mut F::Sample;
 
@@ -680,5 +689,12 @@ impl<'a, F: Frame> ExactSizeIterator for ChannelsMut<'a, F> {
     #[inline]
     fn len(&self) -> usize {
         self.0.len()
+    }
+}
+
+impl<'a, F: Frame> DoubleEndedIterator for ChannelsMut<'a, F> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
     }
 }
