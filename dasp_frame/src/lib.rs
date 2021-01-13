@@ -274,10 +274,10 @@ pub struct Channels<F> {
 
 /// An iterator that yields the sample for each channel in the frame by reference.
 #[derive(Clone)]
-pub struct ChannelsRef<'a, F: Frame>(std::slice::Iter<'a, F::Sample>);
+pub struct ChannelsRef<'a, F: Frame>(core::slice::Iter<'a, F::Sample>);
 
 /// Like [`ChannelsRef`], but yields mutable references instead.
-pub struct ChannelsMut<'a, F: Frame>(std::slice::IterMut<'a, F::Sample>);
+pub struct ChannelsMut<'a, F: Frame>(core::slice::IterMut<'a, F::Sample>);
 
 macro_rules! impl_frame_for_fixed_size_array {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
@@ -488,12 +488,12 @@ macro_rules! impl_frame_for_sample {
 
                 #[inline]
                 fn channels_ref(&self) -> ChannelsRef<'_, Self> {
-                    ChannelsRef(std::slice::from_ref(self).iter())
+                    ChannelsRef(core::slice::from_ref(self).iter())
                 }
 
                 #[inline]
                 fn channels_mut(&mut self) -> ChannelsMut<'_, Self> {
-                    ChannelsMut(std::slice::from_mut(self).iter_mut())
+                    ChannelsMut(core::slice::from_mut(self).iter_mut())
                 }
 
                 #[inline]
