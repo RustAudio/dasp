@@ -87,6 +87,22 @@ pub trait Frame: Copy + Clone + PartialEq {
     fn channels_ref(&self) -> ChannelsRef<'_, Self>;
 
     /// Like [`channels_ref()`], but yields mutable references instead.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use dasp_frame::Frame;
+    ///
+    /// fn main() {
+    ///     let mut foo = [1000i32, 2000, 3000];
+    ///     let mut offset = 100i32;
+    ///     for f in foo.channels_mut() {
+    ///         *f = *f + offset;
+    ///         offset += 100;
+    ///     }
+    ///     assert_eq!(foo, [1100i32, 2200, 3300]);
+    /// }
+    /// ```
     fn channels_mut(&mut self) -> ChannelsMut<'_, Self>;
 
     /// Yields a reference to the `Sample` of the channel at the given index if there is one.
