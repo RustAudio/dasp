@@ -2,6 +2,7 @@
 members = [
     "dasp",
     "dasp_envelope",
+    "dasp_filter",
     "dasp_frame",
     "dasp_graph",
     "dasp_interpolate",
