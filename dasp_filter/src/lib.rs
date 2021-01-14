@@ -2,6 +2,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
+use dasp_frame::Frame;
 use dasp_sample::FloatSample;
 
 /// Coefficients for a digital biquad filter.
@@ -22,4 +23,15 @@ where
     pub a2: S,
 }
 
+/// An implementation of a digital biquad filter.
+pub struct Biquad<S, F>
+where
+    S: FloatSample,
+    F: Frame<Sample = S>,
+{
+    coeff: Coefficients<S>,
 
+    // Since biquad filters are second-order, we require two historical buffers.
+    m1: F,
+    m2: F,
+}
