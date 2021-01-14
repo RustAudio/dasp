@@ -51,6 +51,8 @@ where
         }
     }
 
+    /// Performs a single iteration of this filter, calculating a new filtered
+    /// `Frame` from an input `Frame`.
     pub fn apply<I>(&mut self, input: I) -> I
     where
         I: Frame<NumChannels = F::NumChannels>,
