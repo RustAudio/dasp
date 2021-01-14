@@ -105,3 +105,14 @@ where
         output.map(FromSample::from_sample_)
     }
 }
+
+impl<F> From<Coefficients<F::Sample>> for Biquad<F>
+where
+    F: Frame,
+    F::Sample: FloatSample,
+{
+    // Same as `new()`, but adding this for the blanket `Into` impl.
+    fn from(coeff: Coefficients<F::Sample>) -> Self {
+        Self::new(coeff)
+    }
+}
