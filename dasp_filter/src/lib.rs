@@ -23,48 +23,60 @@ where
     pub a2: S,
 }
 
-/// An implementation of a digital biquad filter.
-pub struct Biquad<S, F>
+/// An implementation of a digital biquad filter, using the Direct Form 2
+/// Transposed (DF2T) representation.
+pub struct Biquad<F>
 where
-    S: FloatSample,
-    F: Frame<Sample = S>,
+    F: Frame,
+    F::Sample: FloatSample,
 {
-    coeff: Coefficients<S>,
+    coeff: Coefficients<F::Sample>,
 
     // Since biquad filters are second-order, we require two historical buffers.
+    // This state is updated each time the filter is applied to a `Frame`.
+    m0: F,
     m1: F,
-    m2: F,
 }
 
-impl<S, F> Biquad<S, F>
+impl<F> Biquad<F>
 where
-    S: FloatSample,
-    F: Frame<Sample = S>,
+    F: Frame,
+    F::Sample: FloatSample,
 {
-    pub fn new(coeff: Coefficients<S>) -> Self {
+    pub fn new(coeff: Coefficients<F::Sample>) -> Self {
         Self {
             coeff,
+            m0: F::EQUILIBRIUM,
             m1: F::EQUILIBRIUM,
-            m2: F::EQUILIBRIUM,
         }
     }
 
     pub fn apply<I>(&mut self, input: I) -> I
     where
         I: Frame<NumChannels = F::NumChannels>,
-        I::Sample: ToSample<S> + FromSample<S>,
+        I::Sample: ToSample<F::Sample> + FromSample<F::Sample>,
     {
+        // Convert into floating point representation.
         let input: F = input.map(ToSample::to_sample_);
 
-        // Alias to make calculations less verbose.
-        let co = &self.coeff;
+        // Calculate scaled inputs.
+        let input_by_b0 = input.scale_amp(self.coeff.b0);
+        let input_by_b1 = input.scale_amp(self.coeff.b1);
+        let input_by_b2 = input.scale_amp(self.coeff.b2);
 
-        let output = self.m1.add_amp(input.scale_amp(co.b0));
+        // This is the new filtered `Frame`.
+        let output: F = self.m0.add_amp(input_by_b0);
 
-        // Update buffers, which depend on new output.
-        self.m1 = self.m2.add_amp(input.scale_amp(co.b1).add_amp(output.scale_amp(-co.a1)));
-        self.m2 = input.scale_amp(co.b2).add_amp(output.scale_amp(-co.a2));
+        // Calculate scaled outputs.
+        // NOTE: Negative signs on the scaling factors for these.
+        let output_by_neg_a1 = output.scale_amp(-self.coeff.a1);
+        let output_by_neg_a2 = output.scale_amp(-self.coeff.a2);
 
+        // Update buffers.
+        self.m0 = self.m1.add_amp(input_by_b1).add_amp(output_by_neg_a1);
+        self.m1 = input_by_b2.add_amp(output_by_neg_a2);
+
+        // Convert back into the original `Frame` format.
         output.map(FromSample::from_sample_)
     }
 }
