@@ -12,6 +12,7 @@ edition = "2018"
 
 [dependencies]
 dasp_envelope = { version = "0.11", path = "../dasp_envelope", default-features = false, optional = true }
+dasp_filter = { version = "0.11", path = "../dasp_filter", default-features = false, optional = true }
 dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
 dasp_interpolate = { version = "0.11", path = "../dasp_interpolate", default-features = false }
 dasp_peak = { version = "0.11", path = "../dasp_peak", default-features = false }
@@ -32,6 +33,7 @@ all-no-std = [
     "boxed",
     "bus",
     "envelope",
+    "filter",
     "rms",
     "window",
     "window-hann",
@@ -39,6 +41,7 @@ all-no-std = [
 ]
 std = [
     "dasp_envelope/std",
+    "dasp_filter/std",
     "dasp_frame/std",
     "dasp_interpolate/std",
     "dasp_peak/std",
@@ -50,6 +53,7 @@ std = [
 boxed = []
 bus = []
 envelope = ["dasp_envelope"]
+filter = ["dasp_filter"]
 rms = ["dasp_rms"]
 window = ["dasp_window"]
 window-hann = ["dasp_window/hann"]
