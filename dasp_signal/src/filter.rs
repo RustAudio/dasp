@@ -8,7 +8,7 @@
 use crate::Signal;
 use dasp_frame::Frame;
 use dasp_filter as filter;
-use dasp_sample::Sample;
+use dasp_sample::{Sample, FromSample};
 
 /// An extension to the **Signal** trait that enables iterative filtering.
 ///
@@ -29,6 +29,7 @@ pub trait SignalFilter: Signal {
     ) -> FilteredSignal<Self>
     where
         Self: Sized,
+        <Self::Frame as Frame>::Sample: FromSample<<<Self::Frame as Frame>::Sample as Sample>::Float>,
     {
         let biquad = filter::Biquad::from(coeff);
 
@@ -42,6 +43,7 @@ pub trait SignalFilter: Signal {
 pub struct FilteredSignal<S>
 where
     S: Signal,
+    <S::Frame as Frame>::Sample: FromSample<<<S::Frame as Frame>::Sample as Sample>::Float>,
 {
     signal: S,
     biquad: filter::Biquad<<S::Frame as Frame>::Float>,
@@ -50,14 +52,13 @@ where
 impl<S> Signal for FilteredSignal<S>
 where
     S: Signal,
+    <S::Frame as Frame>::Sample: FromSample<<<S::Frame as Frame>::Sample as Sample>::Float>,
 {
     // Output is the same type as the input.
     type Frame = S::Frame;
 
     fn next(&mut self) -> Self::Frame {
-        todo!("use `Sample::Float` in `signal`
-            instead of `ToSample`/`FromSample` in bounds")
-        // self.biquad.apply(self.signal.next())
+        self.biquad.apply(self.signal.next())
     }
 
     fn is_exhausted(&self) -> bool {
