@@ -35,3 +35,17 @@ where
     m1: F,
     m2: F,
 }
+
+impl<S, F> Biquad<S, F>
+where
+    S: FloatSample,
+    F: Frame<Sample = S>,
+{
+    pub fn new(coeff: Coefficients<S>) -> Self {
+        Self {
+            coeff,
+            m1: F::EQUILIBRIUM,
+            m2: F::EQUILIBRIUM,
+        }
+    }
+}
