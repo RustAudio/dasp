@@ -46,3 +46,21 @@ where
     signal: S,
     biquad: filter::Biquad<<S::Frame as Frame>::Float>,
 }
+
+impl<S> Signal for FilteredSignal<S>
+where
+    S: Signal,
+{
+    // Output is the same type as the input.
+    type Frame = S::Frame;
+
+    fn next(&mut self) -> Self::Frame {
+        todo!("use `Sample::Float` in `signal`
+            instead of `ToSample`/`FromSample` in bounds")
+        // self.biquad.apply(self.signal.next())
+    }
+
+    fn is_exhausted(&self) -> bool {
+        self.signal.is_exhausted()
+    }
+}
