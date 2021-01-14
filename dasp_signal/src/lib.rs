@@ -63,6 +63,8 @@ mod boxed;
 pub mod bus;
 #[cfg(feature = "envelope")]
 pub mod envelope;
+#[cfg(feature = "filter")]
+pub mod filter;
 #[cfg(feature = "rms")]
 pub mod rms;
 #[cfg(feature = "window")]
