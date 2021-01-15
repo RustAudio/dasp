@@ -6,9 +6,9 @@
 //! - When using `dasp`, this item requires the **signal-filter** feature to be enabled.
 
 use crate::Signal;
-use dasp_frame::Frame;
 use dasp_filter as filter;
-use dasp_sample::{Sample, FromSample};
+use dasp_frame::Frame;
+use dasp_sample::{FromSample, Sample};
 
 /// An extension to the **Signal** trait that enables iterative filtering.
 ///
@@ -48,7 +48,8 @@ pub trait SignalFilter: Signal {
     ) -> FilteredSignal<Self>
     where
         Self: Sized,
-        <Self::Frame as Frame>::Sample: FromSample<<<Self::Frame as Frame>::Sample as Sample>::Float>,
+        <Self::Frame as Frame>::Sample:
+            FromSample<<<Self::Frame as Frame>::Sample as Sample>::Float>,
     {
         let biquad = filter::Biquad::from(coeff);
 
