@@ -2,7 +2,7 @@
 #![cfg_attr(not(feature = "std"), feature(core_intrinsics))]
 
 use dasp_frame::Frame;
-use dasp_sample::{FloatSample, FromSample, ToSample};
+use dasp_sample::{Duplex, FloatSample, FromSample, ToSample};
 
 /// Coefficients for a digital biquad filter.
 /// It is assumed that the `a0` coefficient is always normalized to 1.0,
@@ -78,7 +78,7 @@ where
     pub fn apply<I>(&mut self, input: I) -> I
     where
         I: Frame<NumChannels = F::NumChannels>,
-        I::Sample: ToSample<F::Sample> + FromSample<F::Sample>,
+        I::Sample: Duplex<F::Sample>,
     {
         // Convert into floating point representation.
         let input: F = input.map(ToSample::to_sample_);
