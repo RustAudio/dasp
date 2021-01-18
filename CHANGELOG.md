@@ -1,7 +1,10 @@
 # Unreleased
 
-- Renamed `window-hanning` to `window-hann`
-- Add
+- Renamed `window-hanning` to `window-hann`.
+- Add `dasp_filter` crate (#145).
+    - Allows for filtering of samples using a digital biquad filter.
+    - Add `filter` feature gate to `dasp_signal`.
+    - Add `signal-filter` feature gate to `dasp`.
 
 ---
 
