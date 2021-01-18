@@ -106,6 +106,9 @@
 pub use dasp_envelope as envelope;
 #[doc(inline)]
 pub use dasp_frame::{self as frame, Frame};
+#[cfg(feature = "filter")]
+#[doc(inline)]
+pub use dasp_filter as filter;
 // TODO: Remove `std` requirement once `dasp_graph` gains `no_std` support.
 #[cfg(all(feature = "graph", feature = "std"))]
 #[doc(inline)]
