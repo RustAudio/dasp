@@ -159,11 +159,6 @@ jobs:
       with:
         command: test
         args: --manifest-path dasp/Cargo.toml --no-default-features --features "all-no-std" --verbose
-    - name: cargo test dasp_filter (all features no std)
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --manifest-path dasp_filter/Cargo.toml --no-default-features --features "all-no-std" --verbose
     - name: cargo test dasp_signal (all features no std)
       uses: actions-rs/cargo@v1
       with:
