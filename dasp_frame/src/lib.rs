@@ -5,6 +5,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::iter::DoubleEndedIterator;
+
 use dasp_sample::Sample;
 
 /// Represents one sample from each channel at a single discrete instance in time within a
@@ -81,8 +83,33 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// Converts the frame into an iterator yielding the sample for each channel in the frame.
     fn channels(self) -> Self::Channels;
 
+    /// Returns an iterator yielding references to the sample for each channel in the frame.
+    fn channels_ref(&self) -> ChannelsRef<'_, Self>;
+
+    /// Like [`channels_ref()`], but yields mutable references instead.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use dasp_frame::Frame;
+    ///
+    /// fn main() {
+    ///     let mut foo = [1000i32, 2000, 3000];
+    ///     let mut offset = 100i32;
+    ///     for f in foo.channels_mut() {
+    ///         *f = *f + offset;
+    ///         offset += 100;
+    ///     }
+    ///     assert_eq!(foo, [1100i32, 2200, 3300]);
+    /// }
+    /// ```
+    fn channels_mut(&mut self) -> ChannelsMut<'_, Self>;
+
     /// Yields a reference to the `Sample` of the channel at the given index if there is one.
     fn channel(&self, idx: usize) -> Option<&Self::Sample>;
+
+    /// Like [`channel()`], but yields a mutable reference instead.
+    fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample>;
 
     /// Returns a pointer to the sample of the channel at the given index, without doing bounds
     /// checking.
@@ -91,6 +118,9 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// methods, as for those methods we can guarantee lengths of different `Frame`s to be the same
     /// at *compile-time*.
     unsafe fn channel_unchecked(&self, idx: usize) -> &Self::Sample;
+
+    /// Like [`channel_unchecked()`], but yields a mutable reference instead.
+    unsafe fn channel_unchecked_mut(&mut self, idx: usize) -> &mut Self::Sample;
 
     /// Applies the given function to each sample in the `Frame` in channel order and returns the
     /// result as a new `Frame`.
@@ -258,6 +288,13 @@ pub struct Channels<F> {
     frame: F,
 }
 
+/// An iterator that yields the sample for each channel in the frame by reference.
+#[derive(Clone)]
+pub struct ChannelsRef<'a, F: Frame>(core::slice::Iter<'a, F::Sample>);
+
+/// Like [`ChannelsRef`], but yields mutable references instead.
+pub struct ChannelsMut<'a, F: Frame>(core::slice::IterMut<'a, F::Sample>);
+
 macro_rules! impl_frame_for_fixed_size_array {
     ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
         $(
@@ -287,8 +324,23 @@ macro_rules! impl_frame_for_fixed_size_array {
                 }
 
                 #[inline]
+                fn channels_ref(&self) -> ChannelsRef<'_, Self> {
+                    ChannelsRef(self.iter())
+                }
+
+                #[inline]
+                fn channels_mut(&mut self) -> ChannelsMut<'_, Self> {
+                    ChannelsMut(self.iter_mut())
+                }
+
+                #[inline]
                 fn channel(&self, idx: usize) -> Option<&Self::Sample> {
                     self.get(idx)
+                }
+
+                #[inline]
+                fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample> {
+                    self.get_mut(idx)
                 }
 
                 #[inline]
@@ -316,6 +368,11 @@ macro_rules! impl_frame_for_fixed_size_array {
                 #[inline(always)]
                 unsafe fn channel_unchecked(&self, idx: usize) -> &Self::Sample {
                     self.get_unchecked(idx)
+                }
+
+                #[inline(always)]
+                unsafe fn channel_unchecked_mut(&mut self, idx: usize) -> &mut Self::Sample {
+                    self.get_unchecked_mut(idx)
                 }
 
                 #[inline]
@@ -446,7 +503,26 @@ macro_rules! impl_frame_for_sample {
                 }
 
                 #[inline]
+                fn channels_ref(&self) -> ChannelsRef<'_, Self> {
+                    ChannelsRef(core::slice::from_ref(self).iter())
+                }
+
+                #[inline]
+                fn channels_mut(&mut self) -> ChannelsMut<'_, Self> {
+                    ChannelsMut(core::slice::from_mut(self).iter_mut())
+                }
+
+                #[inline]
                 fn channel(&self, idx: usize) -> Option<&Self::Sample> {
+                    if idx == 0 {
+                        Some(self)
+                    } else {
+                        None
+                    }
+                }
+
+                #[inline]
+                fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample> {
                     if idx == 0 {
                         Some(self)
                     } else {
@@ -472,6 +548,11 @@ macro_rules! impl_frame_for_sample {
 
                 #[inline(always)]
                 unsafe fn channel_unchecked(&self, _idx: usize) -> &Self::Sample {
+                    self
+                }
+
+                #[inline(always)]
+                unsafe fn channel_unchecked_mut(&mut self, _idx: usize) -> &mut Self::Sample {
                     self
                 }
 
@@ -575,5 +656,61 @@ where
     #[inline]
     fn len(&self) -> usize {
         F::CHANNELS - self.next_idx
+    }
+}
+
+impl<'a, F: Frame> Iterator for ChannelsRef<'a, F> {
+    type Item = &'a F::Sample;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+
+impl<'a, F: Frame> ExactSizeIterator for ChannelsRef<'a, F> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl<'a, F: Frame> DoubleEndedIterator for ChannelsRef<'a, F> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
+    }
+}
+
+impl<'a, F: Frame> Iterator for ChannelsMut<'a, F> {
+    type Item = &'a mut F::Sample;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+
+impl<'a, F: Frame> ExactSizeIterator for ChannelsMut<'a, F> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl<'a, F: Frame> DoubleEndedIterator for ChannelsMut<'a, F> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back()
     }
 }
