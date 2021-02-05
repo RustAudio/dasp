@@ -1591,7 +1591,7 @@ pub fn pulse2<S>(phase: Phase<S>) -> Pulse2<S> {
 ///
 /// fn main() {
 ///     // Generates a square wave signal at 1hz to be sampled 8 times per second.
-///     let mut signal = signal::rate(8.0).const_hz(1.0).pulse1();
+///     let mut signal = signal::rate(8.0).const_hz(1.0).pulse3();
 ///     assert_eq!(signal.next(), 1.0);
 ///     assert_eq!(signal.next(), 1.0);
 ///     assert_eq!(signal.next(), 1.0);
