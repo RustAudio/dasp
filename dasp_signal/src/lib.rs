@@ -1555,7 +1555,7 @@ pub fn square<S>(phase: Phase<S>) -> Square<S> {
 /// }
 /// ```
 pub fn pulse12<S>(phase: Phase<S>) -> Pulse12<S> {
-    pulse12 { phase: phase }
+    Pulse12 { phase: phase }
 }
 
 /// Produces a `Signal` that yields a 25% duty cycle pulse wave oscillating at the given hz.
@@ -1579,7 +1579,7 @@ pub fn pulse12<S>(phase: Phase<S>) -> Pulse12<S> {
 /// }
 /// ```
 pub fn pulse25<S>(phase: Phase<S>) -> Pulse25<S> {
-    pulse25 { phase: phase }
+    Pulse25 { phase: phase }
 }
 
 /// Produces a `Signal` that yields a 75% duty cycle pulse wave oscillating at the given hz.
@@ -1603,7 +1603,7 @@ pub fn pulse25<S>(phase: Phase<S>) -> Pulse25<S> {
 /// }
 /// ```
 pub fn pulse75<S>(phase: Phase<S>) -> Pulse75<S> {
-    pulse75 { phase: phase }
+    Pulse75 { phase: phase }
 }
 
 /// Produces a `Signal` that yields random values between -1.0..1.0.
