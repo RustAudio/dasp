@@ -1985,19 +1985,19 @@ where
 
     /// A composable alternative to the `signal::pulse12` function.
     #[inline]
-    pub fn pulse12(self) -> pulse12<Self> {
+    pub fn pulse12(self) -> Pulse12<Self> {
         self.phase().pulse12()
     }
 
     /// A composable alternative to the `signal::pulse25` function.
     #[inline]
-    pub fn pulse25(self) -> pulse25<Self> {
+    pub fn pulse25(self) -> Pulse25<Self> {
         self.phase().pulse25()
     }
 
     /// A composable alternative to the `signal::pulse75` function.
     #[inline]
-    pub fn pulse75(self) -> pulse75<Self> {
+    pub fn pulse75(self) -> Pulse75<Self> {
         self.phase().pulse75()
     }
 
@@ -2035,19 +2035,19 @@ impl ConstHz {
 
     /// A composable alternative to the `signal::pulse12` function.
     #[inline]
-    pub fn pulse12(self) -> pulse12<Self> {
+    pub fn pulse12(self) -> Pulse12<Self> {
         self.phase().pulse12()
     }
 
     /// A composable alternative to the `signal::pulse25` function.
     #[inline]
-    pub fn pulse25(self) -> pulse25<Self> {
+    pub fn pulse25(self) -> Pulse25<Self> {
         self.phase().pulse25()
     }
 
     /// A composable alternative to the `signal::pulse75` function.
     #[inline]
-    pub fn pulse75(self) -> pulse75<Self> {
+    pub fn pulse75(self) -> Pulse75<Self> {
         self.phase().pulse75()
     }
 
@@ -2128,19 +2128,19 @@ where
 
     /// A composable version of the `signal::pulse12` function.
     #[inline]
-    pub fn pulse12(self) -> pulse12<S> {
+    pub fn pulse12(self) -> Pulse12<S> {
         pulse12(self)
     }
 
     /// A composable version of the `signal::pulse25` function.
     #[inline]
-    pub fn pulse25(self) -> pulse25<S> {
+    pub fn pulse25(self) -> Pulse25<S> {
         pulse25(self)
     }
 
     /// A composable version of the `signal::pulse75` function.
     #[inline]
-    pub fn pulse75(self) -> pulse75<S> {
+    pub fn pulse75(self) -> Pulse75<S> {
         pulse75(self)
     }
 
