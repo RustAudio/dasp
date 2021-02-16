@@ -1,3 +1,4 @@
+#![feature(min_const_generics)]
 //! A crate for dynamically creating and editing audio graphs.
 //!
 //! `dasp_graph` is targeted towards users who require an efficient yet flexible and dynamically
@@ -152,16 +153,16 @@ pub mod node;
 /// use petgraph;
 /// #
 /// # // The node type. (Hint: Use existing node impls by enabling their associated features).
-/// # struct MyNode;
+/// # struct MyNode<const N: usize>;
 ///
 /// // Chose a type of graph for audio processing.
-/// type Graph = petgraph::graph::DiGraph<NodeData<MyNode>, (), u32>;
+/// type Graph = petgraph::graph::DiGraph<NodeData<MyNode::<128>, 128>, (), u32>;
 /// // Create a short-hand for our processor type.
-/// type Processor = dasp_graph::Processor<Graph>;
+/// type Processor = dasp_graph::Processor<Graph, 128>;
 /// #
-/// # impl Node for MyNode {
+/// # impl<const N: usize> Node<N> for MyNode<N> {
 /// #     // ...
-/// #    fn process(&mut self, _inputs: &[Input], _output: &mut [Buffer]) {
+/// #    fn process(&mut self, _inputs: &[Input<N>], _output: &mut [Buffer<N>]) {
 /// #    }
 /// # }
 ///
@@ -173,37 +174,37 @@ pub mod node;
 ///     let mut p = Processor::with_capacity(max_nodes);
 ///
 ///     // Add some nodes and edges...
-/// #    let n_id = g.add_node(NodeData::new1(MyNode));
+/// #    let n_id = g.add_node(NodeData::new1(MyNode::<128>));
 ///
 ///     // Process all nodes within the graph that output to the node at `n_id`.
 ///     p.process(&mut g, n_id);
 /// }
 /// ```
-pub struct Processor<G>
+pub struct Processor<G, const N: usize>
 where
     G: Visitable,
 {
     // State related to the traversal of the audio graph starting from the output node.
     dfs_post_order: DfsPostOrder<G::NodeId, G::Map>,
     // Solely for collecting the inputs of a node in order to apply its `Node::process` method.
-    inputs: Vec<node::Input>,
+    inputs: Vec<node::Input<N>>,
 }
 
 /// For use as the node weight within a dasp graph. Contains the node and its buffers.
 ///
 /// For a graph to be compatible with a graph **Processor**, its node weights must be of type
 /// `NodeData<T>`, where `T` is some type that implements the `Node` trait.
-pub struct NodeData<T: ?Sized> {
+pub struct NodeData<T: ?Sized, const N: usize> {
     /// The buffers to which the `node` writes audio data during a call to its `process` method.
     ///
     /// Generally, each buffer stored within `buffers` corresponds to a unique audio channel. E.g.
     /// a node processing mono data would store one buffer, a node processing stereo data would
     /// store two, and so on.
-    pub buffers: Vec<Buffer>,
+    pub buffers: Vec<Buffer<N>>,
     pub node: T,
 }
 
-impl<G> Processor<G>
+impl<G, const N: usize> Processor<G, N>
 where
     G: Visitable,
 {
@@ -242,17 +243,17 @@ where
     /// **Panics** if there is no node for the given index.
     pub fn process<T>(&mut self, graph: &mut G, node: G::NodeId)
     where
-        G: Data<NodeWeight = NodeData<T>> + DataMapMut,
+        G: Data<NodeWeight = NodeData<T, N>> + DataMapMut,
         for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-        T: Node,
+        T: Node<N>,
     {
         process(self, graph, node)
     }
 }
 
-impl<T> NodeData<T> {
+impl<T, const N: usize> NodeData<T, N> {
     /// Construct a new **NodeData** from an instance of its node type and buffers.
-    pub fn new(node: T, buffers: Vec<Buffer>) -> Self {
+    pub fn new(node: T, buffers: Vec<Buffer<N>>) -> Self {
         NodeData { node, buffers }
     }
 
@@ -268,11 +269,11 @@ impl<T> NodeData<T> {
 }
 
 #[cfg(feature = "node-boxed")]
-impl NodeData<BoxedNode> {
+impl<const N: usize> NodeData<BoxedNode<N>, N> {
     /// The same as **new**, but boxes the given node data before storing it.
-    pub fn boxed<T>(node: T, buffers: Vec<Buffer>) -> Self
+    pub fn boxed<T>(node: T, buffers: Vec<Buffer<N>>) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<N>,
     {
         NodeData::new(BoxedNode(Box::new(node)), buffers)
     }
@@ -280,7 +281,7 @@ impl NodeData<BoxedNode> {
     /// The same as **new1**, but boxes the given node data before storing it.
     pub fn boxed1<T>(node: T) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<N>,
     {
         Self::boxed(node, vec![Buffer::SILENT])
     }
@@ -288,7 +289,7 @@ impl NodeData<BoxedNode> {
     /// The same as **new2**, but boxes the given node data before storing it.
     pub fn boxed2<T>(node: T) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<N>,
     {
         Self::boxed(node, vec![Buffer::SILENT, Buffer::SILENT])
     }
@@ -310,17 +311,17 @@ impl NodeData<BoxedNode> {
 /// type `NodeData<T>` where `T` implements the `Node` trait.
 ///
 /// **Panics** if there is no node for the given index.
-pub fn process<G, T>(processor: &mut Processor<G>, graph: &mut G, node: G::NodeId)
+pub fn process<G, T, const N: usize>(processor: &mut Processor<G, N>, graph: &mut G, node: G::NodeId)
 where
-    G: Data<NodeWeight = NodeData<T>> + DataMapMut + Visitable,
+    G: Data<NodeWeight = NodeData<T, N>> + DataMapMut + Visitable,
     for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-    T: Node,
+    T: Node<N>,
 {
     const NO_NODE: &str = "no node exists for the given index";
     processor.dfs_post_order.reset(Reversed(&*graph));
     processor.dfs_post_order.move_to(node);
     while let Some(n) = processor.dfs_post_order.next(Reversed(&*graph)) {
-        let data: *mut NodeData<T> = graph.node_weight_mut(n).expect(NO_NODE) as *mut _;
+        let data: *mut NodeData<T, N> = graph.node_weight_mut(n).expect(NO_NODE) as *mut _;
         processor.inputs.clear();
         for in_n in (&*graph).neighbors_directed(n, Incoming) {
             // Skip edges that connect the node to itself to avoid aliasing `node`.

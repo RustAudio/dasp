@@ -3,16 +3,15 @@ use core::ops::{Deref, DerefMut};
 
 /// The fixed-size buffer used for processing the graph.
 #[derive(Clone)]
-pub struct Buffer {
-    data: [f32; Self::LEN],
+pub struct Buffer<const N: usize> {
+    data: [f32; N],
 }
 
-impl Buffer {
-    /// The fixed length of the **Buffer** type.
-    pub const LEN: usize = 64;
+impl<const N: usize> Buffer<N> {
+    pub const LEN: usize = N;
     /// A silent **Buffer**.
     pub const SILENT: Self = Buffer {
-        data: [0.0; Self::LEN],
+        data: [0.0; N],
     };
 
     /// Short-hand for writing silence to the whole buffer.
@@ -21,38 +20,38 @@ impl Buffer {
     }
 }
 
-impl Default for Buffer {
+impl<const N: usize> Default for Buffer<N> {
     fn default() -> Self {
         Self::SILENT
     }
 }
 
-impl From<[f32; Self::LEN]> for Buffer {
-    fn from(data: [f32; Self::LEN]) -> Self {
+impl<const N: usize> From<[f32; N]> for Buffer<N> {
+    fn from(data: [f32; N]) -> Self {
         Buffer { data }
     }
 }
 
-impl fmt::Debug for Buffer {
+impl<const N: usize> fmt::Debug for Buffer<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&self.data[..], f)
     }
 }
 
-impl PartialEq for Buffer {
+impl<const N: usize> PartialEq for Buffer<N> {
     fn eq(&self, other: &Self) -> bool {
         &self[..] == &other[..]
     }
 }
 
-impl Deref for Buffer {
+impl<const N: usize> Deref for Buffer<N> {
     type Target = [f32];
     fn deref(&self) -> &Self::Target {
         &self.data[..]
     }
 }
 
-impl DerefMut for Buffer {
+impl<const N: usize> DerefMut for Buffer<N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data[..]
     }

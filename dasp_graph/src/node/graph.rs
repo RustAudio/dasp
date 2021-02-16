@@ -7,24 +7,24 @@ use core::marker::PhantomData;
 use petgraph::data::DataMapMut;
 use petgraph::visit::{Data, GraphBase, IntoNeighborsDirected, Visitable};
 
-pub struct GraphNode<G, T>
+pub struct GraphNode<G, T, const N: usize>
 where
     G: Visitable,
 {
-    pub processor: Processor<G>,
+    pub processor: Processor<G, N>,
     pub graph: G,
     pub input_nodes: Vec<G::NodeId>,
     pub output_node: G::NodeId,
     pub node_type: PhantomData<T>,
 }
 
-impl<G, T> Node for GraphNode<G, T>
+impl<G, T, const N: usize> Node<N> for GraphNode<G, T, N>
 where
-    G: Data<NodeWeight = NodeData<T>> + DataMapMut + Visitable,
+    G: Data<NodeWeight = NodeData<T, N>> + DataMapMut + Visitable,
     for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-    T: Node,
+    T: Node<N>,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]) {
         let GraphNode {
             ref mut processor,
             ref mut graph,
