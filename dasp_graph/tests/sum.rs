@@ -2,10 +2,10 @@
 
 use dasp_graph::{node, Buffer, Input, Node, NodeData};
 
-type BoxedNode = dasp_graph::BoxedNode;
+type BoxedNode = dasp_graph::BoxedNode<128>;
 
 // A simple source node that just writes `0.1` to the output. We'll use this to test the sum node.
-fn src_node(_inputs: &[Input], output: &mut [Buffer]) {
+fn src_node(_inputs: &[Input<128>], output: &mut [Buffer<128>]) {
     for o in output {
         o.iter_mut().for_each(|s| *s = 0.1);
     }
@@ -14,8 +14,8 @@ fn src_node(_inputs: &[Input], output: &mut [Buffer]) {
 #[test]
 fn test_sum() {
     // The type of graph to use for this test.
-    type Graph = petgraph::Graph<NodeData<BoxedNode>, (), petgraph::Directed, u32>;
-    type Processor = dasp_graph::Processor<Graph>;
+    type Graph = petgraph::Graph<NodeData<BoxedNode, 128>, (), petgraph::Directed, u32>;
+    type Processor = dasp_graph::Processor<Graph, 128>;
 
     // Create a graph and a processor.
     let max_nodes = 6;
@@ -24,7 +24,7 @@ fn test_sum() {
     let mut p = Processor::with_capacity(max_nodes);
 
     // Create and add the nodes to the graph.
-    let src_node_ptr = src_node as fn(&[Input], &mut [Buffer]);
+    let src_node_ptr = src_node as fn(&[Input<128>], &mut [Buffer<128>]);
     let src_a = g.add_node(NodeData::new1(BoxedNode::new(src_node_ptr)));
     let src_b = g.add_node(NodeData::new1(BoxedNode::new(src_node_ptr)));
     let sum = g.add_node(NodeData::new1(BoxedNode::new(node::Sum)));
@@ -37,7 +37,7 @@ fn test_sum() {
     p.process(&mut g, sum);
 
     // Check that `sum` actually contains the sum.
-    let expected = Buffer::from([0.2; Buffer::LEN]);
+    let expected = Buffer::from([0.2; 128]);
     assert_eq!(&g[sum].buffers[..], &[expected][..]);
 
     // Plug in some more sources.
@@ -50,15 +50,15 @@ fn test_sum() {
 
     // Check that the result is consistent.
     p.process(&mut g, sum);
-    let expected = Buffer::from([0.5; Buffer::LEN]);
+    let expected = Buffer::from([0.5; 128]);
     assert_eq!(&g[sum].buffers[..], &[expected][..]);
 }
 
 #[test]
 fn test_sum2() {
     // The type of graph to use for this test.
-    type Graph = petgraph::Graph<NodeData<BoxedNode>, (), petgraph::Directed, u32>;
-    type Processor = dasp_graph::Processor<Graph>;
+    type Graph = petgraph::Graph<NodeData<BoxedNode, 128>, (), petgraph::Directed, u32>;
+    type Processor = dasp_graph::Processor<Graph, 128>;
 
     // Create a graph and a processor.
     let mut g = Graph::new();
@@ -66,7 +66,7 @@ fn test_sum2() {
 
     // Create a small tree where we first sum a and b, then sum the result with c.
     // This time, using two buffers (channels) per node.
-    let src_node_ptr = src_node as fn(&[Input], &mut [Buffer]);
+    let src_node_ptr = src_node as fn(&[Input<128>], &mut [Buffer<128>]);
     let src_a = g.add_node(NodeData::new2(BoxedNode::new(src_node_ptr)));
     let src_b = g.add_node(NodeData::new2(BoxedNode::new(src_node_ptr)));
     let src_c = g.add_node(NodeData::new2(BoxedNode::new(src_node_ptr)));
@@ -81,10 +81,10 @@ fn test_sum2() {
     p.process(&mut g, sum_ab_c);
 
     // sum_a_b should be 0.2.
-    let expected = vec![Buffer::from([0.2; Buffer::LEN]); 2];
+    let expected = vec![Buffer::from([0.2; 128]); 2];
     assert_eq!(&g[sum_a_b].buffers[..], &expected[..]);
     // sum_ab_c should be 0.3.
-    let expected = vec![Buffer::from([0.3; Buffer::LEN]); 2];
+    let expected = vec![Buffer::from([0.3; 128]); 2];
     assert_eq!(&g[sum_ab_c].buffers[..], &expected[..]);
 }
 
@@ -92,12 +92,12 @@ fn test_sum2() {
 fn test_sum_unboxed() {
     // Prove to ourselves we also support unboxed node types with a custom node type.
     enum TestNode {
-        SourceFnPtr(fn(&[Input], &mut [Buffer])),
+        SourceFnPtr(fn(&[Input<128>], &mut [Buffer<128>])),
         Sum(node::Sum),
     }
 
-    impl Node for TestNode {
-        fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    impl Node<128> for TestNode {
+        fn process(&mut self, inputs: &[Input<128>], output: &mut [Buffer<128>]) {
             match *self {
                 TestNode::SourceFnPtr(ref mut f) => (*f)(inputs, output),
                 TestNode::Sum(ref mut sum) => sum.process(inputs, output),
@@ -106,8 +106,8 @@ fn test_sum_unboxed() {
     }
 
     // The type of graph to use for this test.
-    type Graph = petgraph::Graph<NodeData<TestNode>, (), petgraph::Directed, u32>;
-    type Processor = dasp_graph::Processor<Graph>;
+    type Graph = petgraph::Graph<NodeData<TestNode, 128>, (), petgraph::Directed, u32>;
+    type Processor = dasp_graph::Processor<Graph, 128>;
 
     // Create a graph and a processor.
     let mut g = Graph::new();
@@ -127,6 +127,6 @@ fn test_sum_unboxed() {
     p.process(&mut g, sum);
 
     // Check that `sum` actually contains the sum.
-    let expected = Buffer::from([0.2; Buffer::LEN]);
+    let expected = Buffer::from([0.2; 128]);
     assert_eq!(&g[sum].buffers[..], &[expected][..]);
 }

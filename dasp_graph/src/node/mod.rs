@@ -46,12 +46,12 @@ mod sum;
 /// use dasp_graph::{Buffer, Input, Node};
 ///
 /// // Our new `Node` type.
-/// pub struct Sum;
+/// pub struct Sum<const N: usize>;
 ///
 /// // Implement the `Node` trait for our new type.
 /// # #[cfg(feature = "dasp_slice")]
-/// impl Node for Sum {
-///     fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+/// impl<const N: usize> Node<N> for Sum<N> {
+///     fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]) {
 ///         // Fill the output with silence.
 ///         for out_buffer in output.iter_mut() {
 ///             out_buffer.silence();
@@ -68,7 +68,7 @@ mod sum;
 ///     }
 /// }
 /// ```
-pub trait Node {
+pub trait Node<const N: usize> {
     /// Process some audio given a list of the node's `inputs` and write the result to the `output`
     /// buffers.
     ///
@@ -82,7 +82,7 @@ pub trait Node {
     ///
     /// This `process` method is called by the [`Processor`](../struct.Processor.html) as it
     /// traverses the graph during audio rendering.
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]);
+    fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]);
 }
 
 /// A reference to another node that is an input to the current node.
@@ -90,14 +90,14 @@ pub trait Node {
 /// *TODO: It may be useful to provide some information that can uniquely identify the input node.
 /// This could be useful to allow to distinguish between side-chained and regular inputs for
 /// example.*
-pub struct Input {
-    buffers_ptr: *const Buffer,
+pub struct Input<const N: usize> {
+    buffers_ptr: *const Buffer<N>,
     buffers_len: usize,
 }
 
-impl Input {
+impl<const N: usize> Input<N> {
     // Constructor solely for use within the graph `process` function.
-    pub(crate) fn new(slice: &[Buffer]) -> Self {
+    pub(crate) fn new(slice: &[Buffer<N>]) -> Self {
         let buffers_ptr = slice.as_ptr();
         let buffers_len = slice.len();
         Input {
@@ -107,7 +107,7 @@ impl Input {
     }
 
     /// A reference to the buffers of the input node.
-    pub fn buffers(&self) -> &[Buffer] {
+    pub fn buffers(&self) -> &[Buffer<N>] {
         // As we know that an `Input` can only be constructed during a call to the graph `process`
         // function, we can be sure that our slice is still valid as long as the input itself is
         // alive.
@@ -118,46 +118,46 @@ impl Input {
 // Inputs can only be created by the `dasp_graph::process` implementation and only ever live as
 // long as the lifetime of the call to the function. Thus, it's safe to implement this so that
 // `Send` closures can be stored within the graph and sent between threads.
-unsafe impl Send for Input {}
+unsafe impl<const N: usize> Send for Input<N> {}
 
-impl fmt::Debug for Input {
+impl<const N: usize> fmt::Debug for Input<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self.buffers(), f)
     }
 }
 
-impl<'a, T> Node for &'a mut T
+impl<'a, T, const N: usize> Node<N> for &'a mut T
 where
-    T: Node,
+    T: Node<N>,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]) {
         (**self).process(inputs, output)
     }
 }
 
-impl<T> Node for Box<T>
+impl<T, const N: usize> Node<N> for Box<T>
 where
-    T: Node,
+    T: Node<N>,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]) {
         (**self).process(inputs, output)
     }
 }
 
-impl Node for dyn Fn(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<const N: usize> Node<N> for dyn Fn(&[Input<N>], &mut [Buffer<N>]) {
+    fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]) {
         (*self)(inputs, output)
     }
 }
 
-impl Node for dyn FnMut(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<const N: usize> Node<N> for dyn FnMut(&[Input<N>], &mut [Buffer<N>]) {
+    fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]) {
         (*self)(inputs, output)
     }
 }
 
-impl Node for fn(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<const N: usize> Node<N> for fn(&[Input<N>], &mut [Buffer<N>]) {
+    fn process(&mut self, inputs: &[Input<N>], output: &mut [Buffer<N>]) {
         (*self)(inputs, output)
     }
 }
