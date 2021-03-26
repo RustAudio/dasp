@@ -1,4 +1,3 @@
-#![feature(min_const_generics)]
 //! A crate for dynamically creating and editing audio graphs.
 //!
 //! `dasp_graph` is targeted towards users who require an efficient yet flexible and dynamically
