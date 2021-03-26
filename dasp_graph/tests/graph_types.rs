@@ -11,7 +11,7 @@ use petgraph::visit::GraphBase;
 #[test]
 #[should_panic]
 fn test_graph() {
-    type Graph = petgraph::Graph<NodeData::<BoxedNode::<128>, 128>, (), petgraph::Directed, u32>;
+    type Graph = petgraph::Graph<NodeData<BoxedNode<128>, 128>, (), petgraph::Directed, u32>;
     type Processor = dasp_graph::Processor<Graph, 128>;
     let mut g: Graph = unimplemented!();
     let mut p: Processor = unimplemented!();
@@ -22,8 +22,12 @@ fn test_graph() {
 #[test]
 #[should_panic]
 fn test_stable_graph() {
-    type Graph =
-        petgraph::stable_graph::StableGraph<NodeData<BoxedNode<128>, 128>, (), petgraph::Directed, u32>;
+    type Graph = petgraph::stable_graph::StableGraph<
+        NodeData<BoxedNode<128>, 128>,
+        (),
+        petgraph::Directed,
+        u32,
+    >;
     type Processor = dasp_graph::Processor<Graph, 128>;
     let mut g: Graph = unimplemented!();
     let mut p: Processor = unimplemented!();

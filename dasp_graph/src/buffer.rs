@@ -10,9 +10,7 @@ pub struct Buffer<const N: usize> {
 impl<const N: usize> Buffer<N> {
     pub const LEN: usize = N;
     /// A silent **Buffer**.
-    pub const SILENT: Self = Buffer {
-        data: [0.0; N],
-    };
+    pub const SILENT: Self = Buffer { data: [0.0; N] };
 
     /// Short-hand for writing silence to the whole buffer.
     pub fn silence(&mut self) {

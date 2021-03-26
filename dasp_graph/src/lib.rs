@@ -310,8 +310,11 @@ impl<const N: usize> NodeData<BoxedNode<N>, N> {
 /// type `NodeData<T>` where `T` implements the `Node` trait.
 ///
 /// **Panics** if there is no node for the given index.
-pub fn process<G, T, const N: usize>(processor: &mut Processor<G, N>, graph: &mut G, node: G::NodeId)
-where
+pub fn process<G, T, const N: usize>(
+    processor: &mut Processor<G, N>,
+    graph: &mut G,
+    node: G::NodeId,
+) where
     G: Data<NodeWeight = NodeData<T, N>> + DataMapMut + Visitable,
     for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
     T: Node<N>,
