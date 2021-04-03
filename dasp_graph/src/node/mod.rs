@@ -128,7 +128,7 @@ impl fmt::Debug for Input {
 
 impl<'a, T> Node for &'a mut T
 where
-    T: Node,
+    T: Node + ?Sized,
 {
     fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
         (**self).process(inputs, output)
@@ -137,7 +137,7 @@ where
 
 impl<T> Node for Box<T>
 where
-    T: Node,
+    T: Node + ?Sized,
 {
     fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
         (**self).process(inputs, output)
