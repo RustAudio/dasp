@@ -17,7 +17,6 @@ use core::mem;
 use core::ops::{Index, IndexMut};
 use core::ptr;
 use core::slice;
-use std::ops::Bound;
 
 #[cfg(not(feature = "std"))]
 type Vec<T> = alloc::vec::Vec<T>;
