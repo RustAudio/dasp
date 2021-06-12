@@ -17,6 +17,7 @@ use core::mem;
 use core::ops::{Index, IndexMut};
 use core::ptr;
 use core::slice;
+use std::ops::Bound;
 
 #[cfg(not(feature = "std"))]
 type Vec<T> = alloc::vec::Vec<T>;
@@ -407,6 +408,17 @@ where
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.get_mut(index)
+    }
+}
+
+impl<S> Extend<S::Element> for Fixed<S>
+where
+    S: SliceMut
+{
+    fn extend<T: IntoIterator<Item = S::Element>>(&mut self, iter: T) {
+        for item in iter {
+            self.push(item);
+        }
     }
 }
 
@@ -863,6 +875,18 @@ where
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.get_mut(index).expect("index out of range")
+    }
+}
+
+impl<S> Extend<S::Element> for Bounded<S>
+where 
+    S: SliceMut,
+    S::Element: Copy,
+{
+    fn extend<T: IntoIterator<Item = S::Element>>(&mut self, iter: T) {
+        for item in iter {
+            self.push(item);
+        }
     }
 }
 
