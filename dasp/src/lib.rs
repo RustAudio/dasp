@@ -130,6 +130,6 @@ pub use dasp_signal::{self as signal, Signal};
 #[cfg(feature = "slice")]
 #[doc(inline)]
 pub use dasp_slice as slice;
-#[cfg(feature = "signal")]
+#[cfg(feature = "window")]
 #[doc(inline)]
 pub use dasp_window as window;
