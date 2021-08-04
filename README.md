@@ -222,7 +222,7 @@ for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
 
-[dasp-actions]: https://github.com/nannou-org/dasp/actions
+[dasp-actions]: https://github.com/rustaudio/dasp/actions
 [dasp-actions-svg]: https://github.com/rustaudio/dasp/workflows/dasp/badge.svg
 [deps-graph]: ./assets/deps-graph.png
 [dasp]: ./dasp

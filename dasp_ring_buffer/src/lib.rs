@@ -401,7 +401,7 @@ where
 
 impl<S> Extend<S::Element> for Fixed<S>
 where
-    S: SliceMut
+    S: SliceMut,
 {
     fn extend<T: IntoIterator<Item = S::Element>>(&mut self, iter: T) {
         for item in iter {
@@ -867,7 +867,7 @@ where
 }
 
 impl<S> Extend<S::Element> for Bounded<S>
-where 
+where
     S: SliceMut,
     S::Element: Copy,
 {
