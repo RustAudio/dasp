@@ -59,4 +59,9 @@ where
         self.left = self.right;
         self.right = source_frame;
     }
+
+    fn reset(&mut self) {
+        self.left = Self::Frame::EQUILIBRIUM;
+        self.right = Self::Frame::EQUILIBRIUM;
+    }
 }

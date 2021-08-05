@@ -45,4 +45,8 @@ where
     fn next_source_frame(&mut self, source_frame: Self::Frame) {
         self.left = source_frame;
     }
+
+    fn reset(&mut self) {
+        self.left = Self::Frame::EQUILIBRIUM;
+    }
 }
