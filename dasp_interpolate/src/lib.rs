@@ -48,4 +48,9 @@ pub trait Interpolator {
 
     /// To be called whenever the Interpolator value steps passed 1.0.
     fn next_source_frame(&mut self, source_frame: Self::Frame);
+
+    /// Resets the state of the interpolator.
+    ///
+    /// Call this when there's a break in the continuity of the input data stream.
+    fn reset(&mut self);
 }

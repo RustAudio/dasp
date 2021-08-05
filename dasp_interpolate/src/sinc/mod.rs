@@ -121,4 +121,12 @@ where
             self.idx += 1;
         }
     }
+
+    fn reset(&mut self) {
+        self.idx = 0;
+        self.frames.set_first(0);
+        for frame in self.frames.iter_mut() {
+            *frame = Self::Frame::EQUILIBRIUM;
+        }
+    }
 }
