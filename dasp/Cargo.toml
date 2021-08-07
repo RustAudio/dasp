@@ -12,6 +12,7 @@ edition = "2018"
 
 [dependencies]
 dasp_envelope = { version = "0.11", path = "../dasp_envelope", default-features = false, optional = true }
+dasp_filter = { version = "0.11", path = "../dasp_filter", default-features = false, optional = true }
 dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false }
 dasp_graph = { version = "0.11", path = "../dasp_graph", default-features = false, optional = true }
 dasp_interpolate = { version = "0.11", path = "../dasp_interpolate", default-features = false, optional = true }
@@ -36,6 +37,7 @@ all-no-std = [
     "envelope",
     "envelope-peak",
     "envelope-rms",
+    "filter",
     "interpolate",
     "interpolate-floor",
     "interpolate-linear",
@@ -47,6 +49,7 @@ all-no-std = [
     "signal-boxed",
     "signal-bus",
     "signal-envelope",
+    "signal-filter",
     "signal-rms",
     "signal-window",
     "signal-window-hann",
@@ -59,6 +62,7 @@ all-no-std = [
 ]
 std = [
     "dasp_envelope/std",
+    "dasp_filter/std",
     "dasp_frame/std",
     "dasp_interpolate/std",
     "dasp_peak/std",
@@ -72,6 +76,7 @@ std = [
 envelope = ["dasp_envelope"]
 envelope-peak = ["dasp_envelope/peak"]
 envelope-rms = ["dasp_envelope/rms"]
+filter = ["dasp_filter"]
 graph = ["dasp_graph"]
 graph-all-nodes = ["dasp_graph/all-nodes"]
 graph-node-boxed = ["dasp_graph/node-boxed"]
@@ -90,6 +95,7 @@ signal = ["dasp_signal"]
 signal-boxed = ["dasp_signal/boxed"]
 signal-bus = ["dasp_signal/bus"]
 signal-envelope = ["dasp_signal/envelope", "envelope"]
+signal-filter = ["dasp_signal/filter", "filter"]
 signal-rms = ["dasp_signal/rms", "rms"]
 signal-window = ["dasp_signal/window", "window"]
 signal-window-hann = ["dasp_signal/window-hann", "window-hann"]

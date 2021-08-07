@@ -63,6 +63,11 @@ jobs:
       with:
         command: test
         args: --manifest-path dasp_envelope/Cargo.toml --no-default-features --verbose
+    - name: cargo test dasp_filter (no default features)
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --manifest-path dasp_filter/Cargo.toml --no-default-features --verbose
     - name: cargo test dasp_frame (no default features)
       uses: actions-rs/cargo@v1
       with:
@@ -270,6 +275,9 @@ jobs:
     - name: cargo publish dasp_graph
       continue-on-error: true
       run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_graph/Cargo.toml
+    - name: cargo publish dasp_filter
+      continue-on-error: true
+      run: cargo publish --token $CRATESIO_TOKEN --manifest-path dasp_filter/Cargo.toml
     - name: wait for crates.io
       run: sleep 5
     - name: cargo publish dasp
