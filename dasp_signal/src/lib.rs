@@ -80,7 +80,7 @@ type Rc<T> = std::rc::Rc<T>;
 ///
 /// The **Signal** trait is inspired by the `Iterator` trait but is different in the sense that it
 /// will always yield frames and will never return `None`. That said, implementors of `Signal` may
-/// optionally indicate exhaustian via the `is_exhausted` method. This allows for converting
+/// optionally indicate exhaustion via the `is_exhausted` method. This allows for converting
 /// exhaustive signals back to iterators that are well behaved. Calling **next** on an exhausted
 /// signal should always yield `Self::Frame::EQUILIBRIUM`.
 pub trait Signal {
@@ -130,7 +130,7 @@ pub trait Signal {
     ///
     /// It should be rare for users to need to call this method directly, unless they are
     /// implementing their own custom `Signal`s. Instead, idiomatic code will tend toward the
-    /// `Signal::until_exhasted` method which produces an `Iterator` that yields `Frame`s until
+    /// `Signal::until_exhausted` method which produces an `Iterator` that yields `Frame`s until
     /// `Signal::is_exhausted` returns `true`.
     ///
     /// Adaptors that source frames from more than one signal (`AddAmp`, `MulHz`, etc) will return
@@ -1072,7 +1072,7 @@ where
     signal: S,
 }
 
-/// Clips samples in each frame yielded by `signal` to the given threshhold amplitude.
+/// Clips samples in each frame yielded by `signal` to the given threshold amplitude.
 #[derive(Clone)]
 pub struct ClipAmp<S>
 where
@@ -2049,7 +2049,7 @@ where
             fn grad(hash: i64, x: f64) -> f64 {
                 // Convert low 4 bits of hash code.
                 let h = hash & 0x0F;
-                // Gradien value 1.0, 2.0, ..., 8.0.
+                // Gradient value 1.0, 2.0, ..., 8.0.
                 let mut grad = 1.0 + (h & 7) as f64;
                 // Set a random sign for the gradient.
                 if (h & 8) != 0 {

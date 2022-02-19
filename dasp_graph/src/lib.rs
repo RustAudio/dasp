@@ -79,7 +79,7 @@
 //! The [`petgraph::graph::Graph`](https://docs.rs/petgraph/latest/petgraph/graph/struct.Graph.html)
 //! type is a standard graph type exposed by `petgraph`. The type is simply an interface around two
 //! `Vec`s, one containing the nodes and one containing the edges.  Adding nodes returns a unique
-//! identifier that can be used to index into the graph. As long as the graph is intialised with a
+//! identifier that can be used to index into the graph. As long as the graph is initialised with a
 //! sufficient capacity for both `Vec`s, adding nodes while avoiding dynamic allocation is simple.
 //!
 //! **StableGraph**
