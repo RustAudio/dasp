@@ -171,11 +171,11 @@ macro_rules! impl_from_slice_conversions {
                     let frame_slice_ptr = &mut slice as &mut [[S; $N]] as *mut [[S; $N]];
                     core::mem::forget(slice);
                     let sample_slice_ptr = frame_slice_ptr as *mut [S];
-                    unsafe {
-                        let ptr = (*sample_slice_ptr).as_mut_ptr();
-                        let sample_slice = core::slice::from_raw_parts_mut(ptr, new_len);
+                    
+                        let ptr = unsafe {(*sample_slice_ptr).as_mut_ptr()};
+                        let sample_slice = unsafe {core::slice::from_raw_parts_mut(ptr, new_len)};
                         Box::from_raw(sample_slice as *mut _)
-                    }
+                    
                 }
             }
 
