@@ -547,18 +547,17 @@ pub trait Signal {
     ///     let frames = [[0.1, 0.2], [0.3, 0.4]];
     ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let samples = signal.into_interleaved_samples();
-    ///     let samples: Vec<_> = samples.into_iter().take(4).collect();
+    ///     let samples: Vec<_> = samples.into_iter().collect();
     ///     assert_eq!(samples, vec![0.1, 0.2, 0.3, 0.4]);
     /// }
     /// ```
-    fn into_interleaved_samples(mut self) -> IntoInterleavedSamples<Self>
+    fn into_interleaved_samples(self) -> IntoInterleavedSamples<Self>
     where
         Self: Sized,
     {
-        let first = self.next().channels();
         IntoInterleavedSamples {
             signal: self,
-            current_frame: first,
+            current_frame: None,
         }
     }
 
@@ -1052,10 +1051,11 @@ where
     S: Signal,
 {
     signal: S,
-    current_frame: <S::Frame as Frame>::Channels,
+    current_frame: Option<<S::Frame as Frame>::Channels>,
 }
 
-/// Converts the `IntoInterleavedSamples` into an `Iterator` that always returns `Some`.
+/// Converts the `IntoInterleavedSamples` into an `Iterator` that returns `Some`
+/// until the signal is exhausted.
 pub struct IntoInterleavedSamplesIterator<S>
 where
     S: Signal,
@@ -2285,14 +2285,23 @@ impl<S> IntoInterleavedSamples<S>
 where
     S: Signal,
 {
-    /// Yield the next interleaved sample from the inner `Signal`.
+    /// Yield the next interleaved sample from the inner `Signal`. The returned value
+    /// is `None` if the signal is exhausted.
     #[inline]
-    pub fn next_sample(&mut self) -> <S::Frame as Frame>::Sample {
-        loop {
-            match self.current_frame.next() {
-                Some(channel) => return channel,
-                None => self.current_frame = self.signal.next().channels(),
+    pub fn next_sample(&mut self) -> Option<<S::Frame as Frame>::Sample> {
+        if self.current_frame.is_none() && !self.signal.is_exhausted() {
+            self.current_frame = Some(self.signal.next().channels());
+        }
+
+        if let Some(current_frame) = &mut self.current_frame {
+            if let Some(sample) = current_frame.next() {
+                Some(sample)
+            } else {
+                self.current_frame = None;
+                self.next_sample()
             }
+        } else {
+            None
         }
     }
 
@@ -2311,7 +2320,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.samples.next_sample())
+        self.samples.next_sample()
     }
 }
 
