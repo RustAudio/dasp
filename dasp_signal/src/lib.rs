@@ -2286,6 +2286,7 @@ where
     S: Signal,
 {
     /// Yield the next interleaved sample from the inner `Signal`.
+    ///
     /// The returned value is `None` if the signal is exhausted.
     #[inline]
     pub fn next_sample(&mut self) -> Option<<S::Frame as Frame>::Sample> {
