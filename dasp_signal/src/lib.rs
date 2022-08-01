@@ -1915,6 +1915,15 @@ where
     }
 }
 
+impl<S> Step for Phase<S>
+where
+    S: Step,
+{
+    fn step(&mut self) -> f64 {
+        self.step.step()
+    }
+}
+
 impl<S> Phase<S>
 where
     S: Step,
