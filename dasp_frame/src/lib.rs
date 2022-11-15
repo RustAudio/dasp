@@ -5,7 +5,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use core::iter::DoubleEndedIterator;
+use core::{iter::DoubleEndedIterator, mem::MaybeUninit};
 
 use dasp_sample::Sample;
 
@@ -295,190 +295,125 @@ pub struct ChannelsRef<'a, F: Frame>(core::slice::Iter<'a, F::Sample>);
 /// Like [`ChannelsRef`], but yields mutable references instead.
 pub struct ChannelsMut<'a, F: Frame>(core::slice::IterMut<'a, F::Sample>);
 
-macro_rules! impl_frame_for_fixed_size_array {
-    ($($NChan:ident $N:expr, [$($idx:expr)*],)*) => {
-        $(
-            /// A typified version of a number of channels.
-            pub struct $NChan;
-            impl NumChannels for $NChan {}
+pub struct NChannels<const N: usize> {}
+impl<const N: usize> NumChannels for NChannels<N> {}
 
-            impl<S> Frame for [S; $N]
-            where
-                S: Sample,
-            {
-                type Sample = S;
-                type NumChannels = $NChan;
-                type Channels = Channels<Self>;
-                type Float = [S::Float; $N];
-                type Signed = [S::Signed; $N];
+impl<S, const N: usize> Frame for [S; N]
+where
+    S: Sample,
+{
+    type Sample = S;
+    type NumChannels = NChannels<N>;
+    type Channels = Channels<Self>;
+    type Float = [S::Float; N];
+    type Signed = [S::Signed; N];
 
-                const EQUILIBRIUM: Self = [S::EQUILIBRIUM; $N];
-                const CHANNELS: usize = $N;
+    const EQUILIBRIUM: Self = [S::EQUILIBRIUM; N];
+    const CHANNELS: usize = N;
 
-                #[inline]
-                fn channels(self) -> Self::Channels {
-                    Channels {
-                        next_idx: 0,
-                        frame: self,
-                    }
-                }
+    #[inline]
+    fn channels(self) -> Self::Channels {
+        Channels {
+            next_idx: 0,
+            frame: self,
+        }
+    }
 
-                #[inline]
-                fn channels_ref(&self) -> ChannelsRef<'_, Self> {
-                    ChannelsRef(self.iter())
-                }
+    #[inline]
+    fn channels_ref(&self) -> ChannelsRef<'_, Self> {
+        ChannelsRef(self.iter())
+    }
 
-                #[inline]
-                fn channels_mut(&mut self) -> ChannelsMut<'_, Self> {
-                    ChannelsMut(self.iter_mut())
-                }
+    #[inline]
+    fn channels_mut(&mut self) -> ChannelsMut<'_, Self> {
+        ChannelsMut(self.iter_mut())
+    }
 
-                #[inline]
-                fn channel(&self, idx: usize) -> Option<&Self::Sample> {
-                    self.get(idx)
-                }
+    #[inline]
+    fn channel(&self, idx: usize) -> Option<&Self::Sample> {
+        self.get(idx)
+    }
 
-                #[inline]
-                fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample> {
-                    self.get_mut(idx)
-                }
+    #[inline]
+    fn channel_mut(&mut self, idx: usize) -> Option<&mut Self::Sample> {
+        self.get_mut(idx)
+    }
 
-                #[inline]
-                fn from_fn<F>(mut from: F) -> Self
-                where
-                    F: FnMut(usize) -> S,
-                {
-                    [$(from($idx), )*]
-                }
+    #[inline]
+    fn from_fn<F>(from: F) -> Self
+    where
+        F: FnMut(usize) -> S,
+    {
+        core::array::from_fn(from)
+    }
 
-                #[inline]
-                fn from_samples<I>(samples: &mut I) -> Option<Self>
-                where
-                    I: Iterator<Item=Self::Sample>
-                {
-                    Some([$( {
-                        $idx;
-                        match samples.next() {
-                            Some(sample) => sample,
-                            None => return None,
-                        }
-                    }, )*])
-                }
+    #[inline]
+    fn from_samples<I>(samples: &mut I) -> Option<Self>
+    where
+        I: Iterator<Item = Self::Sample>,
+    {
+        array_from_iter(samples)
+    }
 
-                #[inline(always)]
-                unsafe fn channel_unchecked(&self, idx: usize) -> &Self::Sample {
-                    self.get_unchecked(idx)
-                }
+    #[inline(always)]
+    unsafe fn channel_unchecked(&self, idx: usize) -> &Self::Sample {
+        self.get_unchecked(idx)
+    }
 
-                #[inline(always)]
-                unsafe fn channel_unchecked_mut(&mut self, idx: usize) -> &mut Self::Sample {
-                    self.get_unchecked_mut(idx)
-                }
+    #[inline(always)]
+    unsafe fn channel_unchecked_mut(&mut self, idx: usize) -> &mut Self::Sample {
+        self.get_unchecked_mut(idx)
+    }
 
-                #[inline]
-                fn to_signed_frame(self) -> Self::Signed {
-                    self.map(|s| s.to_sample())
-                }
+    #[inline]
+    fn to_signed_frame(self) -> Self::Signed {
+        self.map(|s| s.to_sample())
+    }
 
-                #[inline]
-                fn to_float_frame(self) -> Self::Float {
-                    self.map(|s| s.to_sample())
-                }
+    #[inline]
+    fn to_float_frame(self) -> Self::Float {
+        self.map(|s| s.to_sample())
+    }
 
-                #[inline]
-                fn map<F, M>(self, mut map: M) -> F
-                where
-                    F: Frame<NumChannels=Self::NumChannels>,
-                    M: FnMut(Self::Sample) -> F::Sample,
-                {
-                    F::from_fn(|channel_idx| {
+    #[inline]
+    fn map<F, M>(self, mut map: M) -> F
+    where
+        F: Frame<NumChannels = Self::NumChannels>,
+        M: FnMut(Self::Sample) -> F::Sample,
+    {
+        F::from_fn(|channel_idx| {
+            // Here we do not require run-time bounds checking as we have asserted that
+            // the two arrays have the same number of channels at compile time with our
+            // where clause, i.e.
+            //
+            // `F: Frame<NumChannels=Self::NumChannels>`
+            unsafe { map(*self.channel_unchecked(channel_idx)) }
+        })
+    }
 
-                        // Here we do not require run-time bounds checking as we have asserted that
-                        // the two arrays have the same number of channels at compile time with our
-                        // where clause, i.e.
-                        //
-                        // `F: Frame<NumChannels=Self::NumChannels>`
-                        unsafe { map(*self.channel_unchecked(channel_idx)) }
-                    })
-                }
-
-                #[inline]
-                fn zip_map<O, F, M>(self, other: O, mut zip_map: M) -> F
-                where
-                    O: Frame<NumChannels=Self::NumChannels>,
-                    F: Frame<NumChannels=Self::NumChannels>,
-                    M: FnMut(Self::Sample, O::Sample) -> F::Sample
-                {
-                    F::from_fn(|channel_idx| {
-
-                        // Here we do not require run-time bounds checking as we have asserted that the two
-                        // arrays have the same number of channels at compile time with our where clause, i.e.
-                        //
-                        // ```
-                        // O: Frame<NumChannels=Self::NumChannels>
-                        // F: Frame<NumChannels=Self::NumChannels>
-                        // ```
-                        unsafe {
-                            zip_map(*self.channel_unchecked(channel_idx),
-                                    *other.channel_unchecked(channel_idx))
-                        }
-                    })
-                }
-
-                #[inline]
-                fn scale_amp(self, amp: S::Float) -> Self {
-                    [$(self[$idx].mul_amp(amp), )*]
-                }
-
-                #[inline]
-                fn add_amp<F>(self, other: F) -> Self
-                where
-                    F: Frame<Sample=S::Signed, NumChannels=$NChan>,
-                {
-                    // Here we do not require run-time bounds checking as we have asserted that the two
-                    // arrays have the same number of channels at compile time with our where clause, i.e.
-                    unsafe {
-                        [$(self[$idx].add_amp(*other.channel_unchecked($idx)), )*]
-                    }
-                }
+    #[inline]
+    fn zip_map<O, F, M>(self, other: O, mut zip_map: M) -> F
+    where
+        O: Frame<NumChannels = Self::NumChannels>,
+        F: Frame<NumChannels = Self::NumChannels>,
+        M: FnMut(Self::Sample, O::Sample) -> F::Sample,
+    {
+        F::from_fn(|channel_idx| {
+            // Here we do not require run-time bounds checking as we have asserted that the two
+            // arrays have the same number of channels at compile time with our where clause, i.e.
+            //
+            // ```
+            // O: Frame<NumChannels=Self::NumChannels>
+            // F: Frame<NumChannels=Self::NumChannels>
+            // ```
+            unsafe {
+                zip_map(
+                    *self.channel_unchecked(channel_idx),
+                    *other.channel_unchecked(channel_idx),
+                )
             }
-        )*
-    };
-}
-
-impl_frame_for_fixed_size_array! {
-    N1  1,  [0],
-    N2  2,  [0 1],
-    N3  3,  [0 1 2],
-    N4  4,  [0 1 2 3],
-    N5  5,  [0 1 2 3 4],
-    N6  6,  [0 1 2 3 4 5],
-    N7  7,  [0 1 2 3 4 5 6],
-    N8  8,  [0 1 2 3 4 5 6 7],
-    N9  9,  [0 1 2 3 4 5 6 7 8],
-    N10 10, [0 1 2 3 4 5 6 7 8 9],
-    N11 11, [0 1 2 3 4 5 6 7 8 9 10],
-    N12 12, [0 1 2 3 4 5 6 7 8 9 10 11],
-    N13 13, [0 1 2 3 4 5 6 7 8 9 10 11 12],
-    N14 14, [0 1 2 3 4 5 6 7 8 9 10 11 12 13],
-    N15 15, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14],
-    N16 16, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15],
-    N17 17, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16],
-    N18 18, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17],
-    N19 19, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18],
-    N20 20, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19],
-    N21 21, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20],
-    N22 22, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21],
-    N23 23, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22],
-    N24 24, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23],
-    N25 25, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24],
-    N26 26, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25],
-    N27 27, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26],
-    N28 28, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27],
-    N29 29, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28],
-    N30 30, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29],
-    N31 31, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30],
-    N32 32, [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31],
+        })
+    }
 }
 
 macro_rules! impl_frame_for_sample {
@@ -486,7 +421,7 @@ macro_rules! impl_frame_for_sample {
         $(
             impl Frame for $T {
                 type Sample = $T;
-                type NumChannels = N1;
+                type NumChannels = NChannels<1>;
                 type Channels = Channels<Self>;
                 type Float = <$T as Sample>::Float;
                 type Signed = <$T as Sample>::Signed;
@@ -612,7 +547,7 @@ macro_rules! impl_frame_for_sample {
                 #[inline]
                 fn add_amp<F>(self, other: F) -> Self
                 where
-                    F: Frame<Sample=<$T as Sample>::Signed, NumChannels=N1>,
+                    F: Frame<Sample=<$T as Sample>::Signed, NumChannels=NChannels<1>>,
                 {
                     // Here we do not require run-time bounds checking as we have asserted that the two
                     // arrays have the same number of channels at compile time with our where clause, i.e.
@@ -712,5 +647,26 @@ impl<'a, F: Frame> DoubleEndedIterator for ChannelsMut<'a, F> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.next_back()
+    }
+}
+
+fn array_from_iter<T, const N: usize>(mut iter: impl Iterator<Item = T>) -> Option<[T; N]> {
+    // Hopefully something equivalent will be in stdlib some day
+
+    unsafe {
+        let mut result: [MaybeUninit<T>; N] = MaybeUninit::uninit().assume_init();
+
+        for i in 0..N {
+            if let Some(sample) = iter.next() {
+                result[i].write(sample);
+            } else {
+                for i in 0..i {
+                    result[i].assume_init_drop()
+                }
+                return None;
+            }
+        }
+
+        Some(result.map(|v| v.assume_init()))
     }
 }
