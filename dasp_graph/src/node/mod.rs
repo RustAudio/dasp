@@ -68,7 +68,7 @@ mod sum;
 ///     }
 /// }
 /// ```
-pub trait Node {
+pub trait Node<W = ()> {
     /// Process some audio given a list of the node's `inputs` and write the result to the `output`
     /// buffers.
     ///
@@ -82,7 +82,7 @@ pub trait Node {
     ///
     /// This `process` method is called by the [`Processor`](../struct.Processor.html) as it
     /// traverses the graph during audio rendering.
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]);
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]);
 }
 
 /// A reference to another node that is an input to the current node.
@@ -90,19 +90,21 @@ pub trait Node {
 /// *TODO: It may be useful to provide some information that can uniquely identify the input node.
 /// This could be useful to allow to distinguish between side-chained and regular inputs for
 /// example.*
-pub struct Input {
+pub struct Input<W = ()> {
     buffers_ptr: *const Buffer,
     buffers_len: usize,
+    pub edge_weight: W,
 }
 
-impl Input {
+impl<W> Input<W> {
     // Constructor solely for use within the graph `process` function.
-    pub(crate) fn new(slice: &[Buffer]) -> Self {
+    pub(crate) fn new(slice: &[Buffer], edge_weight: W) -> Input<W> {
         let buffers_ptr = slice.as_ptr();
         let buffers_len = slice.len();
         Input {
             buffers_ptr,
             buffers_len,
+            edge_weight,
         }
     }
 
@@ -118,9 +120,9 @@ impl Input {
 // Inputs can only be created by the `dasp_graph::process` implementation and only ever live as
 // long as the lifetime of the call to the function. Thus, it's safe to implement this so that
 // `Send` closures can be stored within the graph and sent between threads.
-unsafe impl Send for Input {}
+unsafe impl<W> Send for Input<W> {}
 
-impl fmt::Debug for Input {
+impl<W> fmt::Debug for Input<W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self.buffers(), f)
     }

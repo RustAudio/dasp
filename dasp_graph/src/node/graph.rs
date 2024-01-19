@@ -5,11 +5,11 @@
 use crate::{Buffer, Input, Node, NodeData, Processor};
 use core::marker::PhantomData;
 use petgraph::data::DataMapMut;
-use petgraph::visit::{Data, GraphBase, IntoNeighborsDirected, Visitable};
+use petgraph::visit::{Data, GraphBase, IntoEdgesDirected, Visitable};
 
 pub struct GraphNode<G, T>
 where
-    G: Visitable,
+    G: Visitable + Data,
 {
     pub processor: Processor<G>,
     pub graph: G,
@@ -21,8 +21,10 @@ where
 impl<G, T> Node for GraphNode<G, T>
 where
     G: Data<NodeWeight = NodeData<T>> + DataMapMut + Visitable,
-    for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-    T: Node,
+    for<'a> &'a G:
+        GraphBase<NodeId = G::NodeId> + IntoEdgesDirected + Data<EdgeWeight = G::EdgeWeight>,
+    G::EdgeWeight: Clone,
+    T: Node<G::EdgeWeight>,
 {
     fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
         let GraphNode {

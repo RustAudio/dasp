@@ -127,8 +127,8 @@ pub use buffer::Buffer;
 pub use node::{Input, Node};
 use petgraph::data::{DataMap, DataMapMut};
 use petgraph::visit::{
-    Data, DfsPostOrder, GraphBase, IntoNeighborsDirected, NodeCount, NodeIndexable, Reversed,
-    Visitable,
+    Data, DfsPostOrder, EdgeRef, GraphBase, IntoEdgesDirected, IntoNeighborsDirected, NodeCount,
+    NodeIndexable, Reversed, Visitable,
 };
 use petgraph::{Incoming, Outgoing};
 
@@ -181,12 +181,12 @@ pub mod node;
 /// ```
 pub struct Processor<G>
 where
-    G: Visitable,
+    G: Visitable + Data,
 {
     // State related to the traversal of the audio graph starting from the output node.
     dfs_post_order: DfsPostOrder<G::NodeId, G::Map>,
     // Solely for collecting the inputs of a node in order to apply its `Node::process` method.
-    inputs: Vec<node::Input>,
+    inputs: Vec<Input<G::EdgeWeight>>,
 }
 
 /// For use as the node weight within a dasp graph. Contains the node and its buffers.
@@ -205,7 +205,7 @@ pub struct NodeData<T: ?Sized> {
 
 impl<G> Processor<G>
 where
-    G: Visitable,
+    G: Visitable + Data,
 {
     /// Construct a new graph processor from the given maximum anticipated node count.
     ///
@@ -243,8 +243,10 @@ where
     pub fn process<T>(&mut self, graph: &mut G, node: G::NodeId)
     where
         G: Data<NodeWeight = NodeData<T>> + DataMapMut,
-        for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-        T: Node,
+        for<'b> &'b G:
+            GraphBase<NodeId = G::NodeId> + IntoEdgesDirected + Data<EdgeWeight = G::EdgeWeight>,
+        G::EdgeWeight: Clone,
+        T: Node<G::EdgeWeight>,
     {
         process(self, graph, node)
     }
@@ -313,8 +315,10 @@ impl NodeData<BoxedNode> {
 pub fn process<G, T>(processor: &mut Processor<G>, graph: &mut G, node: G::NodeId)
 where
     G: Data<NodeWeight = NodeData<T>> + DataMapMut + Visitable,
-    for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-    T: Node,
+    for<'b> &'b G:
+        GraphBase<NodeId = G::NodeId> + IntoEdgesDirected + Data<EdgeWeight = G::EdgeWeight>,
+    G::EdgeWeight: Clone,
+    T: Node<G::EdgeWeight>,
 {
     const NO_NODE: &str = "no node exists for the given index";
     processor.dfs_post_order.reset(Reversed(&*graph));
@@ -322,13 +326,14 @@ where
     while let Some(n) = processor.dfs_post_order.next(Reversed(&*graph)) {
         let data: *mut NodeData<T> = graph.node_weight_mut(n).expect(NO_NODE) as *mut _;
         processor.inputs.clear();
-        for in_n in (&*graph).neighbors_directed(n, Incoming) {
+        for in_edge in (&*graph).edges_directed(n, Incoming) {
+            let source_id = in_edge.source();
             // Skip edges that connect the node to itself to avoid aliasing `node`.
-            if n == in_n {
+            if n == source_id {
                 continue;
             }
-            let input_container = graph.node_weight(in_n).expect(NO_NODE);
-            let input = node::Input::new(&input_container.buffers);
+            let input_container = graph.node_weight(source_id).expect(NO_NODE);
+            let input = Input::new(&input_container.buffers, in_edge.weight().clone());
             processor.inputs.push(input);
         }
         // Here we deference our raw pointer to the `NodeData`. The only references to the graph at
