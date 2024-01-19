@@ -128,38 +128,38 @@ impl<W> fmt::Debug for Input<W> {
     }
 }
 
-impl<'a, T> Node for &'a mut T
+impl<'a, T, W> Node<W> for &'a mut T
 where
-    T: Node + ?Sized,
+    T: Node<W> + ?Sized,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (**self).process(inputs, output)
     }
 }
 
-impl<T> Node for Box<T>
+impl<T, W> Node<W> for Box<T>
 where
-    T: Node + ?Sized,
+    T: Node<W> + ?Sized,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (**self).process(inputs, output)
     }
 }
 
-impl Node for dyn Fn(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for dyn Fn(&[Input<W>], &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (*self)(inputs, output)
     }
 }
 
-impl Node for dyn FnMut(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for dyn FnMut(&[Input<W>], &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (*self)(inputs, output)
     }
 }
 
-impl Node for fn(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for fn(&[Input<W>], &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (*self)(inputs, output)
     }
 }

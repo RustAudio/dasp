@@ -270,11 +270,11 @@ impl<T> NodeData<T> {
 }
 
 #[cfg(feature = "node-boxed")]
-impl NodeData<BoxedNode> {
+impl<W> NodeData<BoxedNode<W>> {
     /// The same as **new**, but boxes the given node data before storing it.
     pub fn boxed<T>(node: T, buffers: Vec<Buffer>) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<W>,
     {
         NodeData::new(BoxedNode(Box::new(node)), buffers)
     }
@@ -282,7 +282,7 @@ impl NodeData<BoxedNode> {
     /// The same as **new1**, but boxes the given node data before storing it.
     pub fn boxed1<T>(node: T) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<W>,
     {
         Self::boxed(node, vec![Buffer::SILENT])
     }
@@ -290,7 +290,7 @@ impl NodeData<BoxedNode> {
     /// The same as **new2**, but boxes the given node data before storing it.
     pub fn boxed2<T>(node: T) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<W>,
     {
         Self::boxed(node, vec![Buffer::SILENT, Buffer::SILENT])
     }

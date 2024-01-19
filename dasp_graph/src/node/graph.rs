@@ -18,7 +18,7 @@ where
     pub node_type: PhantomData<T>,
 }
 
-impl<G, T> Node for GraphNode<G, T>
+impl<G, T, W> Node<W> for GraphNode<G, T>
 where
     G: Data<NodeWeight = NodeData<T>> + DataMapMut + Visitable,
     for<'a> &'a G:
@@ -26,7 +26,7 @@ where
     G::EdgeWeight: Clone,
     T: Node<G::EdgeWeight>,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         let GraphNode {
             ref mut processor,
             ref mut graph,

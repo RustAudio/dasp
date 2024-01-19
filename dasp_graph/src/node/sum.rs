@@ -22,8 +22,8 @@ pub struct Sum;
 #[derive(Clone, Debug, PartialEq)]
 pub struct SumBuffers;
 
-impl Node for Sum {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for Sum {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         // Fill the output with silence.
         for out_buffer in output.iter_mut() {
             out_buffer.silence();
@@ -40,8 +40,8 @@ impl Node for Sum {
     }
 }
 
-impl Node for SumBuffers {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for SumBuffers {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         // Get the first output buffer.
         let mut out_buffers = output.iter_mut();
         let out_buffer_first = match out_buffers.next() {

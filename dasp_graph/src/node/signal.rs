@@ -2,11 +2,11 @@ use crate::{Buffer, Input, Node};
 use dasp_frame::Frame;
 use dasp_signal::Signal;
 
-impl<F> Node for dyn Signal<Frame = F>
+impl<F, W> Node<W> for dyn Signal<Frame = F>
 where
     F: Frame<Sample = f32>,
 {
-    fn process(&mut self, _inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, _inputs: &[Input<W>], output: &mut [Buffer]) {
         let channels = std::cmp::min(F::CHANNELS, output.len());
         for ix in 0..Buffer::LEN {
             let frame = self.next();
