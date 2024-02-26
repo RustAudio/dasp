@@ -144,7 +144,7 @@ pub trait Signal {
     /// fn main() {
     ///     // Infinite signals always return `false`.
     ///     use dasp_signal::Step;
-    ///     let sine_signal = signal::rate(44_100.0).const_hz(400.0).offset_phase(0.2).sine();
+    ///     let sine_signal = signal::rate(44_100.0).const_hz(400.0).sine();
     ///     assert_eq!(sine_signal.is_exhausted(), false);
     ///
     ///     // Signals over iterators return `true` when the inner iterator is exhausted.
@@ -965,9 +965,9 @@ pub struct NoiseSimplex<S> {
 #[derive(Clone)]
 pub struct OffsetPhase<S>
 where
-    S: Signal
+    S: Signal + Step
 {
-    const_hz: S,
+    step: S,
     offset: f64
 }
 
@@ -1456,7 +1456,7 @@ where
     S: Step,
 {
     Phase {
-        step: step,
+        step,
         next: 0.0,
     }
 }
@@ -1862,11 +1862,31 @@ where
         self.phase().noise_simplex()
     }
 
+    /// Offsets the phase of a signal by the specified value, between 0.0 and 1.0 by default.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use dasp_signal::{self as signal, Signal};
+    ///
+    /// fn main() {
+    ///     let step = signal::rate(4.0).const_hz(1.0).offset_phase(0.25);
+    ///     let mut phase = step.phase();
+    ///     assert_eq!(phase.next(), 0.25);
+    ///     assert_eq!(phase.next(), 0.5);
+    ///     assert_eq!(phase.next(), 0.75);
+    ///     assert_eq!(phase.next(), 0.0);
+    ///     assert_eq!(phase.next(), 0.25);
+    ///     assert_eq!(phase.next(), 0.5);
+    /// }
+    /// ```
     #[inline]
     pub fn offset_phase(self, offset: f64) -> OffsetPhase<Self> {
+        let rem = 1.0;
+
         OffsetPhase {
-            const_hz: self,
-            offset,
+            step: self,
+            offset: offset % rem,
         }
     }
 }
@@ -1904,9 +1924,11 @@ impl ConstHz {
 
     #[inline]
     pub fn offset_phase(self, offset: f64) -> OffsetPhase<Self> {
+        let rem = 1.0;
+
         OffsetPhase {
-            const_hz: self,
-            offset,
+            step: self,
+            offset: offset % rem,
         }
     }
 }
@@ -2125,12 +2147,12 @@ where
 }
 
 impl<S: Signal + Step> OffsetPhase<S> {
-    /// Construct a `Phase` iterator that, for every `hz` yielded by `self`, yields a phase that is
-    /// stepped by `hz / self.rate.hz`.
+    /// Construct a `Phase` iterator that is incremented via the constant step size, `self.step`,
+    /// and takes an offset into account.
     #[inline]
     pub fn phase(self) -> Phase<S> {
         Phase {
-            step: self.const_hz,
+            step: self.step,
             next: self.offset,
         }
     }
