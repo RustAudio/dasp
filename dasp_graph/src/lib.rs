@@ -19,7 +19,7 @@
 //!
 //! The edges of a `dasp` graph describe the direction of audio flow through the graph. That is,
 //! the edge *a -> b* describes that the audio output of node *a* will be used as an input to node *b*.
-//! Edges can also contain weights of arbitrary type, which are provided to destination nodes and can
+//! Edges can also contain weights of any `Clone` type, which are provided to destination nodes and can
 //! allow them to distinguish between different types of connections.
 //!
 //! Once we have added our nodes and edges describing the flow of audio through our graph, we can
