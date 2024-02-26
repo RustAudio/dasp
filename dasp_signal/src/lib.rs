@@ -143,7 +143,8 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     // Infinite signals always return `false`.
-    ///     let sine_signal = signal::rate(44_100.0).const_hz(400.0).sine();
+    ///     use dasp_signal::Step;
+    ///     let sine_signal = signal::rate(44_100.0).const_hz(400.0).offset_phase(0.2).sine();
     ///     assert_eq!(sine_signal.is_exhausted(), false);
     ///
     ///     // Signals over iterators return `true` when the inner iterator is exhausted.
@@ -958,6 +959,16 @@ pub struct Noise {
 #[derive(Clone)]
 pub struct NoiseSimplex<S> {
     phase: Phase<S>,
+}
+
+// A signal generator with offset phase.
+#[derive(Clone)]
+pub struct OffsetPhase<S>
+where
+    S: Signal
+{
+    const_hz: S,
+    offset: f64
 }
 
 /// An iterator that yields the sum of the frames yielded by both `other` and `self` in lock-step.
@@ -1850,6 +1861,14 @@ where
     pub fn noise_simplex(self) -> NoiseSimplex<Self> {
         self.phase().noise_simplex()
     }
+
+    #[inline]
+    pub fn offset_phase(self, offset: f64) -> OffsetPhase<Self> {
+        OffsetPhase {
+            const_hz: self,
+            offset,
+        }
+    }
 }
 
 impl ConstHz {
@@ -1881,6 +1900,14 @@ impl ConstHz {
     #[inline]
     pub fn noise_simplex(self) -> NoiseSimplex<Self> {
         self.phase().noise_simplex()
+    }
+
+    #[inline]
+    pub fn offset_phase(self, offset: f64) -> OffsetPhase<Self> {
+        OffsetPhase {
+            const_hz: self,
+            offset,
+        }
     }
 }
 
@@ -2094,6 +2121,42 @@ where
     #[inline]
     fn next(&mut self) -> Self::Frame {
         self.next_sample()
+    }
+}
+
+impl<S: Signal + Step> OffsetPhase<S> {
+    /// Construct a `Phase` iterator that, for every `hz` yielded by `self`, yields a phase that is
+    /// stepped by `hz / self.rate.hz`.
+    #[inline]
+    pub fn phase(self) -> Phase<S> {
+        Phase {
+            step: self.const_hz,
+            next: self.offset,
+        }
+    }
+
+    /// A composable alternative to the `signal::sine` function.
+    #[inline]
+    pub fn sine(self) -> Sine<S> {
+        self.phase().sine()
+    }
+
+    /// A composable alternative to the `signal::saw` function.
+    #[inline]
+    pub fn saw(self) -> Saw<S> {
+        self.phase().saw()
+    }
+
+    /// A composable alternative to the `signal::square` function.
+    #[inline]
+    pub fn square(self) -> Square<S> {
+        self.phase().square()
+    }
+
+    /// A composable alternative to the `signal::noise_simplex` function.
+    #[inline]
+    pub fn noise_simplex(self) -> NoiseSimplex<S> {
+        self.phase().noise_simplex()
     }
 }
 
