@@ -68,13 +68,14 @@ mod sum;
 ///     }
 /// }
 /// ```
-pub trait Node {
+pub trait Node<W = ()> {
     /// Process some audio given a list of the node's `inputs` and write the result to the `output`
     /// buffers.
     ///
     /// `inputs` represents a list of all nodes with direct edges toward this node. Each
     /// [`Input`](./struct.Input.html) within the list can providee a reference to the output
-    /// buffers of their corresponding node.
+    /// buffers of its corresponding node, as well as the weight of the edge connecting it
+    /// to this node.
     ///
     /// The `inputs` may be ignored if the implementation is for a source node. Alternatively, if
     /// the `Node` only supports a specific number of `input`s, it is up to the user to decide how
@@ -82,27 +83,29 @@ pub trait Node {
     ///
     /// This `process` method is called by the [`Processor`](../struct.Processor.html) as it
     /// traverses the graph during audio rendering.
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]);
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]);
 }
 
 /// A reference to another node that is an input to the current node.
 ///
-/// *TODO: It may be useful to provide some information that can uniquely identify the input node.
-/// This could be useful to allow to distinguish between side-chained and regular inputs for
-/// example.*
-pub struct Input {
+/// The edge weight from the graph is provided to support differentiating between inputs.
+/// For example, you can use an enum to identify main vs sidechain inputs, or label the edges
+/// with the source node's ID.
+pub struct Input<W = ()> {
     buffers_ptr: *const Buffer,
     buffers_len: usize,
+    pub edge_weight: W,
 }
 
-impl Input {
+impl<W> Input<W> {
     // Constructor solely for use within the graph `process` function.
-    pub(crate) fn new(slice: &[Buffer]) -> Self {
+    pub(crate) fn new(slice: &[Buffer], edge_weight: W) -> Input<W> {
         let buffers_ptr = slice.as_ptr();
         let buffers_len = slice.len();
         Input {
             buffers_ptr,
             buffers_len,
+            edge_weight,
         }
     }
 
@@ -118,46 +121,46 @@ impl Input {
 // Inputs can only be created by the `dasp_graph::process` implementation and only ever live as
 // long as the lifetime of the call to the function. Thus, it's safe to implement this so that
 // `Send` closures can be stored within the graph and sent between threads.
-unsafe impl Send for Input {}
+unsafe impl<W> Send for Input<W> {}
 
-impl fmt::Debug for Input {
+impl<W> fmt::Debug for Input<W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self.buffers(), f)
     }
 }
 
-impl<'a, T> Node for &'a mut T
+impl<'a, T, W> Node<W> for &'a mut T
 where
-    T: Node + ?Sized,
+    T: Node<W> + ?Sized,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (**self).process(inputs, output)
     }
 }
 
-impl<T> Node for Box<T>
+impl<T, W> Node<W> for Box<T>
 where
-    T: Node + ?Sized,
+    T: Node<W> + ?Sized,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (**self).process(inputs, output)
     }
 }
 
-impl Node for dyn Fn(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for dyn Fn(&[Input<W>], &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (*self)(inputs, output)
     }
 }
 
-impl Node for dyn FnMut(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for dyn FnMut(&[Input<W>], &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (*self)(inputs, output)
     }
 }
 
-impl Node for fn(&[Input], &mut [Buffer]) {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for fn(&[Input<W>], &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         (*self)(inputs, output)
     }
 }

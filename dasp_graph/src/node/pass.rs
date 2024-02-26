@@ -10,8 +10,8 @@ use crate::{Buffer, Input, Node};
 #[derive(Clone, Debug, PartialEq)]
 pub struct Pass;
 
-impl Node for Pass {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for Pass {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         let input = match inputs.get(0) {
             None => return,
             Some(input) => input,

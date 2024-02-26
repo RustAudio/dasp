@@ -17,9 +17,10 @@
 //! popular node implementations out of the box, each of which may be accessed by enabling [their
 //! associated features](./index.html#optional-features).
 //!
-//! The edges of a `dasp` graph are empty and simply describe the direction of audio flow
-//! through the graph. That is, the edge *a -> b* describes that the audio output of node *a* will
-//! be used as an input to node *b*.
+//! The edges of a `dasp` graph describe the direction of audio flow through the graph. That is,
+//! the edge *a -> b* describes that the audio output of node *a* will be used as an input to node *b*.
+//! Edges can also contain weights of any `Clone` type, which are provided to destination nodes and can
+//! allow them to distinguish between different types of connections.
 //!
 //! Once we have added our nodes and edges describing the flow of audio through our graph, we can
 //! repeatedly process and retrieve audio from it using the [`Processor`](./struct.Processor.html)
@@ -120,15 +121,15 @@
 //!
 //! ### no_std
 //!
-//! *TODO: Adding support for `no_std` is pending the addition of support for `no_std` in petgraph.
-//! See https://github.com/petgraph/petgraph/pull/238.
+//! **TODO:** Adding support for `no_std` is pending the addition of support for `no_std` in petgraph.
+//! [See this pull request](https://github.com/petgraph/petgraph/pull/238).
 
 pub use buffer::Buffer;
 pub use node::{Input, Node};
 use petgraph::data::{DataMap, DataMapMut};
 use petgraph::visit::{
-    Data, DfsPostOrder, GraphBase, IntoNeighborsDirected, NodeCount, NodeIndexable, Reversed,
-    Visitable,
+    Data, DfsPostOrder, EdgeRef, GraphBase, IntoEdgesDirected, IntoNeighborsDirected, NodeCount,
+    NodeIndexable, Reversed, Visitable,
 };
 use petgraph::{Incoming, Outgoing};
 
@@ -181,12 +182,12 @@ pub mod node;
 /// ```
 pub struct Processor<G>
 where
-    G: Visitable,
+    G: Visitable + Data,
 {
     // State related to the traversal of the audio graph starting from the output node.
     dfs_post_order: DfsPostOrder<G::NodeId, G::Map>,
     // Solely for collecting the inputs of a node in order to apply its `Node::process` method.
-    inputs: Vec<node::Input>,
+    inputs: Vec<Input<G::EdgeWeight>>,
 }
 
 /// For use as the node weight within a dasp graph. Contains the node and its buffers.
@@ -205,7 +206,7 @@ pub struct NodeData<T: ?Sized> {
 
 impl<G> Processor<G>
 where
-    G: Visitable,
+    G: Visitable + Data,
 {
     /// Construct a new graph processor from the given maximum anticipated node count.
     ///
@@ -243,8 +244,10 @@ where
     pub fn process<T>(&mut self, graph: &mut G, node: G::NodeId)
     where
         G: Data<NodeWeight = NodeData<T>> + DataMapMut,
-        for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-        T: Node,
+        for<'b> &'b G:
+            GraphBase<NodeId = G::NodeId> + IntoEdgesDirected + Data<EdgeWeight = G::EdgeWeight>,
+        G::EdgeWeight: Clone,
+        T: Node<G::EdgeWeight>,
     {
         process(self, graph, node)
     }
@@ -268,11 +271,11 @@ impl<T> NodeData<T> {
 }
 
 #[cfg(feature = "node-boxed")]
-impl NodeData<BoxedNode> {
+impl<W> NodeData<BoxedNode<W>> {
     /// The same as **new**, but boxes the given node data before storing it.
     pub fn boxed<T>(node: T, buffers: Vec<Buffer>) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<W>,
     {
         NodeData::new(BoxedNode(Box::new(node)), buffers)
     }
@@ -280,7 +283,7 @@ impl NodeData<BoxedNode> {
     /// The same as **new1**, but boxes the given node data before storing it.
     pub fn boxed1<T>(node: T) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<W>,
     {
         Self::boxed(node, vec![Buffer::SILENT])
     }
@@ -288,7 +291,7 @@ impl NodeData<BoxedNode> {
     /// The same as **new2**, but boxes the given node data before storing it.
     pub fn boxed2<T>(node: T) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<W>,
     {
         Self::boxed(node, vec![Buffer::SILENT, Buffer::SILENT])
     }
@@ -301,20 +304,22 @@ impl NodeData<BoxedNode> {
 /// connected to the inputs of the given `node`. This ensures that all inputs of each node are
 /// visited before the node itself.
 ///
-/// The `Node::process` method is called on each node as they are visited in the traversal.
+/// The [`Node::process`] method is called on each node as they are visited in the traversal.
 ///
 /// Upon returning, the buffers of each visited node will contain the audio processed by their
 /// respective nodes.
 ///
 /// Supports all graphs that implement the necessary petgraph traits and whose nodes are of
-/// type `NodeData<T>` where `T` implements the `Node` trait.
+/// type `NodeData<T>` where `T` implements the [`Node`] trait.
 ///
 /// **Panics** if there is no node for the given index.
 pub fn process<G, T>(processor: &mut Processor<G>, graph: &mut G, node: G::NodeId)
 where
     G: Data<NodeWeight = NodeData<T>> + DataMapMut + Visitable,
-    for<'a> &'a G: GraphBase<NodeId = G::NodeId> + IntoNeighborsDirected,
-    T: Node,
+    for<'b> &'b G:
+        GraphBase<NodeId = G::NodeId> + IntoEdgesDirected + Data<EdgeWeight = G::EdgeWeight>,
+    G::EdgeWeight: Clone,
+    T: Node<G::EdgeWeight>,
 {
     const NO_NODE: &str = "no node exists for the given index";
     processor.dfs_post_order.reset(Reversed(&*graph));
@@ -322,13 +327,14 @@ where
     while let Some(n) = processor.dfs_post_order.next(Reversed(&*graph)) {
         let data: *mut NodeData<T> = graph.node_weight_mut(n).expect(NO_NODE) as *mut _;
         processor.inputs.clear();
-        for in_n in (&*graph).neighbors_directed(n, Incoming) {
+        for in_edge in (&*graph).edges_directed(n, Incoming) {
+            let source_id = in_edge.source();
             // Skip edges that connect the node to itself to avoid aliasing `node`.
-            if n == in_n {
+            if n == source_id {
                 continue;
             }
-            let input_container = graph.node_weight(in_n).expect(NO_NODE);
-            let input = node::Input::new(&input_container.buffers);
+            let input_container = graph.node_weight(source_id).expect(NO_NODE);
+            let input = Input::new(&input_container.buffers, in_edge.weight().clone());
             processor.inputs.push(input);
         }
         // Here we deference our raw pointer to the `NodeData`. The only references to the graph at
