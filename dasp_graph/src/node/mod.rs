@@ -94,7 +94,7 @@ pub trait Node<W = ()> {
 pub struct Input<W = ()> {
     buffers_ptr: *const Buffer,
     buffers_len: usize,
-    edge_weight: W,
+    pub edge_weight: W,
 }
 
 impl<W> Input<W> {
@@ -115,11 +115,6 @@ impl<W> Input<W> {
         // function, we can be sure that our slice is still valid as long as the input itself is
         // alive.
         unsafe { std::slice::from_raw_parts(self.buffers_ptr, self.buffers_len) }
-    }
-
-    /// A reference to the input's edge weight.
-    pub fn edge_weight(&self) -> &W {
-        &self.edge_weight
     }
 }
 
