@@ -74,7 +74,8 @@ pub trait Node<W = ()> {
     ///
     /// `inputs` represents a list of all nodes with direct edges toward this node. Each
     /// [`Input`](./struct.Input.html) within the list can providee a reference to the output
-    /// buffers of their corresponding node.
+    /// buffers of its corresponding node, as well as the weight of the edge connecting it
+    /// to this node.
     ///
     /// The `inputs` may be ignored if the implementation is for a source node. Alternatively, if
     /// the `Node` only supports a specific number of `input`s, it is up to the user to decide how
@@ -87,9 +88,9 @@ pub trait Node<W = ()> {
 
 /// A reference to another node that is an input to the current node.
 ///
-/// *TODO: It may be useful to provide some information that can uniquely identify the input node.
-/// This could be useful to allow to distinguish between side-chained and regular inputs for
-/// example.*
+/// The edge weight from the graph is provided to support differentiating between inputs.
+/// For example, you can use an enum to identify main vs sidechain inputs, or label the edges
+/// with the source node's ID.
 pub struct Input<W = ()> {
     buffers_ptr: *const Buffer,
     buffers_len: usize,

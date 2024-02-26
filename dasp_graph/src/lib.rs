@@ -17,9 +17,10 @@
 //! popular node implementations out of the box, each of which may be accessed by enabling [their
 //! associated features](./index.html#optional-features).
 //!
-//! The edges of a `dasp` graph are empty and simply describe the direction of audio flow
-//! through the graph. That is, the edge *a -> b* describes that the audio output of node *a* will
-//! be used as an input to node *b*.
+//! The edges of a `dasp` graph describe the direction of audio flow through the graph. That is,
+//! the edge *a -> b* describes that the audio output of node *a* will be used as an input to node *b*.
+//! Edges can also contain weights of arbitrary type, which are provided to destination nodes and can
+//! allow them to distinguish between different types of connections.
 //!
 //! Once we have added our nodes and edges describing the flow of audio through our graph, we can
 //! repeatedly process and retrieve audio from it using the [`Processor`](./struct.Processor.html)
@@ -120,8 +121,8 @@
 //!
 //! ### no_std
 //!
-//! *TODO: Adding support for `no_std` is pending the addition of support for `no_std` in petgraph.
-//! See https://github.com/petgraph/petgraph/pull/238.
+//! **TODO:** Adding support for `no_std` is pending the addition of support for `no_std` in petgraph.
+//! [See this pull request](https://github.com/petgraph/petgraph/pull/238).
 
 pub use buffer::Buffer;
 pub use node::{Input, Node};
@@ -303,13 +304,13 @@ impl<W> NodeData<BoxedNode<W>> {
 /// connected to the inputs of the given `node`. This ensures that all inputs of each node are
 /// visited before the node itself.
 ///
-/// The `Node::process` method is called on each node as they are visited in the traversal.
+/// The [`Node::process`] method is called on each node as they are visited in the traversal.
 ///
 /// Upon returning, the buffers of each visited node will contain the audio processed by their
 /// respective nodes.
 ///
 /// Supports all graphs that implement the necessary petgraph traits and whose nodes are of
-/// type `NodeData<T>` where `T` implements the `Node` trait.
+/// type `NodeData<T>` where `T` implements the [`Node`] trait.
 ///
 /// **Panics** if there is no node for the given index.
 pub fn process<G, T>(processor: &mut Processor<G>, graph: &mut G, node: G::NodeId)
