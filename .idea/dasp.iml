@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/dasp/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_envelope/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_frame/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_graph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_graph/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_interpolate/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_peak/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_ring_buffer/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_ring_buffer/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_rms/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_sample/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_sample/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_signal/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_signal/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_slice/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_slice/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/dasp_window/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
