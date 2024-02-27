@@ -965,10 +965,10 @@ pub struct NoiseSimplex<S> {
 #[derive(Clone)]
 pub struct OffsetPhase<S>
 where
-    S: Signal + Step
+    S: Signal + Step,
 {
     step: S,
-    offset: f64
+    offset: f64,
 }
 
 /// An iterator that yields the sum of the frames yielded by both `other` and `self` in lock-step.
@@ -1455,10 +1455,7 @@ pub fn phase<S>(step: S) -> Phase<S>
 where
     S: Step,
 {
-    Phase {
-        step,
-        next: 0.0,
-    }
+    Phase { step, next: 0.0 }
 }
 
 /// Creates a frame `Rate` (aka sample rate) representing the rate at which a signal may be
