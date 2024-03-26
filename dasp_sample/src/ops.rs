@@ -4,7 +4,11 @@ pub mod f32 {
 
     #[cfg(not(feature = "std"))]
     pub fn sqrt(x: f32) -> f32 {
-        unsafe { core::intrinsics::sqrtf32(x) }
+        if x >= 0.0 {
+            f32::from_bits((x.to_bits() + 0x3f80_0000) >> 1)
+        } else {
+            f32::NAN
+        }
     }
     #[cfg(feature = "std")]
     pub fn sqrt(x: f32) -> f32 {
@@ -18,7 +22,11 @@ pub mod f64 {
 
     #[cfg(not(feature = "std"))]
     pub fn sqrt(x: f64) -> f64 {
-        unsafe { core::intrinsics::sqrtf64(x) }
+        if x >= 0.0 {
+            f64::from_bits((x.to_bits() + 0x3f80_0000) >> 1)
+        } else {
+            f64::NAN
+        }
     }
     #[cfg(feature = "std")]
     pub fn sqrt(x: f64) -> f64 {
