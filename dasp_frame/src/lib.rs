@@ -153,7 +153,7 @@ pub trait Frame: Copy + Clone + PartialEq {
         F: Frame<NumChannels = Self::NumChannels>,
         M: FnMut(Self::Sample, O::Sample) -> F::Sample;
 
-    /// Converts the frame type to the equivalent signal in its associated `Float`ing point format.
+    /// Converts the frame type to the equivalent signal in its associated `Signed` format.
     ///
     /// # Example
     ///
@@ -168,7 +168,7 @@ pub trait Frame: Copy + Clone + PartialEq {
     /// ```
     fn to_signed_frame(self) -> Self::Signed;
 
-    /// Converts the frame type to the equivalent signal in its associated `Signed` format.
+    /// Converts the frame type to the equivalent signal in its associated `Float`ing point format.
     ///
     /// # Example
     ///
