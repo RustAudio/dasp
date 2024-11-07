@@ -6,7 +6,7 @@ use core::ops::{Deref, DerefMut};
 ///
 /// Provides the necessary `Sized` implementation to allow for compatibility with the graph process
 /// function.
-pub struct BoxedNode(pub Box<dyn Node>);
+pub struct BoxedNode<W = ()>(pub Box<dyn Node<W>>);
 
 /// A wrapper around a `Box<dyn Node>`.
 ///
@@ -16,107 +16,107 @@ pub struct BoxedNode(pub Box<dyn Node>);
 /// Useful when the ability to send nodes from one thread to another is required. E.g. this is
 /// common when initialising nodes or the audio graph itself on one thread before sending them to
 /// the audio thread.
-pub struct BoxedNodeSend(pub Box<dyn Node + Send>);
+pub struct BoxedNodeSend<W = ()>(pub Box<dyn Node<W> + Send>);
 
-impl BoxedNode {
+impl<W> BoxedNode<W> {
     /// Create a new `BoxedNode` around the given `node`.
     ///
     /// This is short-hand for `BoxedNode::from(Box::new(node))`.
     pub fn new<T>(node: T) -> Self
     where
-        T: 'static + Node,
+        T: 'static + Node<W>,
     {
         Self::from(Box::new(node))
     }
 }
 
-impl BoxedNodeSend {
+impl<W> BoxedNodeSend<W> {
     /// Create a new `BoxedNode` around the given `node`.
     ///
     /// This is short-hand for `BoxedNode::from(Box::new(node))`.
     pub fn new<T>(node: T) -> Self
     where
-        T: 'static + Node + Send,
+        T: 'static + Node<W> + Send,
     {
         Self::from(Box::new(node))
     }
 }
 
-impl Node for BoxedNode {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for BoxedNode<W> {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         self.0.process(inputs, output)
     }
 }
 
-impl Node for BoxedNodeSend {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+impl<W> Node<W> for BoxedNodeSend<W> {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         self.0.process(inputs, output)
     }
 }
 
-impl<T> From<Box<T>> for BoxedNode
+impl<T, W> From<Box<T>> for BoxedNode<W>
 where
-    T: 'static + Node,
+    T: 'static + Node<W>,
 {
     fn from(n: Box<T>) -> Self {
-        BoxedNode(n as Box<dyn Node>)
+        BoxedNode(n as Box<dyn Node<W>>)
     }
 }
 
-impl<T> From<Box<T>> for BoxedNodeSend
+impl<T, W> From<Box<T>> for BoxedNodeSend<W>
 where
-    T: 'static + Node + Send,
+    T: 'static + Node<W> + Send,
 {
     fn from(n: Box<T>) -> Self {
-        BoxedNodeSend(n as Box<dyn Node + Send>)
+        BoxedNodeSend(n as Box<dyn Node<W> + Send>)
     }
 }
 
-impl Into<Box<dyn Node>> for BoxedNode {
-    fn into(self) -> Box<dyn Node> {
+impl<W> Into<Box<dyn Node<W>>> for BoxedNode<W> {
+    fn into(self) -> Box<dyn Node<W>> {
         self.0
     }
 }
 
-impl Into<Box<dyn Node + Send>> for BoxedNodeSend {
-    fn into(self) -> Box<dyn Node + Send> {
+impl<W> Into<Box<dyn Node<W> + Send>> for BoxedNodeSend<W> {
+    fn into(self) -> Box<dyn Node<W> + Send> {
         self.0
     }
 }
 
-impl fmt::Debug for BoxedNode {
+impl<W> fmt::Debug for BoxedNode<W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("BoxedNode").finish()
     }
 }
 
-impl fmt::Debug for BoxedNodeSend {
+impl<W> fmt::Debug for BoxedNodeSend<W> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("BoxedNodeSend").finish()
     }
 }
 
-impl Deref for BoxedNode {
-    type Target = Box<dyn Node>;
+impl<W> Deref for BoxedNode<W> {
+    type Target = Box<dyn Node<W>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Deref for BoxedNodeSend {
-    type Target = Box<dyn Node + Send>;
+impl<W> Deref for BoxedNodeSend<W> {
+    type Target = Box<dyn Node<W> + Send>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for BoxedNode {
+impl<W> DerefMut for BoxedNode<W> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl DerefMut for BoxedNodeSend {
+impl<W> DerefMut for BoxedNodeSend<W> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

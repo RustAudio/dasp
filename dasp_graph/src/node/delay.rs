@@ -9,11 +9,11 @@ use dasp_ring_buffer as ring_buffer;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Delay<S>(pub Vec<ring_buffer::Fixed<S>>);
 
-impl<S> Node for Delay<S>
+impl<S, W> Node<W> for Delay<S>
 where
     S: ring_buffer::SliceMut<Element = f32>,
 {
-    fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
+    fn process(&mut self, inputs: &[Input<W>], output: &mut [Buffer]) {
         // Retrieve the single input, ignore any others.
         let input = match inputs.get(0) {
             Some(input) => input,
