@@ -7,12 +7,11 @@ where
     F: Frame<Sample = f32>,
 {
     fn process(&mut self, _inputs: &[Input], output: &mut [Buffer]) {
-        let channels = std::cmp::min(F::CHANNELS, output.len());
         for ix in 0..Buffer::LEN {
             let frame = self.next();
-            for ch in 0..channels {
-                // Safe, as we verify the number of channels at the beginning of the function.
-                output[ch][ix] = unsafe { *frame.channel_unchecked(ch) };
+            for (ch, out) in output.iter_mut().enumerate().take(F::CHANNELS) {
+                // Safe, as ch never exceeds min(F::CHANNELS, output.len()).
+                out[ix] = unsafe { *frame.channel_unchecked(ch) };
             }
         }
     }

@@ -15,7 +15,7 @@ where
 {
     fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
         // Retrieve the single input, ignore any others.
-        let input = match inputs.get(0) {
+        let input = match inputs.first() {
             Some(input) => input,
             None => return,
         };

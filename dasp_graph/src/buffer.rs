@@ -41,7 +41,7 @@ impl fmt::Debug for Buffer {
 
 impl PartialEq for Buffer {
     fn eq(&self, other: &Self) -> bool {
-        &self[..] == &other[..]
+        self[..] == other[..]
     }
 }
 
