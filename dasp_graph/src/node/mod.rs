@@ -126,7 +126,7 @@ impl fmt::Debug for Input {
     }
 }
 
-impl<'a, T> Node for &'a mut T
+impl<T> Node for &mut T
 where
     T: Node + ?Sized,
 {

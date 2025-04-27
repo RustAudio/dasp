@@ -12,7 +12,7 @@ pub struct Pass;
 
 impl Node for Pass {
     fn process(&mut self, inputs: &[Input], output: &mut [Buffer]) {
-        let input = match inputs.get(0) {
+        let input = match inputs.first() {
             None => return,
             Some(input) => input,
         };

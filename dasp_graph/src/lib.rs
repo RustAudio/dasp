@@ -215,8 +215,10 @@ where
     where
         G::Map: Default,
     {
-        let mut dfs_post_order = DfsPostOrder::default();
-        dfs_post_order.stack = Vec::with_capacity(max_nodes);
+        let dfs_post_order = DfsPostOrder {
+            stack: Vec::with_capacity(max_nodes),
+            ..Default::default()
+        };
         let inputs = Vec::with_capacity(max_nodes);
         Self {
             dfs_post_order,
@@ -346,29 +348,23 @@ where
 /// Produce an iterator yielding IDs for all **source** nodes within the graph.
 ///
 /// A node is considered to be a source node if it has no incoming edges.
-pub fn sources<'a, G>(g: &'a G) -> impl 'a + Iterator<Item = G::NodeId>
+pub fn sources<G>(g: &G) -> impl '_ + Iterator<Item = G::NodeId>
 where
     G: IntoNeighborsDirected + NodeCount + NodeIndexable,
 {
     (0..g.node_count())
         .map(move |ix| g.from_index(ix))
-        .filter_map(move |id| match g.neighbors_directed(id, Incoming).next() {
-            None => Some(id),
-            _ => None,
-        })
+        .filter(move |id| g.neighbors_directed(*id, Incoming).next().is_none())
 }
 
 /// Produce an iterator yielding IDs for all **sink** nodes within the graph.
 ///
 /// A node is considered to be a **sink** node if it has no outgoing edges.
-pub fn sinks<'a, G>(g: &'a G) -> impl 'a + Iterator<Item = G::NodeId>
+pub fn sinks<G>(g: &G) -> impl '_ + Iterator<Item = G::NodeId>
 where
     G: IntoNeighborsDirected + NodeCount + NodeIndexable,
 {
     (0..g.node_count())
         .map(move |ix| g.from_index(ix))
-        .filter_map(move |id| match g.neighbors_directed(id, Outgoing).next() {
-            None => Some(id),
-            _ => None,
-        })
+        .filter(move |id| g.neighbors_directed(*id, Outgoing).next().is_none())
 }
