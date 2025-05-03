@@ -948,6 +948,21 @@ pub struct Square<S> {
     phase: Phase<S>,
 }
 
+#[derive(Clone)]
+pub struct Pulse12<S> {
+    phase: Phase<S>,
+}
+
+#[derive(Clone)]
+pub struct Pulse25<S> {
+    phase: Phase<S>,
+}
+
+#[derive(Clone)]
+pub struct Pulse75<S> {
+    phase: Phase<S>,
+}
+
 /// A noise signal generator.
 #[derive(Clone)]
 pub struct Noise {
@@ -1519,6 +1534,78 @@ pub fn square<S>(phase: Phase<S>) -> Square<S> {
     Square { phase: phase }
 }
 
+/// Produces a `Signal` that yields a 12.5% duty cycle pulse wave oscillating at the given hz.
+///
+/// # Example
+///
+/// ```rust
+/// use dasp_signal::{self as signal, Signal};
+///
+/// fn main() {
+///     // Generates a square wave signal at 1hz to be sampled 8 times per second.
+///     let mut signal = signal::rate(8.0).const_hz(1.0).pulse12();
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+/// }
+/// ```
+pub fn pulse12<S>(phase: Phase<S>) -> Pulse12<S> {
+    Pulse12 { phase: phase }
+}
+
+/// Produces a `Signal` that yields a 25% duty cycle pulse wave oscillating at the given hz.
+///
+/// # Example
+///
+/// ```rust
+/// use dasp_signal::{self as signal, Signal};
+///
+/// fn main() {
+///     // Generates a square wave signal at 1hz to be sampled 8 times per second.
+///     let mut signal = signal::rate(8.0).const_hz(1.0).pulse25();
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+/// }
+/// ```
+pub fn pulse25<S>(phase: Phase<S>) -> Pulse25<S> {
+    Pulse25 { phase: phase }
+}
+
+/// Produces a `Signal` that yields a 75% duty cycle pulse wave oscillating at the given hz.
+///
+/// # Example
+///
+/// ```rust
+/// use dasp_signal::{self as signal, Signal};
+///
+/// fn main() {
+///     // Generates a square wave signal at 1hz to be sampled 8 times per second.
+///     let mut signal = signal::rate(8.0).const_hz(1.0).pulse75();
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), 1.0);
+///     assert_eq!(signal.next(), -1.0);
+///     assert_eq!(signal.next(), -1.0);
+/// }
+/// ```
+pub fn pulse75<S>(phase: Phase<S>) -> Pulse75<S> {
+    Pulse75 { phase: phase }
+}
+
 /// Produces a `Signal` that yields random values between -1.0..1.0.
 ///
 /// # Example
@@ -1783,6 +1870,57 @@ where
     }
 }
 
+impl<S> Signal for Pulse12<S>
+where
+    S: Step,
+{
+    type Frame = f64;
+
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        let phase = self.phase.next_phase();
+        if phase < 0.125 {
+            1.0
+        } else {
+            -1.0
+        }
+    }
+}
+
+impl<S> Signal for Pulse25<S>
+where
+    S: Step,
+{
+    type Frame = f64;
+
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        let phase = self.phase.next_phase();
+        if phase < 0.25 {
+            1.0
+        } else {
+            -1.0
+        }
+    }
+}
+
+impl<S> Signal for Pulse75<S>
+where
+    S: Step,
+{
+    type Frame = f64;
+
+    #[inline]
+    fn next(&mut self) -> Self::Frame {
+        let phase = self.phase.next_phase();
+        if phase < 0.75 {
+            1.0
+        } else {
+            -1.0
+        }
+    }
+}
+
 impl Rate {
     /// Create a `ConstHz` signal which consistently yields `hz / rate`.
     pub fn const_hz(self, hz: f64) -> ConstHz {
@@ -1845,6 +1983,24 @@ where
         self.phase().square()
     }
 
+    /// A composable alternative to the `signal::pulse12` function.
+    #[inline]
+    pub fn pulse12(self) -> Pulse12<Self> {
+        self.phase().pulse12()
+    }
+
+    /// A composable alternative to the `signal::pulse25` function.
+    #[inline]
+    pub fn pulse25(self) -> Pulse25<Self> {
+        self.phase().pulse25()
+    }
+
+    /// A composable alternative to the `signal::pulse75` function.
+    #[inline]
+    pub fn pulse75(self) -> Pulse75<Self> {
+        self.phase().pulse75()
+    }
+
     /// A composable alternative to the `signal::noise_simplex` function.
     #[inline]
     pub fn noise_simplex(self) -> NoiseSimplex<Self> {
@@ -1875,6 +2031,24 @@ impl ConstHz {
     #[inline]
     pub fn square(self) -> Square<Self> {
         self.phase().square()
+    }
+
+    /// A composable alternative to the `signal::pulse12` function.
+    #[inline]
+    pub fn pulse12(self) -> Pulse12<Self> {
+        self.phase().pulse12()
+    }
+
+    /// A composable alternative to the `signal::pulse25` function.
+    #[inline]
+    pub fn pulse25(self) -> Pulse25<Self> {
+        self.phase().pulse25()
+    }
+
+    /// A composable alternative to the `signal::pulse75` function.
+    #[inline]
+    pub fn pulse75(self) -> Pulse75<Self> {
+        self.phase().pulse75()
     }
 
     /// A composable alternative to the `signal::noise_simplex` function.
@@ -1950,6 +2124,24 @@ where
     #[inline]
     pub fn square(self) -> Square<S> {
         square(self)
+    }
+
+    /// A composable version of the `signal::pulse12` function.
+    #[inline]
+    pub fn pulse12(self) -> Pulse12<S> {
+        pulse12(self)
+    }
+
+    /// A composable version of the `signal::pulse25` function.
+    #[inline]
+    pub fn pulse25(self) -> Pulse25<S> {
+        pulse25(self)
+    }
+
+    /// A composable version of the `signal::pulse75` function.
+    #[inline]
+    pub fn pulse75(self) -> Pulse75<S> {
+        pulse75(self)
     }
 
     /// A composable version of the `signal::noise_simplex` function.
