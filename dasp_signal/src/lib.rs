@@ -143,6 +143,7 @@ pub trait Signal {
     ///
     /// fn main() {
     ///     // Infinite signals always return `false`.
+    ///     use dasp_signal::Step;
     ///     let sine_signal = signal::rate(44_100.0).const_hz(400.0).sine();
     ///     assert_eq!(sine_signal.is_exhausted(), false);
     ///
@@ -960,6 +961,16 @@ pub struct NoiseSimplex<S> {
     phase: Phase<S>,
 }
 
+// A signal generator with offset phase.
+#[derive(Clone)]
+pub struct OffsetPhase<S>
+where
+    S: Signal + Step,
+{
+    step: S,
+    offset: f64,
+}
+
 /// An iterator that yields the sum of the frames yielded by both `other` and `self` in lock-step.
 #[derive(Clone)]
 pub struct AddAmp<A, B> {
@@ -1444,10 +1455,7 @@ pub fn phase<S>(step: S) -> Phase<S>
 where
     S: Step,
 {
-    Phase {
-        step: step,
-        next: 0.0,
-    }
+    Phase { step, next: 0.0 }
 }
 
 /// Creates a frame `Rate` (aka sample rate) representing the rate at which a signal may be
@@ -1850,6 +1858,34 @@ where
     pub fn noise_simplex(self) -> NoiseSimplex<Self> {
         self.phase().noise_simplex()
     }
+
+    /// Offsets the phase of a signal by the specified value, between 0.0 and 1.0 by default.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use dasp_signal::{self as signal, Signal};
+    ///
+    /// fn main() {
+    ///     let step = signal::rate(4.0).const_hz(1.0).offset_phase(0.25);
+    ///     let mut phase = step.phase();
+    ///     assert_eq!(phase.next(), 0.25);
+    ///     assert_eq!(phase.next(), 0.5);
+    ///     assert_eq!(phase.next(), 0.75);
+    ///     assert_eq!(phase.next(), 0.0);
+    ///     assert_eq!(phase.next(), 0.25);
+    ///     assert_eq!(phase.next(), 0.5);
+    /// }
+    /// ```
+    #[inline]
+    pub fn offset_phase(self, offset: f64) -> OffsetPhase<Self> {
+        let rem = 1.0;
+
+        OffsetPhase {
+            step: self,
+            offset: offset % rem,
+        }
+    }
 }
 
 impl ConstHz {
@@ -1881,6 +1917,16 @@ impl ConstHz {
     #[inline]
     pub fn noise_simplex(self) -> NoiseSimplex<Self> {
         self.phase().noise_simplex()
+    }
+
+    #[inline]
+    pub fn offset_phase(self, offset: f64) -> OffsetPhase<Self> {
+        let rem = 1.0;
+
+        OffsetPhase {
+            step: self,
+            offset: offset % rem,
+        }
     }
 }
 
@@ -2094,6 +2140,42 @@ where
     #[inline]
     fn next(&mut self) -> Self::Frame {
         self.next_sample()
+    }
+}
+
+impl<S: Signal + Step> OffsetPhase<S> {
+    /// Construct a `Phase` iterator that is incremented via the constant step size, `self.step`,
+    /// and takes an offset into account.
+    #[inline]
+    pub fn phase(self) -> Phase<S> {
+        Phase {
+            step: self.step,
+            next: self.offset,
+        }
+    }
+
+    /// A composable alternative to the `signal::sine` function.
+    #[inline]
+    pub fn sine(self) -> Sine<S> {
+        self.phase().sine()
+    }
+
+    /// A composable alternative to the `signal::saw` function.
+    #[inline]
+    pub fn saw(self) -> Saw<S> {
+        self.phase().saw()
+    }
+
+    /// A composable alternative to the `signal::square` function.
+    #[inline]
+    pub fn square(self) -> Square<S> {
+        self.phase().square()
+    }
+
+    /// A composable alternative to the `signal::noise_simplex` function.
+    #[inline]
+    pub fn noise_simplex(self) -> NoiseSimplex<S> {
+        self.phase().noise_simplex()
     }
 }
 
