@@ -126,7 +126,9 @@ macro_rules! conversion_fns {
 macro_rules! conversions {
     ($T:ident, $mod_name:ident { $($rest:tt)* }) => {
         pub mod $mod_name {
-            use $crate::types::{I24, U24, I48, U48};
+            #[allow(unused_imports)]
+            use $crate::ops;
+            use $crate::{types::{I24, U24, I48, U48}};
             conversion_fns!($T, $($rest)*);
         }
     };
@@ -531,12 +533,12 @@ conversions!(u64, u64 {
 // The following conversions assume `-1.0 <= s < 1.0` (note that +1.0 is excluded) and will
 // overflow otherwise.
 conversions!(f32, f32 {
-    s to_i8 { (s * 128.0) as i8 }
-    s to_i16 { (s * 32_768.0) as i16 }
-    s to_i24 { I24::new_unchecked((s * 8_388_608.0) as i32) }
-    s to_i32 { (s * 2_147_483_648.0) as i32 }
-    s to_i48 { I48::new_unchecked((s * 140_737_488_355_328.0) as i64) }
-    s to_i64 { (s * 9_223_372_036_854_775_808.0) as i64 }
+    s to_i8 { ops::f32::round(s * 128.0) as i8 }
+    s to_i16 { ops::f32::round(s * 32_768.0) as i16 }
+    s to_i24 { I24::new_unchecked(ops::f32::round(s * 8_388_608.0) as i32) }
+    s to_i32 { ops::f32::round(s * 2_147_483_648.0) as i32 }
+    s to_i48 { I48::new_unchecked(ops::f32::round(s * 140_737_488_355_328.0) as i64) }
+    s to_i64 { ops::f32::round(s * 9_223_372_036_854_775_808.0) as i64 }
     s to_u8 { super::i8::to_u8(to_i8(s)) }
     s to_u16 { super::i16::to_u16(to_i16(s)) }
     s to_u24 { super::i24::to_u24(to_i24(s)) }
@@ -549,12 +551,12 @@ conversions!(f32, f32 {
 // The following conversions assume `-1.0 <= s < 1.0` (note that +1.0 is excluded) and will
 // overflow otherwise.
 conversions!(f64, f64 {
-    s to_i8 { (s * 128.0) as i8 }
-    s to_i16 { (s * 32_768.0) as i16 }
-    s to_i24 { I24::new_unchecked((s * 8_388_608.0) as i32) }
-    s to_i32 { (s * 2_147_483_648.0) as i32 }
-    s to_i48 { I48::new_unchecked((s * 140_737_488_355_328.0) as i64) }
-    s to_i64 { (s * 9_223_372_036_854_775_808.0) as i64 }
+    s to_i8 { ops::f64::round(s * 128.0) as i8 }
+    s to_i16 { ops::f64::round(s * 32_768.0) as i16 }
+    s to_i24 { I24::new_unchecked(ops::f64::round(s * 8_388_608.0) as i32) }
+    s to_i32 { ops::f64::round(s * 2_147_483_648.0) as i32 }
+    s to_i48 { I48::new_unchecked(ops::f64::round(s * 140_737_488_355_328.0) as i64) }
+    s to_i64 { ops::f64::round(s * 9_223_372_036_854_775_808.0) as i64 }
     s to_u8 { super::i8::to_u8(to_i8(s)) }
     s to_u16 { super::i16::to_u16(to_i16(s)) }
     s to_u24 { super::i24::to_u24(to_i24(s)) }

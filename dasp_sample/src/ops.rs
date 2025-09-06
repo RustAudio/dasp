@@ -3,6 +3,7 @@ pub mod f32 {
     /// Uses bit manipulation for initial guess, then 3 iterations for ~6-7 decimal places.
     /// Accuracy: ~6-7 decimal places
     #[cfg(not(feature = "std"))]
+    #[inline]
     pub fn sqrt(x: f32) -> f32 {
         if x < 0.0 {
             return f32::NAN;
@@ -31,6 +32,19 @@ pub mod f32 {
     pub fn sqrt(x: f32) -> f32 {
         x.sqrt()
     }
+
+    #[cfg(not(feature = "std"))]
+    #[inline]
+    pub fn round(x: f32) -> f32 {
+        // Branchless rounding: copysign gives +0.5 for positive x, -0.5 for negative x
+        // This shifts the value toward zero before truncation, achieving proper rounding
+        (x + 0.5_f32.copysign(x)) as i64 as f32
+    }
+    #[cfg(feature = "std")]
+    #[inline]
+    pub fn round(x: f32) -> f32 {
+        x.round()
+    }
 }
 
 pub mod f64 {
@@ -38,6 +52,7 @@ pub mod f64 {
     /// Uses bit manipulation for initial guess, then 4 iterations for ~14-15 decimal places.
     /// Accuracy: ~14-15 decimal places
     #[cfg(not(feature = "std"))]
+    #[inline]
     pub fn sqrt(x: f64) -> f64 {
         if x < 0.0 {
             return f64::NAN;
@@ -65,5 +80,18 @@ pub mod f64 {
     #[inline]
     pub fn sqrt(x: f64) -> f64 {
         x.sqrt()
+    }
+
+    #[cfg(not(feature = "std"))]
+    #[inline]
+    pub fn round(x: f64) -> f64 {
+        // Branchless rounding: copysign gives +0.5 for positive x, -0.5 for negative x
+        // This shifts the value toward zero before truncation, achieving proper rounding
+        (x + 0.5_f64.copysign(x)) as i64 as f64
+    }
+    #[cfg(feature = "std")]
+    #[inline]
+    pub fn round(x: f64) -> f64 {
+        x.round()
     }
 }

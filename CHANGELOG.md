@@ -5,6 +5,7 @@
   yielding samples when the underlying signal gets exhausted. This is a breaking
   change. The return type of the `IntoInterleavedSamples#next_sample` method was
   modified.
+- Improved float-to-integer conversions to use proper rounding instead of truncation.
 
 ---
 
