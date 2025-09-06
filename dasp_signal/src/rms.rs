@@ -33,10 +33,18 @@ pub trait SignalRms: Signal {
     ///     let signal = signal::from_iter(frames.iter().cloned());
     ///     let ring_buffer = ring_buffer::Fixed::from([[0.0]; 2]);
     ///     let mut rms_signal = signal.rms(ring_buffer);
-    ///     assert_eq!(
-    ///         [rms_signal.next(), rms_signal.next(), rms_signal.next()],
-    ///         [[0.6363961030678927], [0.8514693182963201], [0.7071067811865476]]
-    ///     );
+    ///
+    ///     let result = rms_signal.next()[0];
+    ///     assert!(f64::abs(result - 0.6363961030678927) < 0.000001,
+    ///             "Expected ~0.6363961030678927, got {}", result);
+    ///
+    ///     let result = rms_signal.next()[0];
+    ///     assert!(f64::abs(result - 0.8514693182963201) < 0.000001,
+    ///             "Expected ~0.8514693182963201, got {}", result);
+    ///
+    ///     let result = rms_signal.next()[0];
+    ///     assert!(f64::abs(result - 0.7071067811865476) < 0.000001,
+    ///             "Expected ~0.7071067811865476, got {}", result);
     /// }
     /// ```
     ///
