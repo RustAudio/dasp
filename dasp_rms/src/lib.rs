@@ -117,9 +117,17 @@ where
     /// fn main() {
     ///     let window = ring_buffer::Fixed::from([[0.0]; 4]);
     ///     let mut rms = Rms::new(window);
+    ///
     ///     assert_eq!(rms.next([1.0]), [0.5]);
-    ///     assert_eq!(rms.next([-1.0]), [0.7071067811865476]);
-    ///     assert_eq!(rms.next([1.0]), [0.8660254037844386]);
+    ///
+    ///     let result = rms.next([-1.0])[0];
+    ///     assert!(f64::abs(result - 0.7071067811865476) < 0.000001,
+    ///             "Expected ~0.7071067811865476, got {}", result);
+    ///
+    ///     let result = rms.next([1.0])[0];
+    ///     assert!(f64::abs(result - 0.8660254037844386) < 0.000001,
+    ///             "Expected ~0.8660254037844386, got {}", result);
+    ///
     ///     assert_eq!(rms.next([-1.0]), [1.0]);
     /// }
     /// ```
