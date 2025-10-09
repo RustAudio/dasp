@@ -1,6 +1,6 @@
 #![cfg(all(feature = "node-boxed", feature = "node-sum"))]
 
-use dasp_graph::{node, Buffer, Input, Node, NodeData};
+use dasp_graph::{node, petgraph, Buffer, Input, Node, NodeData};
 
 type BoxedNode = dasp_graph::BoxedNode;
 
