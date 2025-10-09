@@ -5,8 +5,10 @@
 #![cfg(feature = "node-boxed")]
 #![allow(unreachable_code, unused_variables)]
 
-use dasp_graph::{BoxedNode, NodeData};
-use petgraph::visit::GraphBase;
+use dasp_graph::{
+    petgraph::{self, visit::GraphBase},
+    BoxedNode, NodeData,
+};
 
 #[test]
 #[should_panic]

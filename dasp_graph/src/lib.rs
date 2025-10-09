@@ -125,6 +125,11 @@
 
 pub use buffer::Buffer;
 pub use node::{Input, Node};
+
+// Petgraph's traits appear in the public API of dasp_graph, so re-exporting
+// allows the user to be guaranteed that they are using the correct version of
+// petgraph, avoiding unintuitive errors like in #176.
+pub use petgraph;
 use petgraph::data::{DataMap, DataMapMut};
 use petgraph::visit::{
     Data, DfsPostOrder, GraphBase, IntoNeighborsDirected, NodeCount, NodeIndexable, Reversed,
@@ -147,9 +152,8 @@ pub mod node;
 /// # Example
 ///
 /// ```
-/// use dasp_graph::{Node, NodeData};
+/// use dasp_graph::{petgraph, Node, NodeData};
 /// # use dasp_graph::{Buffer, Input};
-/// use petgraph;
 /// #
 /// # // The node type. (Hint: Use existing node impls by enabling their associated features).
 /// # struct MyNode;
