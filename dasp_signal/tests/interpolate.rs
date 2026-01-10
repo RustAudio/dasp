@@ -71,3 +71,30 @@ fn test_sinc() {
         None
     );
 }
+
+#[test]
+fn test_sinc_downsampling_antialiasing() {
+    const SOURCE_HZ: f64 = 2000.0;
+    const TARGET_HZ: f64 = 1500.0;
+    const SIGNAL_FREQ: f64 = 900.0;
+
+    let source_signal = signal::rate(SOURCE_HZ).const_hz(SIGNAL_FREQ).sine();
+
+    let ring_buffer = ring_buffer::Fixed::from(vec![0.0; 100]);
+    let sinc = Sinc::new(ring_buffer);
+    let mut downsampled = source_signal.from_hz_to_hz(sinc, SOURCE_HZ, TARGET_HZ);
+
+    for _ in 0..50 {
+        downsampled.next();
+    }
+
+    let samples: Vec<f64> = downsampled.take(1500).collect();
+
+    let rms = (samples.iter().map(|&s| s * s).sum::<f64>() / samples.len() as f64).sqrt();
+
+    assert!(
+        rms < 0.1,
+        "Expected RMS < 0.1 (well-filtered), got {:.3}. Aliasing occurred.",
+        rms
+    );
+}

@@ -1,5 +1,10 @@
 # Unreleased
 
+- Fixed aliasing in Sinc interpolator when downsampling by adding automatic
+  anti-aliasing filter cutoff adjustment. The `Interpolator` trait now includes
+  `set_hz_to_hz`, `set_playback_hz_scale`, and `set_sample_hz_scale` methods
+  (with default no-op implementations) that are called automatically by the
+  corresponding `Converter` methods to configure rate-dependent parameters.
 - Renamed `window-hanning` to `window-hann`
 - Made `IntoInterleavedSamples` and `IntoInterleavedSamplesIterator` stop
   yielding samples when the underlying signal gets exhausted. This is a breaking

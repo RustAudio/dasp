@@ -26,6 +26,7 @@ mod ops;
 pub struct Sinc<S> {
     frames: ring_buffer::Fixed<S>,
     idx: usize,
+    bandwidth: f64,
 }
 
 impl<S> Sinc<S> {
@@ -49,8 +50,9 @@ impl<S> Sinc<S> {
     {
         assert!(frames.len() % 2 == 0);
         Sinc {
-            frames: frames,
+            frames,
             idx: 0,
+            bandwidth: 1.0,
         }
     }
 
@@ -77,6 +79,7 @@ where
         let nl = self.idx;
         let nr = self.idx + 1;
         let depth = self.depth();
+        let bandwidth = self.bandwidth;
 
         let rightmost = nl + depth;
         let leftmost = nr as isize - depth as isize;
@@ -90,9 +93,9 @@ where
 
         (0..max_depth).fold(Self::Frame::EQUILIBRIUM, |mut v, n| {
             v = {
-                let a = PI * (phil + n as f64);
+                let a = PI * bandwidth * (phil + n as f64);
                 let first = if a == 0.0 { 1.0 } else { sin(a) / a };
-                let second = 0.5 + 0.5 * cos(a / depth as f64);
+                let second = 0.5 + 0.5 * cos(a / (depth as f64 * bandwidth));
                 v.zip_map(self.frames[nl - n], |vs, r_lag| {
                     vs.add_amp(
                         (first * second * r_lag.to_sample::<f64>())
@@ -102,9 +105,9 @@ where
                 })
             };
 
-            let a = PI * (phir + n as f64);
+            let a = PI * bandwidth * (phir + n as f64);
             let first = if a == 0.0 { 1.0 } else { sin(a) / a };
-            let second = 0.5 + 0.5 * cos(a / depth as f64);
+            let second = 0.5 + 0.5 * cos(a / (depth as f64 * bandwidth));
             v.zip_map(self.frames[nr + n], |vs, r_lag| {
                 vs.add_amp(
                     (first * second * r_lag.to_sample::<f64>())
@@ -128,5 +131,17 @@ where
         for frame in self.frames.iter_mut() {
             *frame = Self::Frame::EQUILIBRIUM;
         }
+    }
+
+    fn set_hz_to_hz(&mut self, source_hz: f64, target_hz: f64) {
+        self.bandwidth = (target_hz / source_hz).min(1.0);
+    }
+
+    fn set_playback_hz_scale(&mut self, scale: f64) {
+        self.bandwidth = (1.0 / scale).min(1.0);
+    }
+
+    fn set_sample_hz_scale(&mut self, scale: f64) {
+        self.bandwidth = scale.min(1.0);
     }
 }
