@@ -93,9 +93,15 @@ where
 
         (0..max_depth).fold(Self::Frame::EQUILIBRIUM, |mut v, n| {
             v = {
-                let a = PI * bandwidth * (phil + n as f64);
-                let first = if a == 0.0 { 1.0 } else { sin(a) / a };
-                let second = 0.5 + 0.5 * cos(a / (depth as f64 * bandwidth));
+                let t = phil + n as f64;
+                let a = PI * bandwidth * t;
+                let b = PI * t / depth as f64;
+                let first = if a.abs() < f64::EPSILON {
+                    bandwidth
+                } else {
+                    bandwidth * sin(a) / a
+                };
+                let second = 0.5 + 0.5 * cos(b);
                 v.zip_map(self.frames[nl - n], |vs, r_lag| {
                     vs.add_amp(
                         (first * second * r_lag.to_sample::<f64>())
@@ -105,9 +111,15 @@ where
                 })
             };
 
-            let a = PI * bandwidth * (phir + n as f64);
-            let first = if a == 0.0 { 1.0 } else { sin(a) / a };
-            let second = 0.5 + 0.5 * cos(a / (depth as f64 * bandwidth));
+            let t = phir + n as f64;
+            let a = PI * bandwidth * t;
+            let b = PI * t / depth as f64;
+            let first = if a.abs() < f64::EPSILON {
+                bandwidth
+            } else {
+                bandwidth * sin(a) / a
+            };
+            let second = 0.5 + 0.5 * cos(b);
             v.zip_map(self.frames[nr + n], |vs, r_lag| {
                 vs.add_amp(
                     (first * second * r_lag.to_sample::<f64>())
