@@ -38,17 +38,6 @@ pub mod sinc;
 ///
 /// Implementations should keep track of the necessary data both before and after the current
 /// frame.
-///
-/// # Rate Configuration
-///
-/// Some interpolators require sample rate information to operate correctly (e.g., sinc
-/// interpolation needs the rate ratio for anti-aliasing). The `set_hz_to_hz`,
-/// `set_playback_hz_scale`, and `set_sample_hz_scale` methods provide alternative ways
-/// to configure this - use whichever matches the information available. These methods
-/// are called automatically by the corresponding `Converter` methods.
-///
-/// Interpolators that don't need rate information (floor, linear) can use the default
-/// no-op implementations.
 pub trait Interpolator {
     /// The type of frame over which the interpolate may operate.
     type Frame: Frame;
@@ -65,12 +54,8 @@ pub trait Interpolator {
     /// Call this when there's a break in the continuity of the input data stream.
     fn reset(&mut self);
 
-    /// Configures the interpolator from absolute sample rates.
-    fn set_hz_to_hz(&mut self, _source_hz: f64, _target_hz: f64) {}
-
-    /// Configures the interpolator from playback rate scale (`source_hz / target_hz`).
-    fn set_playback_hz_scale(&mut self, _scale: f64) {}
-
-    /// Configures the interpolator from sample rate scale (`target_hz / source_hz`).
-    fn set_sample_hz_scale(&mut self, _scale: f64) {}
+    /// Configures filter bandwidth for anti-aliasing. No-op for non-filtering interpolators.
+    ///
+    /// For downsampling, set to `target_hz / source_hz` to prevent aliasing.
+    fn set_bandwidth(&mut self, _bandwidth: f64) {}
 }

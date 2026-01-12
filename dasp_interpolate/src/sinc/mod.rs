@@ -145,15 +145,7 @@ where
         }
     }
 
-    fn set_hz_to_hz(&mut self, source_hz: f64, target_hz: f64) {
-        self.bandwidth = (target_hz / source_hz).min(1.0);
-    }
-
-    fn set_playback_hz_scale(&mut self, scale: f64) {
-        self.bandwidth = (1.0 / scale).min(1.0);
-    }
-
-    fn set_sample_hz_scale(&mut self, scale: f64) {
-        self.bandwidth = scale.min(1.0);
+    fn set_bandwidth(&mut self, bandwidth: f64) {
+        self.bandwidth = bandwidth.clamp(f64::MIN_POSITIVE, 1.0);
     }
 }

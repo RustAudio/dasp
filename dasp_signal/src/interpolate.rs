@@ -32,10 +32,10 @@ where
     /// Construct a new `Converter` from the source frames and the source and target sample rates
     /// (in Hz).
     ///
-    /// This method calls `interpolator.set_hz_to_hz(source_hz, target_hz)` internally.
+    /// Configures the interpolator's bandwidth for anti-aliasing when downsampling.
     #[inline]
     pub fn from_hz_to_hz(source: S, mut interpolator: I, source_hz: f64, target_hz: f64) -> Self {
-        interpolator.set_hz_to_hz(source_hz, target_hz);
+        interpolator.set_bandwidth(target_hz / source_hz);
         Self::scale_playback_hz(source, interpolator, source_hz / target_hz)
     }
 
@@ -75,33 +75,27 @@ where
     /// Update the `source_to_target_ratio` internally given the source and target hz.
     ///
     /// This method might be useful for changing the sample rate during playback.
-    ///
-    /// This method calls `interpolator.set_hz_to_hz(source_hz, target_hz)` internally.
     #[inline]
     pub fn set_hz_to_hz(&mut self, source_hz: f64, target_hz: f64) {
-        self.interpolator.set_hz_to_hz(source_hz, target_hz);
+        self.interpolator.set_bandwidth(target_hz / source_hz);
         self.set_playback_hz_scale(source_hz / target_hz)
     }
 
     /// Update the `source_to_target_ratio` internally given a new **playback rate** multiplier.
     ///
     /// This method is useful for dynamically changing rates.
-    ///
-    /// This method calls `interpolator.set_playback_hz_scale(scale)` internally.
     #[inline]
     pub fn set_playback_hz_scale(&mut self, scale: f64) {
-        self.interpolator.set_playback_hz_scale(scale);
+        self.interpolator.set_bandwidth(1.0 / scale);
         self.source_to_target_ratio = scale;
     }
 
     /// Update the `source_to_target_ratio` internally given a new **sample rate** multiplier.
     ///
     /// This method is useful for dynamically changing rates.
-    ///
-    /// This method calls `interpolator.set_sample_hz_scale(scale)` internally.
     #[inline]
     pub fn set_sample_hz_scale(&mut self, scale: f64) {
-        self.interpolator.set_sample_hz_scale(scale);
+        self.interpolator.set_bandwidth(scale);
         self.set_playback_hz_scale(1.0 / scale);
     }
 
