@@ -31,8 +31,11 @@ where
 {
     /// Construct a new `Converter` from the source frames and the source and target sample rates
     /// (in Hz).
+    ///
+    /// Configures the interpolator's bandwidth for anti-aliasing when downsampling.
     #[inline]
-    pub fn from_hz_to_hz(source: S, interpolator: I, source_hz: f64, target_hz: f64) -> Self {
+    pub fn from_hz_to_hz(source: S, mut interpolator: I, source_hz: f64, target_hz: f64) -> Self {
+        interpolator.set_bandwidth(target_hz / source_hz);
         Self::scale_playback_hz(source, interpolator, source_hz / target_hz)
     }
 
@@ -74,6 +77,7 @@ where
     /// This method might be useful for changing the sample rate during playback.
     #[inline]
     pub fn set_hz_to_hz(&mut self, source_hz: f64, target_hz: f64) {
+        self.interpolator.set_bandwidth(target_hz / source_hz);
         self.set_playback_hz_scale(source_hz / target_hz)
     }
 
@@ -82,6 +86,7 @@ where
     /// This method is useful for dynamically changing rates.
     #[inline]
     pub fn set_playback_hz_scale(&mut self, scale: f64) {
+        self.interpolator.set_bandwidth(1.0 / scale);
         self.source_to_target_ratio = scale;
     }
 
@@ -90,6 +95,7 @@ where
     /// This method is useful for dynamically changing rates.
     #[inline]
     pub fn set_sample_hz_scale(&mut self, scale: f64) {
+        self.interpolator.set_bandwidth(scale);
         self.set_playback_hz_scale(1.0 / scale);
     }
 

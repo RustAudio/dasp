@@ -71,3 +71,43 @@ fn test_sinc() {
         None
     );
 }
+
+#[test]
+fn test_sinc_antialiasing() {
+    const SOURCE_HZ: f64 = 2000.0;
+    const TARGET_HZ: f64 = 1500.0;
+    const SIGNAL_FREQ: f64 = 900.0;
+    const TAPS: usize = 100;
+
+    let source_signal = signal::rate(SOURCE_HZ).const_hz(SIGNAL_FREQ).sine();
+    let ring_buffer = ring_buffer::Fixed::from(vec![0.0; TAPS]);
+    let sinc = Sinc::new(ring_buffer);
+    let mut downsampled = source_signal.from_hz_to_hz(sinc, SOURCE_HZ, TARGET_HZ);
+
+    // Warm up the filter to reach steady state
+    for _ in 0..TAPS / 2 {
+        downsampled.next();
+    }
+
+    // Measure peak amplitude in steady state
+    let samples: Vec<f64> = downsampled.take(1500).collect();
+    let peak_amplitude = samples
+        .iter()
+        .map(|&s| s.abs())
+        .max_by(|a, b| a.partial_cmp(b).unwrap())
+        .unwrap();
+
+    // With Hann-windowed sinc,  With 50 taps and 900 Hz being relatively close to the 750 Hz
+    // cutoff, we're in the early stopband region where attenuation is less than -44 dB.
+    // Empirical measurement shows ~41 dB for this configuration.
+    const EXPECTED_ATTENUATION_DB: f64 = 41.0;
+    let max_peak_amplitude = 10.0_f64.powf(-EXPECTED_ATTENUATION_DB / 20.0);
+
+    assert!(
+        peak_amplitude < max_peak_amplitude,
+        "Expected ≥{:.0} dB attenuation (peak < {:.4}), got peak {:.4}",
+        EXPECTED_ATTENUATION_DB,
+        max_peak_amplitude,
+        peak_amplitude
+    );
+}

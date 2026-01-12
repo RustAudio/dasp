@@ -1,4 +1,4 @@
-//! A sinc interpolator implementation.
+//! A Hann-windowed sinc interpolator implementation.
 //!
 //! ### Required Features
 //!
@@ -14,7 +14,7 @@ use ops::f64::{cos, sin};
 
 mod ops;
 
-/// Interpolator for sinc interpolation.
+/// Interpolator for Hann-windowed sinc interpolation.
 ///
 /// Generally accepted as one of the better sample rate converters, although it uses significantly
 /// more computation.
@@ -26,17 +26,19 @@ mod ops;
 pub struct Sinc<S> {
     frames: ring_buffer::Fixed<S>,
     idx: usize,
+    bandwidth: f64,
 }
 
 impl<S> Sinc<S> {
-    /// Create a new **Sinc** interpolator with the given ring buffer.
+    /// Create a new **Sinc** (Hann-windowed) interpolator with the given ring buffer.
     ///
-    /// The given ring buffer should have a length twice that of the desired sinc interpolation
-    /// `depth`.
+    /// The given ring buffer should have a length twice that of the desired interpolation `depth`.
     ///
-    /// The initial contents of the ring_buffer will act as padding for the interpolated signal.
+    /// The initial contents of the ring buffer will act as padding for the interpolated signal.
     ///
-    /// **panic!**s if the given ring buffer's length is not a multiple of `2`.
+    /// ### Panics
+    ///
+    /// If the given ring buffer's length is not a multiple of `2`.
     ///
     /// ### Required Features
     ///
@@ -49,16 +51,55 @@ impl<S> Sinc<S> {
     {
         assert!(frames.len() % 2 == 0);
         Sinc {
-            frames: frames,
+            frames,
             idx: 0,
+            bandwidth: 1.0,
         }
     }
 
-    fn depth(&self) -> usize
+    /// Get the interpolation depth (number of taps per side).
+    pub fn depth(&self) -> usize
     where
         S: ring_buffer::Slice,
     {
         self.frames.len() / 2
+    }
+
+    /// Compute the Hann-windowed sinc coefficient for a given time offset.
+    fn windowed_sinc(&self, t: f64, depth: usize, bandwidth: f64) -> f64 {
+        let a = PI * bandwidth * t;
+        let b = PI * t / depth as f64;
+        let sinc = if a.abs() < f64::EPSILON {
+            bandwidth
+        } else {
+            bandwidth * sin(a) / a
+        };
+        let hann_window = 0.5 + 0.5 * cos(b);
+        sinc * hann_window
+    }
+
+    /// Accumulate a single tap of the Hann-windowed sinc filter.
+    fn accumulate_tap(
+        &self,
+        accum: S::Element,
+        frame_idx: usize,
+        phase: f64,
+        depth: usize,
+        bandwidth: f64,
+    ) -> S::Element
+    where
+        S: ring_buffer::Slice,
+        S::Element: Frame,
+        <S::Element as Frame>::Sample: Duplex<f64>,
+    {
+        let coeff = self.windowed_sinc(phase, depth, bandwidth);
+        accum.zip_map(self.frames[frame_idx], |vs, frame_sample| {
+            vs.add_amp(
+                (coeff * frame_sample.to_sample::<f64>())
+                    .to_sample::<<S::Element as Frame>::Sample>()
+                    .to_signed_sample(),
+            )
+        })
     }
 }
 
@@ -70,13 +111,14 @@ where
 {
     type Frame = S::Element;
 
-    /// Sinc interpolation
+    /// Hann-windowed sinc interpolation
     fn interpolate(&self, x: f64) -> Self::Frame {
         let phil = x;
         let phir = 1.0 - x;
         let nl = self.idx;
         let nr = self.idx + 1;
         let depth = self.depth();
+        let bandwidth = self.bandwidth;
 
         let rightmost = nl + depth;
         let leftmost = nr as isize - depth as isize;
@@ -88,30 +130,9 @@ where
             depth
         };
 
-        (0..max_depth).fold(Self::Frame::EQUILIBRIUM, |mut v, n| {
-            v = {
-                let a = PI * (phil + n as f64);
-                let first = if a == 0.0 { 1.0 } else { sin(a) / a };
-                let second = 0.5 + 0.5 * cos(a / depth as f64);
-                v.zip_map(self.frames[nl - n], |vs, r_lag| {
-                    vs.add_amp(
-                        (first * second * r_lag.to_sample::<f64>())
-                            .to_sample::<<Self::Frame as Frame>::Sample>()
-                            .to_signed_sample(),
-                    )
-                })
-            };
-
-            let a = PI * (phir + n as f64);
-            let first = if a == 0.0 { 1.0 } else { sin(a) / a };
-            let second = 0.5 + 0.5 * cos(a / depth as f64);
-            v.zip_map(self.frames[nr + n], |vs, r_lag| {
-                vs.add_amp(
-                    (first * second * r_lag.to_sample::<f64>())
-                        .to_sample::<<Self::Frame as Frame>::Sample>()
-                        .to_signed_sample(),
-                )
-            })
+        (0..max_depth).fold(Self::Frame::EQUILIBRIUM, |v, n| {
+            let v = self.accumulate_tap(v, nl - n, phil + n as f64, depth, bandwidth);
+            self.accumulate_tap(v, nr + n, phir + n as f64, depth, bandwidth)
         })
     }
 
@@ -128,5 +149,9 @@ where
         for frame in self.frames.iter_mut() {
             *frame = Self::Frame::EQUILIBRIUM;
         }
+    }
+
+    fn set_bandwidth(&mut self, bandwidth: f64) {
+        self.bandwidth = bandwidth.clamp(f64::MIN_POSITIVE, 1.0);
     }
 }

@@ -53,4 +53,9 @@ pub trait Interpolator {
     ///
     /// Call this when there's a break in the continuity of the input data stream.
     fn reset(&mut self);
+
+    /// Configures filter bandwidth for anti-aliasing. No-op for non-filtering interpolators.
+    ///
+    /// For downsampling, set to `target_hz / source_hz` to prevent aliasing.
+    fn set_bandwidth(&mut self, _bandwidth: f64) {}
 }
