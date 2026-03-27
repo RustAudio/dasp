@@ -49,3 +49,25 @@ fn test_window_size() {
         .collect();
     assert_eq!(windows.len(), 3);
 }
+
+#[cfg(feature = "window-hann")]
+#[test]
+fn test_window_iterator() {
+    let v = [1f32; 16];
+    let windower = Windower::hann(&v, 8, 4);
+
+    let mut window_count = 0;
+    let mut sample_count = 0;
+
+    for window in windower {
+        window_count += 1;
+        for sample in window {
+            sample_count += 1
+        }
+    }
+
+    // || - first window, {} - second window, [] - third window, s - samples
+    // | s, s, s, s, { s, s, s, s | [ s, s, s, s, } s, s, s, s, ]
+    assert_eq!(window_count, 3);
+    assert_eq!(sample_count, 3 * 8);
+}

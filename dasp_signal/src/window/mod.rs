@@ -31,6 +31,8 @@ where
 {
     /// Yields phase stepped at a constant rate to be passed to the window function `W`.
     pub phase: Phase<ConstHz>,
+    /// Size of the window
+    pub len: usize,
     marker: PhantomData<(F, W)>,
 }
 
@@ -87,6 +89,7 @@ where
     pub fn new(len: usize) -> Self {
         let step = crate::rate(len as f64 - 1.0).const_hz(1.0);
         Window {
+            len,
             phase: crate::phase(step),
             marker: PhantomData,
         }
@@ -122,6 +125,12 @@ where
     type Item = F;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // make sure we didn't produce items indefinitely
+        if self.len == 0 {
+            return None;
+        }
+
+        self.len -= 1;
         let v = W::window(self.phase.next_phase());
         let v_f: <F::Sample as Sample>::Float = v.to_sample();
         Some(F::from_fn(|_| v_f.to_sample::<F::Sample>()))
