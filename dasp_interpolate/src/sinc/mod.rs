@@ -54,6 +54,39 @@ impl<S> Sinc<S> {
         }
     }
 
+    /// Create a new **Sinc** interpolator with the given ring buffer padded with equilibrium.
+    ///
+    /// The given ring buffer should have a length twice that of the desired sinc interpolation
+    /// `depth`.
+    ///
+    /// The initial contents of the ring_buffer are replaced with `Frame::EQUILIBRIUM`.
+    ///
+    /// **panic!**s if the given ring buffer's length is not a multiple of `2`.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_interpolate`, this item requires the **sinc** feature to be enabled.
+    /// - When using `dasp`, this item requires the **interpolate-sinc** feature to be enabled.
+    ///
+    /// ```
+    /// use dasp_interpolate::sinc::Sinc;
+    /// use dasp_ring_buffer as ring_buffer;
+    ///
+    /// let frames = ring_buffer::Fixed::from([1.0; 8]);
+    /// let interp = Sinc::equilibrium_padded(frames);
+    /// ```
+    pub fn equilibrium_padded(mut frames: ring_buffer::Fixed<S>) -> Self
+    where
+        S: ring_buffer::SliceMut,
+        S::Element: Frame,
+    {
+        assert!(frames.len() % 2 == 0);
+        for frame in frames.iter_mut() {
+            *frame = <S::Element as Frame>::EQUILIBRIUM;
+        }
+        Sinc { frames, idx: 0 }
+    }
+
     fn depth(&self) -> usize
     where
         S: ring_buffer::Slice,

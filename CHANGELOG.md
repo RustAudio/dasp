@@ -1,5 +1,7 @@
 # Unreleased
 
+- Added `equilibrium_padded` constructors for `Floor`, `Linear`, and `Sinc`
+  interpolators.
 - Renamed `window-hanning` to `window-hann`
 - Made `IntoInterleavedSamples` and `IntoInterleavedSamplesIterator` stop
   yielding samples when the underlying signal gets exhausted. This is a breaking

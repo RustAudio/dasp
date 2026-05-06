@@ -29,6 +29,27 @@ impl<F> Floor<F> {
     pub fn new(left: F) -> Floor<F> {
         Floor { left: left }
     }
+
+    /// Create a new Floor Interpolator padded with equilibrium.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_interpolate`, this item requires the **floor** feature to be enabled.
+    /// - When using `dasp`, this item requires the **interpolate-floor** feature to be enabled.
+    ///
+    /// ```
+    /// use dasp_interpolate::floor::Floor;
+    ///
+    /// let interp = Floor::<f32>::equilibrium_padded();
+    /// ```
+    pub fn equilibrium_padded() -> Floor<F>
+    where
+        F: Frame,
+    {
+        Floor {
+            left: F::EQUILIBRIUM,
+        }
+    }
 }
 
 impl<F> Interpolator for Floor<F>

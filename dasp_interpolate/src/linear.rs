@@ -34,6 +34,30 @@ impl<F> Linear<F> {
             right: right,
         }
     }
+
+    /// Create a new Linear Interpolator padded with equilibrium.
+    ///
+    /// Both the left and right frames are initialized to `Frame::EQUILIBRIUM`.
+    ///
+    /// ### Required Features
+    ///
+    /// - When using `dasp_interpolate`, this item requires the **linear** feature to be enabled.
+    /// - When using `dasp`, this item requires the **interpolate-linear** feature to be enabled.
+    ///
+    /// ```
+    /// use dasp_interpolate::linear::Linear;
+    ///
+    /// let interp = Linear::<f32>::equilibrium_padded();
+    /// ```
+    pub fn equilibrium_padded() -> Linear<F>
+    where
+        F: Frame,
+    {
+        Linear {
+            left: F::EQUILIBRIUM,
+            right: F::EQUILIBRIUM,
+        }
+    }
 }
 
 impl<F> Interpolator for Linear<F>
