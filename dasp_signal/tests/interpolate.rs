@@ -1,6 +1,6 @@
 //! Tests for the `Converter` and `Interpolator` traits
 
-use dasp_interpolate::{floor::Floor, linear::Linear, sinc::Sinc};
+use dasp_interpolate::{floor::Floor, linear::Linear, sinc::Sinc, Interpolator};
 use dasp_ring_buffer as ring_buffer;
 use dasp_signal::{self as signal, interpolate::Converter, Signal};
 
@@ -24,6 +24,17 @@ fn test_floor_converter() {
 }
 
 #[test]
+fn test_floor_equilibrium_padded() {
+    let mut interp = Floor::<f64>::equilibrium_padded();
+
+    assert_eq!(interp.interpolate(0.0), 0.0);
+    assert_eq!(interp.interpolate(0.5), 0.0);
+
+    interp.next_source_frame(1.0);
+    assert_eq!(interp.interpolate(0.5), 1.0);
+}
+
+#[test]
 fn test_linear_converter() {
     let frames: [f64; 3] = [0.0, 1.0, 2.0];
     let mut source = signal::from_iter(frames.iter().cloned());
@@ -40,6 +51,21 @@ fn test_linear_converter() {
     // There's nothing else here to interpolate toward, but we do want to ensure that we're
     // emitting the correct number of frames.
     assert_eq!(conv.next(), 1.0);
+}
+
+#[test]
+fn test_linear_equilibrium_padded() {
+    let mut interp = Linear::<f64>::equilibrium_padded();
+
+    assert_eq!(interp.interpolate(0.0), 0.0);
+    assert_eq!(interp.interpolate(0.5), 0.0);
+
+    interp.next_source_frame(1.0);
+    assert_eq!(interp.interpolate(0.0), 0.0);
+    assert_eq!(interp.interpolate(0.5), 0.5);
+
+    interp.next_source_frame(2.0);
+    assert_eq!(interp.interpolate(0.5), 1.5);
 }
 
 #[test]
@@ -70,4 +96,17 @@ fn test_sinc() {
         resampled.until_exhausted().find(|sample| sample.is_nan()),
         None
     );
+}
+
+#[test]
+fn test_sinc_equilibrium_padded_clears_supplied_buffer() {
+    let frames = ring_buffer::Fixed::from(vec![1.0_f64; 50]);
+    let mut interp = Sinc::equilibrium_padded(frames);
+
+    assert_eq!(interp.interpolate(0.0), 0.0);
+    assert_eq!(interp.interpolate(0.5), 0.0);
+
+    interp.next_source_frame(1.0);
+    let sample = interp.interpolate(0.0);
+    assert!(sample.is_finite());
 }
