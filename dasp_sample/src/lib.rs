@@ -10,7 +10,7 @@
 extern crate alloc;
 
 pub use conv::{Duplex, FromSample, ToSample};
-pub use types::{I24, I48, U24, U48};
+pub use types::{I24, I24BE3, I24LE3, I48, U24, U24BE3, U24LE3, U48};
 
 pub mod conv;
 mod ops;
@@ -261,12 +261,18 @@ impl_sample! {
     i8:  Signed: i8,  Float: f32, EQUILIBRIUM: 0,
     i16: Signed: i16, Float: f32, EQUILIBRIUM: 0,
     I24: Signed: I24, Float: f32, EQUILIBRIUM: types::i24::EQUILIBRIUM,
+    // The packed types share the `Signed` and `Float` types of their padded equivalents, so all
+    // arithmetic on them unpacks first rather than operating three bytes at a time.
+    I24LE3: Signed: I24LE3, Float: f32, EQUILIBRIUM: types::i24_le3::EQUILIBRIUM,
+    I24BE3: Signed: I24BE3, Float: f32, EQUILIBRIUM: types::i24_be3::EQUILIBRIUM,
     i32: Signed: i32, Float: f32, EQUILIBRIUM: 0,
     I48: Signed: I48, Float: f64, EQUILIBRIUM: types::i48::EQUILIBRIUM,
     i64: Signed: i64, Float: f64, EQUILIBRIUM: 0,
     u8:  Signed: i8,  Float: f32, EQUILIBRIUM: 128,
     u16: Signed: i16, Float: f32, EQUILIBRIUM: 32_768,
     U24: Signed: i32, Float: f32, EQUILIBRIUM: types::u24::EQUILIBRIUM,
+    U24LE3: Signed: i32, Float: f32, EQUILIBRIUM: types::u24_le3::EQUILIBRIUM,
+    U24BE3: Signed: i32, Float: f32, EQUILIBRIUM: types::u24_be3::EQUILIBRIUM,
     u32: Signed: i32, Float: f32, EQUILIBRIUM: 2_147_483_648,
     U48: Signed: i64, Float: f64, EQUILIBRIUM: types::u48::EQUILIBRIUM,
     u64: Signed: i64, Float: f64, EQUILIBRIUM: 9_223_372_036_854_775_808,
@@ -286,7 +292,7 @@ pub trait SignedSample:
 {
 }
 macro_rules! impl_signed_sample { ($($T:ty)*) => { $( impl SignedSample for $T {} )* } }
-impl_signed_sample!(i8 i16 I24 i32 I48 i64 f32 f64);
+impl_signed_sample!(i8 i16 I24 I24LE3 I24BE3 i32 I48 i64 f32 f64);
 
 /// Sample format types represented as floating point numbers.
 ///

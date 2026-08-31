@@ -52,7 +52,8 @@ Use the **Sample** trait to convert between and remain generic over any
 bit-depth in an optimal, performance-sensitive manner. Implementations are
 provided for all signed integer, unsigned integer and floating point primitive
 types along with some custom types including 11, 20, 24 and 48-bit signed and
-unsigned unpacked integers. For example:
+unsigned unpacked integers, and 24-bit signed and unsigned integers packed into
+exactly three bytes in either byte order. For example:
 
 ```rust
 assert_eq!((-1.0).to_sample::<u8>(), 0);

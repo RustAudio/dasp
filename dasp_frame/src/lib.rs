@@ -569,6 +569,12 @@ impl_frame_for_sample! {
     dasp_sample::types::U24
     dasp_sample::types::U48
 }
+impl_frame_for_sample! {
+    dasp_sample::types::I24LE3
+    dasp_sample::types::I24BE3
+    dasp_sample::types::U24LE3
+    dasp_sample::types::U24BE3
+}
 
 impl<F> Iterator for Channels<F>
 where

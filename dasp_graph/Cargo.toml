@@ -21,10 +21,10 @@ node-signal = ["dasp_frame", "dasp_signal"]
 node-sum = ["dasp_slice"]
 
 [dependencies]
-dasp_frame = { version = "0.11", default-features = false, features = ["std"], optional = true }
-dasp_ring_buffer = { version = "0.11", default-features = false, features = ["std"], optional = true }
-dasp_signal = { version = "0.11", default-features = false, features = ["std"], optional = true }
-dasp_slice = { version = "0.11", default-features = false, features = ["std"], optional = true }
+dasp_frame = { version = "0.11", path = "../dasp_frame", default-features = false, features = ["std"], optional = true }
+dasp_ring_buffer = { version = "0.11", path = "../dasp_ring_buffer", default-features = false, features = ["std"], optional = true }
+dasp_signal = { version = "0.11", path = "../dasp_signal", default-features = false, features = ["std"], optional = true }
+dasp_slice = { version = "0.11", path = "../dasp_slice", default-features = false, features = ["std"], optional = true }
 petgraph = { version = "0.5", default-features = false }
 
 [dev-dependencies]

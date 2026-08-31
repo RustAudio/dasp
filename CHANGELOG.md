@@ -1,5 +1,13 @@
 # Unreleased
 
+- Add packed 24-bit sample types `I24LE3`, `I24BE3`, `U24LE3` and `U24BE3` to
+  `dasp_sample::types`, corresponding to the ALSA `S24_3LE`, `S24_3BE`,
+  `U24_3LE` and `U24_3BE` formats. Unlike `I24`/`U24` these occupy exactly three
+  bytes with an alignment of one, so packed 24-bit PCM can be reinterpreted as a
+  slice of them without a copy. Out-of-range values wrap modulo 2^24.
+- Bump `dasp_sample` and `dasp_frame` to 0.11.1, and raise `dasp_frame`'s
+  requirement on `dasp_sample` to `0.11.1`, as it now references the packed
+  types by name and would not build against 0.11.0.
 - Renamed `window-hanning` to `window-hann`
 - Made `IntoInterleavedSamples` and `IntoInterleavedSamplesIterator` stop
   yielding samples when the underlying signal gets exhausted. This is a breaking
