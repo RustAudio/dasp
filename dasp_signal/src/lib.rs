@@ -57,7 +57,7 @@ use interpolate::Converter;
 pub mod interpolate;
 mod ops;
 
-#[cfg(features = "boxed")]
+#[cfg(feature = "boxed")]
 mod boxed;
 #[cfg(feature = "bus")]
 pub mod bus;
