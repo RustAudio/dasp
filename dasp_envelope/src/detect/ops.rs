@@ -7,6 +7,6 @@ pub mod f32 {
     }
     #[cfg(not(feature = "std"))]
     pub fn powf32(a: f32, b: f32) -> f32 {
-        unsafe { core::intrinsics::powf32(a, b) }
+        core::intrinsics::powf32(a, b)
     }
 }
